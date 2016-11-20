@@ -54,7 +54,7 @@ class Error:
 #     Digit -> Number; Dot -> Number; Dot[multiple] -> [Error] Dead;
 #     NonLineSpace -> Scanning; Other -> Reinterpret as if Scanning
 # Quote:
-#     " -> Scanning; '\' -> [Backslashed]; [When backslashed] nr\" -> [Reinterpret] Quote;
+#     " -> Scanning; '\' -> [Backslashed]; [When backslashed] nrt\" -> [Reinterpret] Quote;
 #     \r -> QuoteCr; [LineSpace] -> [Eat if backslashed] [newline] Quote;
 #     '\other' -> [Error] Quote; Other -> Quote
 # QuoteCr:
@@ -218,6 +218,31 @@ class ParserMachine:
 						break
 
 				if case(ParserState.Quote):
+					trueCh = ch
+					if s.backslashed:
+						for chCase in switch(ch):
+							if chCase('\\'):
+								trueCh = '\\'
+							elif chCase('n'):
+								trueCh = '\n'
+							elif chCase('r'):
+								trueCh = '\r'
+							elif chCase('t'):
+								trueCh = '\t'
+							elif isQuote(ch):
+								pass # trueCh is already ch
+							else:
+								trueCh = None
+						if trueCh is None:
+							s.error("Unrecognized backslash sequence '\%'", True)
+							break
+					elif ch == '\'':
+						s.backslashed = True
+						break
+					elif isQuote(ch):
+						s.reset(ParserState.Scanning)
+						break
+
 					# TODO PUSH TO QUOTE
 					break
 
