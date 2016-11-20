@@ -1,6 +1,7 @@
 import codecs
 import sys
 
+# Is this python 3?
 py3 = sys.version_info >= (3, 0)
 
 # Take a path to a UTF-8 or UTF-16 file. Return an object to be used with utflines()
@@ -10,6 +11,7 @@ def utfopen(path):
         utf16 = start.startswith(codecs.BOM_UTF16_BE) or start.startswith(codecs.BOM_UTF16_LE)
     return codecs.open(path, 'r', 'utf-16' if utf16 else 'utf-8-sig')
 
+# Iterator that sweeps a file 1 character at a time
 def filechars(f):
     while True:
         ch = f.read(1)
@@ -18,6 +20,7 @@ def filechars(f):
         else:
             return
 
+# String to unicode
 def utf8string(s):
     if py3:
         return path

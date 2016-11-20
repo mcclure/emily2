@@ -2,6 +2,8 @@ import optparse
 import parse
 import util
 
+# Command line frontend
+
 help  = "%prog [filename]\n"
 help += "\n"
 help += "Accepted arguments:\n"
@@ -31,7 +33,7 @@ else:
 		parser.error("Multiple files given")
 
 # TODO: Convert -e to unicode
-parse.process(
+parse.ast(
 	util.utf8string(flag('e')[0]) if flag('e') 
 		else util.filechars(util.utfopen(cmds[0]))
 	)
