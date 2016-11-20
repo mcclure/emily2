@@ -27,8 +27,8 @@ def utf8string(s):
     return codecs.decode(s, 'utf-8')
     # TODO: py3
 
-# Switch statement taken from http://code.activestate.com/recipes/410692/
-# Used under the terms of the PSF license
+# Switch statement adapted from http://code.activestate.com/recipes/410692/
+# Used under the terms of the PSF license.
 
 class switch(object):
     def __init__(self, value):
@@ -41,10 +41,7 @@ class switch(object):
     
     def match(self, *args):
         """Indicate whether or not to enter a case suite"""
-        if self.fall or not args:
-            return True
-        elif self.value in args: # changed for v1.5, see activestate
-            self.fall = True
+        if self.value in args:
             return True
         else:
             return False
