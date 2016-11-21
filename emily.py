@@ -1,6 +1,7 @@
 import optparse
 import parse
 import util
+import sys
 
 # Command line frontend
 
@@ -33,7 +34,11 @@ else:
 		parser.error("Multiple files given")
 
 # TODO: Convert -e to unicode
-parse.ast(
-	util.utf8string(flag('e')[0]) if flag('e') 
-		else util.filechars(util.utfopen(cmds[0]))
-	)
+try:
+	parse.ast(
+		util.utf8string(flag('e')[0]) if flag('e') 
+			else util.filechars(util.utfopen(cmds[0]))
+		)
+except parse.ParseException as e:
+	print >>sys.stderr, e
+	sys.exit(1)

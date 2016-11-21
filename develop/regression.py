@@ -39,9 +39,9 @@ def projectRelative( filename ):
     return os.path.normpath(os.path.join(prjroot, filename))
 
 prjroot = os.path.join( os.path.dirname(__file__), ".." )
-stddir  = "sample/test"
-stdfile = "sample/test/regression.txt"
-badfile = "sample/test/regression-known-bad.txt"
+stddir  = "test"
+stdfile = "test/regression.txt"
+badfile = "test/regression-known-bad.txt"
 
 help  = "%prog -a\n"
 help += "\n"
@@ -52,14 +52,15 @@ help += "-r [path]         # Set the project root\n"
 help += "-a          # Check all paths listed in standard " + stdfile + "\n"
 help += "-A          # Also check paths listed in " + badfile + "\n"
 help += "-v          # Print all output\n"
-help += "-i [path]   # Use custom emily interpreter\n"
-help += "-s          # Use system emily interpreter\n"
+help += "-i [path]   # Use custom emily script\n"
+help += "-p [path]   # Use custom Python\n"
+help += "--p3        # Use python3\n"
 help += "--untested  # Check repo hygiene-- list tests in sample/test not tested"
 
 parser = optparse.OptionParser(usage=help)
-for a in ["a", "A", "v", "s", "-untested"]: # Single letter args, flags
+for a in ["a", "A", "v", "-p3", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
-for a in ["f", "t", "r", "i"]: # Long args with arguments
+for a in ["f", "t", "r", "i", "p"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
 
 (options, cmds) = parser.parse_args()
@@ -112,13 +113,19 @@ if flag("untested"):
     checkTested(projectRelative(stddir)) # Check stddir tree
     sys.exit(0)
 
-stdcall = [projectRelative("install/bin/emily")]
-if flag("i") and flag("s"):
-    parser.error("Can't specify both -i and -s")
+stdpython = "python"
+stdscript = "emily.py"
+
+if flag("p") and flag("p3"):
+    parser.error("Can't specify both -p and --p3")
 if flag("i"):
-    stdcall = flag("i")
-if flag("s"):
-    stdcall = ["emily"]
+    stdscript = flag("i")
+if flag("p"):
+    stdpython = flag("p")
+elif flag("p3"):
+    stdpython = "python3"
+
+stdcall = [stdpython, stdscript]
 
 expectp = re.compile(r'# Expect(\s*failure)?(\:?)', re.I)
 linep = re.compile(r'# ?(.+)$', re.S)

@@ -3,6 +3,9 @@ import unicodedata
 
 # AST
 
+class ParseException(Exception):
+	pass
+
 class Node:
 	pass
 
@@ -69,11 +72,11 @@ class ParserState:
 	Indent, Scanning, Cr, Dot, Symbol, Number, Quote, QuoteCr, Comment = range(9)
 
 def isNonLineSpace(ch):
-	if ch == '\r' or ch == '\n':
+	if ch == '\t':
 		return True
 	return unicodedata.category(ch) == 'Zs'
 def isLineSpace(ch):
-	if ch == '\t':
+	if ch == '\r' or ch == '\n':
 		return True
 	cat = unicodedata.category(ch)
 	return cat == 'Zl' or cat == 'Zp'
@@ -103,7 +106,7 @@ class ParserMachine:
 	def appendGroup(s, inStatement = False, openedWithParenthesis = False):
 		group = ExpGroup(s.line, s.char, openedWithParenthesis)
 		if inStatement:
-			this.finalGroup().finalStatement().nodes.append( group )
+			s.finalGroup().finalStatement().nodes.append( group )
 		s.groupStack.append( group )
 
 	def reset(s, state, backslashed = False):
@@ -168,8 +171,9 @@ class ParserMachine:
 					# Indent or dedent event
 					elif finalGroup.indent != s.currentIndent:
 						# Indent event
-						if s.currentIndent.startswith(final):
+						if s.currentIndent.startswith(finalGroup.indent):
 							s.appendGroup(True)
+							s.finalGroup().indent = s.currentIndent
 
 						# Dedent event (or error)
 						else:
@@ -209,9 +213,9 @@ class ParserMachine:
 					if isDigit(ch):
 						# TODO SWITCH TO NUMBER
 						break
-					if ch == '.' or ch == '(' or ch == ')' or ch == '"':
+					if ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
 						s.error("'.' was followed by special character '%s'" % ch)
-					elif ch == '#' or isLineSpace(ch):
+					elif ch == u'#' or isLineSpace(ch):
 						s.error("Line ended with a '.'")
 					else:
 						# TODO SWITCH TO SYMBOL
@@ -221,14 +225,14 @@ class ParserMachine:
 					trueCh = ch
 					if s.backslashed:
 						for chCase in switch(ch):
-							if chCase('\\'):
-								trueCh = '\\'
+							if chCase(u'\\'):
+								trueCh = u'\\'
 							elif chCase('n'):
-								trueCh = '\n'
+								trueCh = u'\n'
 							elif chCase('r'):
-								trueCh = '\r'
+								trueCh = u'\r'
 							elif chCase('t'):
-								trueCh = '\t'
+								trueCh = u'\t'
 							elif isQuote(ch):
 								pass # trueCh is already ch
 							else:
@@ -236,7 +240,7 @@ class ParserMachine:
 						if trueCh is None:
 							s.error("Unrecognized backslash sequence '\%'", True)
 							break
-					elif ch == '\'':
+					elif ch == u'\\':
 						s.backslashed = True
 						break
 					elif isQuote(ch):
@@ -255,6 +259,9 @@ class ParserMachine:
 					break # Inside comment, don't care. DONE
 
 				# These checks are shared by: Scanning Symbol Number
+				if isNonLineSpace(ch):
+					s.reset(ParserState.Scanning)
+					break
 				if isOpenParen(ch):
 					s.appendGroup(True, True)
 					s.reset(ParserState.Scanning)
@@ -279,15 +286,15 @@ class ParserMachine:
 				if isQuote(ch):
 					s.reset(ParserState.Quote)
 					break # Have consumed ". DONE
-				if ch == ',':
+				if ch == u',':
 					s.finalGroup().appendStatement()
 					s.reset(ParserState.Scanning)
 					break # Have consumed ,. DONE
-				if ch == '#':
+				if ch == u'#':
 					s.reset(ParserState.Comment)
 					break # Have consumed #. DONE
 
-				if ch == '.' and not case(ParserState.Number): # Shared by: Scanning Symbol
+				if ch == u'.' and not case(ParserState.Number): # Shared by: Scanning Symbol
 					s.reset(ParserState.Dot)
 					break # Have consumed .. DONE
 				elif isDigit(ch):
@@ -319,5 +326,6 @@ def ast(iter):
 		output = []
 		for e in parser.errors:
 			output.append("Line %s char %s: %s" % (e.line, e.char, e.msg))
-		raise Exception("\n".join(output))
+		raise ParseException("\n".join(output))
 	return parser.finalGroup()
+

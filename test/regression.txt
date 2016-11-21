@@ -1,0 +1,8 @@
+# Tests expected to pass.
+
+parse/indent.em
+parse/fail/dot.em
+parse/fail/lparen.em
+parse/fail/parenDedent.em
+parse/fail/rparen.em
+parse/fail/startingComma.em
