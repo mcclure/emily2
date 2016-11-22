@@ -6,7 +6,7 @@ import unicodedata
 class ParseException(Exception):
 	pass
 
-class Node:
+class Node(object):
 	pass
 
 class ExpGroup(Node):
@@ -24,12 +24,44 @@ class ExpGroup(Node):
 	def appendStatement(s):
 		s.statements.append( Statement() )
 
-class Statement: # Not a node, only a helper for ExpGroup
+class StringContentExp(Node):
+	def __init__(s):
+		s.content = ''
+
+	def append(s, ch):
+		s.content += ch
+
+class SymbolExp(StringContentExp):
+	def __init__(s, isAtom = False):
+		super(SymbolExp, s).__init__()
+		s.isAtom = isAtom
+
+class QuoteExp(StringContentExp):
+	pass
+
+class NumberExp(Node):
+	def __init(s):
+		s.integer = "0"
+		s.dot = False
+		s.decimal = None
+
+	def append(s, ch):
+		if s.dot:
+			if s.decimal is None:
+				s.decimal = ''
+			s.decimal += ch
+		else:
+			s.integer += ch
+
+class Statement(object): # Not a node, only a helper for ExpGroup
 	def __init__(s):
 		s.nodes = []
 		s.dead = False
 
-class Error:
+	def finalNode(s):
+		return s.nodes[-1]
+
+class Error(object):
 	def __init__(s, line, char, msg):
 		s.line = line
 		s.char = char
@@ -103,16 +135,29 @@ class ParserMachine:
 	def finalGroup(s):
 		return s.groupStack[-1]
 
+	def finalExp(s):
+		return s.finalGroup().finalStatement().finalNode()
+
+	def appendExp(s, exp):
+		s.finalGroup().finalStatement().nodes.append( exp )
+
 	def appendGroup(s, inStatement = False, openedWithParenthesis = False):
 		group = ExpGroup(s.line, s.char, openedWithParenthesis)
 		if inStatement:
-			s.finalGroup().finalStatement().nodes.append( group )
+			s.appendExp( group )
 		s.groupStack.append( group )
 
 	def reset(s, state, backslashed = False):
 		s.parserState = state
 		s.backslashed = backslashed
 		s.currentIndent = ''
+		for case in switch(state):
+			if case(ParserState.Number):
+				s.appendExp( NumberExp() )
+			elif case(ParserState.Symbol):
+				s.appendExp( SymbolExp() )
+			elif case(ParserState.Quote):
+				s.appendExp( QuoteExp() )
 
 	def newline(s):
 		s.line += 1
@@ -209,17 +254,19 @@ class ParserMachine:
 
 				if case(ParserState.Dot):
 					if isNonLineSpace(ch):
-						break
+						break # Whitespace after dot is not interesting. DONE
 					if isDigit(ch):
-						# TODO SWITCH TO NUMBER
-						break
+						s.reset(ParserState.Number)
+						s.finalExp().dot = True
+						break # Consumed dot at start of number. DONE
 					if ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
 						s.error("'.' was followed by special character '%s'" % ch)
 					elif ch == u'#' or isLineSpace(ch):
 						s.error("Line ended with a '.'")
 					else:
-						# TODO SWITCH TO SYMBOL
-						break
+						s.reset(ParserState.Symbol)
+						s.finalExp().isAtom = True
+						break # Consumed dot at start of atom. DONE
 
 				if case(ParserState.Quote):
 					trueCh = ch
@@ -239,15 +286,15 @@ class ParserMachine:
 								trueCh = None
 						if trueCh is None:
 							s.error("Unrecognized backslash sequence '\%'", True)
-							break
+							break # Don't know what to do with this backslash, so just eat it. DONE
 					elif ch == u'\\':
 						s.backslashed = True
-						break
+						break # Consumed backslash inside string. DONE
 					elif isQuote(ch):
 						s.reset(ParserState.Scanning)
-						break
+						break # Consumed quote at end of string. DONE.
 
-					# TODO PUSH TO QUOTE
+					s.finalExp().append(trueCh)
 					break
 
 				# These checks are shared by: Scanning Symbol Number Comment
@@ -294,8 +341,15 @@ class ParserMachine:
 					s.reset(ParserState.Comment)
 					break # Have consumed #. DONE
 
-				if ch == u'.' and not case(ParserState.Number): # Shared by: Scanning Symbol
-					s.reset(ParserState.Dot)
+				if ch == u'.': # Shared by: Scanning Symbol Number
+					if case(ParserState.Number):
+						if s.finalExp().dot:
+							s.reset(ParserState.Dot) # We're starting an atom or something
+						else:
+							# FIXME: This will ridiculously require 3..function to call a function on number
+							s.finalExp().dot = True # This is a decimal in a number
+					else:
+						s.reset(ParserState.Dot)
 					break # Have consumed .. DONE
 				elif isDigit(ch):
 					if case(ParserState.Scanning):
@@ -305,12 +359,12 @@ class ParserMachine:
 						s.reset(ParserState.Symbol)
 
 				if case(ParserState.Number):
-					# TODO ADD TO NUMBER
-					break
+					s.finalExp.append(ch)
+					break # Added to number. DONE
 
 				if case(ParserState.Symbol):
-					# TODO ADD TO SYMBOL
-					break
+					s.finalExp().append(ch)
+					break # Added to symbol. DONE
 
 		# Done; unroll all groups
 		while len(s.groupStack) > 1:
