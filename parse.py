@@ -1,4 +1,4 @@
-from util import switch
+from util import switch, dynamic_switch
 import unicodedata
 
 # AST
@@ -193,7 +193,7 @@ class ParserMachine:
 		s.reset(ParserState.Indent)
 
 		for ch in iter:
-			for case in switch(s.parserState):
+			for case in dynamic_switch(s, 'parserState'):
 				s.char += 1
 
 				if case(ParserState.Cr):
@@ -224,7 +224,7 @@ class ParserMachine:
 					if finalGroup.indent is None:
 						# TODO: Detect indent-after-content error
 						finalGroup.indent = s.currentIndent
-						s.finalGroup().appendStatement()
+						# s.finalGroup().appendStatement()
 
 					# Indent or dedent event
 					elif finalGroup.indent != s.currentIndent:

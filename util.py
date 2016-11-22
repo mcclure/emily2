@@ -33,15 +33,31 @@ def utf8string(s):
 class switch(object):
     def __init__(self, value):
         self.value = value
-        self.fall = False
 
     def __iter__(self):
         """Return the match method once, then stop"""
         yield self.match
     
-    def match(self, *args):
+    def match(self, arg):
         """Indicate whether or not to enter a case suite"""
-        if self.value in args:
+        if self.value == arg:
+            return True
+        else:
+            return False
+
+# FIXME: Maybe this is not such a good thing.
+class dynamic_switch(object):
+    def __init__(self, value, key):
+        self.value = value
+        self.key = key
+
+    def __iter__(self):
+        """Return the match method once, then stop"""
+        yield self.match
+    
+    def match(self, arg):
+        """Indicate whether or not to enter a case suite"""
+        if getattr(self.value, self.key) == arg:
             return True
         else:
             return False
