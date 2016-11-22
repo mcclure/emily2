@@ -176,6 +176,10 @@ class ParserMachine:
 		s.line += 1
 		s.char = 0
 
+	def unrollTo(s, unrollIdx):
+		while len(s.groupStack) > unrollIdx:
+			s.groupStack.pop()
+
 	def handleLineSpace(s, ch):
 		if ch == '\r':
 			s.reset(ParserState.Cr)
@@ -258,8 +262,7 @@ class ParserMachine:
 
 							# Dedent
 							else:
-								while len(s.groupStack) > unrollIdx+1:
-									s.groupStack.pop()
+								s.unrollTo(unrollIdx+1)
 								s.finalGroup().appendStatement()
 
 					# If we didn't break above, we're done with the indent.
@@ -340,6 +343,8 @@ class ParserMachine:
 					# None found
 					if unrollIdx < 0:
 						s.error("Stray right parenthesis matches nothing", True)
+					else:
+						s.unrollTo(unrollIdx)
 
 					s.reset(ParserState.Scanning)
 					break # Have consumed (. DONE
@@ -383,7 +388,7 @@ class ParserMachine:
 		while len(s.groupStack) > 1:
 			group = s.finalGroup()
 			if group.openedWithParenthesis:
-				s.error("Parenthesis on line %d char %d never closed", group.line, group.char)
+				s.error("Parenthesis on line %d char %d never closed" % (group.line, group.char))
 			s.groupStack.pop()
 
 def ast(iter):
