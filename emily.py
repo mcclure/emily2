@@ -9,8 +9,11 @@ help  = "%prog [filename]\n"
 help += "\n"
 help += "Accepted arguments:\n"
 help += "-e [string]               # Instead of file, execute inline string"
+help += "--ast                     # Don't execute, dump AST"
 
 parser = optparse.OptionParser(usage=help)
+for a in ["-ast"]: # Single letter args, flags
+    parser.add_option("-"+a, action="store_true")
 for a in ["e"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
 
@@ -35,10 +38,13 @@ else:
 
 # TODO: Convert -e to unicode
 try:
-	parse.ast(
+	ast = parse.ast(
 		util.utf8string(flag('e')[0]) if flag('e') 
 			else util.filechars(util.utfopen(cmds[0]))
 		)
+
+	if flag('ast'):
+		print ast
 except parse.ParseException as e:
 	print >>sys.stderr, e
 	sys.exit(1)

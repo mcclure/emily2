@@ -24,6 +24,9 @@ class ExpGroup(Node):
 	def appendStatement(s):
 		s.statements.append( Statement() )
 
+	def __str__(s):
+		return "(%s)" % (", ".join(str(stm) for stm in s.statements))
+
 class StringContentExp(Node):
 	def __init__(s):
 		s.content = ''
@@ -36,8 +39,12 @@ class SymbolExp(StringContentExp):
 		super(SymbolExp, s).__init__()
 		s.isAtom = isAtom
 
+	def __str__(s):
+		return ("." if s.isAtom else "") + s.content
+
 class QuoteExp(StringContentExp):
-	pass
+	def __str__(s):
+		return '"%s"' % (repr(s.content)[2:-1]) # FIXME: This only works because u'' and is not python3 compatible
 
 class NumberExp(Node):
 	def __init(s):
@@ -53,6 +60,9 @@ class NumberExp(Node):
 		else:
 			s.integer += ch
 
+	def __str__(s):
+		return s.integer + ("." if s.dot else "") + (s.decimal if s.decimal is not None else "")
+
 class Statement(object): # Not a node, only a helper for ExpGroup
 	def __init__(s):
 		s.nodes = []
@@ -60,6 +70,9 @@ class Statement(object): # Not a node, only a helper for ExpGroup
 
 	def finalNode(s):
 		return s.nodes[-1]
+
+	def __str__(s):
+		return " ".join(str(stm) for stm in s.nodes)
 
 class Error(object):
 	def __init__(s, line, char, msg):
