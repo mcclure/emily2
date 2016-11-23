@@ -10,4 +10,4 @@ Or run tests:
 
 You are not currently granted any rights to the contents of this repository.
 
-— Andi McClure <andi.m.mcclure@gmail.com>
+— Andi McClure <<andi.m.mcclure@gmail.com>>
