@@ -263,8 +263,8 @@ class ParserMachine:
 
 							# Error
 							if parenthesisIssue:
-								group = s.groupStack(unrollIdx) # Redundant but ehhh
-								s.error("Indentation on this line doesn't match any since parenthesis on line %d char %d", group.line, group.char)
+								group = s.groupStack[unrollIdx] # Redundant but ehhh
+								s.error("Indentation on this line doesn't match any since parenthesis on line %d char %d" % (group.line, group.char))
 							elif unrollIdx < 0:
 								s.error("Indentation on this line doesn't match any previous one")
 
