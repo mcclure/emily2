@@ -279,18 +279,16 @@ class ParserMachine:
 				if case(ParserState.Dot):
 					if isNonLineSpace(ch):
 						break # Whitespace after dot is not interesting. DONE
-					if isDigit(ch):
+					elif isDigit(ch):
 						s.reset(ParserState.Number)
 						s.finalExp().dot = True
-						break # Consumed dot at start of number. DONE
-					if ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
+					elif ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
 						s.error("'.' was followed by special character '%s'" % ch)
 					elif ch == u'#' or isLineSpace(ch):
 						s.error("Line ended with a '.'")
 					else:
 						s.reset(ParserState.Symbol)
 						s.finalExp().isAtom = True
-						break # Consumed dot at start of atom. DONE
 
 				if case(ParserState.Quote):
 					trueCh = ch
@@ -308,6 +306,9 @@ class ParserMachine:
 								pass # trueCh is already ch
 							else:
 								trueCh = None
+
+						s.backslashed = False
+
 						if trueCh is None:
 							s.error("Unrecognized backslash sequence '\%'", True)
 							break # Don't know what to do with this backslash, so just eat it. DONE
