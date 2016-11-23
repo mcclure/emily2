@@ -207,7 +207,7 @@ class ParserMachine:
 					if i == u'\n':
 						break # If complete CRLF, DONE
 
-				if case(ParserState.Indent):
+				if case(ParserState.Indent) and not isCloseParen(ch):
 					if isNonLineSpace(ch):
 						s.currentIndent += ch
 						break # If indent continued, DONE
@@ -224,11 +224,19 @@ class ParserMachine:
 					# Line has begun! Adjust group and move into scanning state:
 					finalGroup = s.finalGroup()
 
+					# If group already contains lines
+					if finalGroup.indent == s.currentIndent:
+						if finalGroup.finalStatement().nodes:
+							finalGroup.appendStatement()
+
 					# First line of group
 					if finalGroup.indent is None:
-						# TODO: Detect indent-after-content error
 						finalGroup.indent = s.currentIndent
-						# s.finalGroup().appendStatement()
+
+						if finalGroup.finalStatement().nodes:
+							finalGroup.appendStatement()
+							# FIXME: Is this really the right thing to do?
+							s.error("Indentation after ( is ambiguous; please add a , at the end of the previous line.")
 
 					# Indent or dedent event
 					elif finalGroup.indent != s.currentIndent:
@@ -321,7 +329,7 @@ class ParserMachine:
 				if case(ParserState.Comment): # FIXME: This + linespace could go earlier?
 					break # Inside comment, don't care. DONE
 
-				# These checks are shared by: Scanning Symbol Number
+				# These checks are shared by: Scanning Symbol Number (and Indent for right parens)
 				if isNonLineSpace(ch):
 					s.reset(ParserState.Scanning)
 					break

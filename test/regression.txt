@@ -1,6 +1,8 @@
 # Tests expected to pass.
 
 parse/indent.em
+parse/ambiguousIndent.em
+parse/fail/ambiguousIndent.em
 parse/fail/dot.em
 parse/fail/lparen.em
 parse/fail/parenDedent.em
