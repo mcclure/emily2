@@ -4,10 +4,6 @@ goal.em
 # Various minor inaccuracies in number parsing
 parse/literals.em
 
-# Python unicode handling not working right yet
-parse/unicode/utf8.em
-parse/unicode/utf8-bom.em
-
-# regression.py doesn't even load these correctly
+# regression.py doesn't load these correctly
 parse/unicode/utf16le.em
 parse/unicode/utf16be.em

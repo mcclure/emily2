@@ -6,7 +6,11 @@ import unicodedata
 class ParseException(Exception):
 	pass
 
-class Node(object):
+class Printable(object):
+	def __str__(s):
+		return unicode(s).encode('utf-8')
+
+class Node(Printable):
 	pass
 
 class ExpGroup(Node):
@@ -24,12 +28,12 @@ class ExpGroup(Node):
 	def appendStatement(s):
 		s.statements.append( Statement() )
 
-	def __str__(s):
-		return "(%s)" % (", ".join(str(stm) for stm in s.statements))
+	def __unicode__(s):
+		return u"(%s)" % (u", ".join(unicode(stm) for stm in s.statements))
 
 class StringContentExp(Node):
 	def __init__(s):
-		s.content = ''
+		s.content = u''
 
 	def append(s, ch):
 		s.content += ch
@@ -39,31 +43,31 @@ class SymbolExp(StringContentExp):
 		super(SymbolExp, s).__init__()
 		s.isAtom = isAtom
 
-	def __str__(s):
-		return ("." if s.isAtom else "") + s.content
+	def __unicode__(s):
+		return (u"." if s.isAtom else u"") + s.content
 
 class QuoteExp(StringContentExp):
-	def __str__(s):
-		return '"%s"' % (repr(s.content)[2:-1]) # FIXME: This only works because u'' and is not python3 compatible
+	def __unicode__(s):
+		return u'"%s"' % (repr(s.content)[2:-1]) # FIXME: This only works because u'' and is not python3 compatible
 
 class NumberExp(Node):
 	def __init(s):
-		s.integer = "0"
+		s.integer = u"0"
 		s.dot = False
 		s.decimal = None
 
 	def append(s, ch):
 		if s.dot:
 			if s.decimal is None:
-				s.decimal = ''
+				s.decimal = u''
 			s.decimal += ch
 		else:
 			s.integer += ch
 
-	def __str__(s):
-		return s.integer + ("." if s.dot else "") + (s.decimal if s.decimal is not None else "")
+	def __unicode__(s):
+		return s.integer + (u"." if s.dot else u"") + (s.decimal if s.decimal is not None else u"")
 
-class Statement(object): # Not a node, only a helper for ExpGroup
+class Statement(Printable): # Not a node, only a helper for ExpGroup
 	def __init__(s):
 		s.nodes = []
 		s.dead = False
@@ -71,8 +75,8 @@ class Statement(object): # Not a node, only a helper for ExpGroup
 	def finalNode(s):
 		return s.nodes[-1]
 
-	def __str__(s):
-		return " ".join(str(stm) for stm in s.nodes)
+	def __unicode__(s):
+		return u" ".join(unicode(stm) for stm in s.nodes)
 
 class Error(object):
 	def __init__(s, line, char, msg):
@@ -163,7 +167,7 @@ class ParserMachine:
 	def reset(s, state, backslashed = False):
 		s.parserState = state
 		s.backslashed = backslashed
-		s.currentIndent = ''
+		s.currentIndent = u''
 		for case in switch(state):
 			if case(ParserState.Number):
 				s.appendExp( NumberExp() )
