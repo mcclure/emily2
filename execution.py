@@ -40,8 +40,8 @@ class NumberLiteralExec(Executable):
 		return u"[NumberLiteral %s]" % (s.value)
 
 class AtomLiteralExec(Executable):
-	def __init__(s, source, value):
-		super(NumberLiteralExec, s).__init__(source)
+	def __init__(s, value):
+		super(AtomLiteralExec, s).__init__()
 		s.value = value
 
 	def __unicode__(s):
