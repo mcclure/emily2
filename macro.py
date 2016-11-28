@@ -91,6 +91,9 @@ class MacroMachine(object):
 		s.checkComplete(result)
 		return result
 
+	def makeSequence(s, statements):
+		return execution.SequenceExec(False, [s.process(stm.nodes) for stm in statements])
+
 # Standard macros-- "make values"
 
 # TODO: do, if, while
@@ -131,7 +134,7 @@ standard_macros = [
 
 def exeFromAst(ast):
 	macros = MacroMachine()
-	result = macros.process([ast])
+	result = macros.makeSequence(ast.statements) # TODO test to make sure it's a group
 	if macros.errors:
 		output = []
 		for e in parser.errors:

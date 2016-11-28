@@ -12,7 +12,8 @@ class Executable(Node):
 		#s.char = char
 
 class SequenceExec(Executable):
-	def __init__(s, execs):
+	def __init__(s, shouldReturn, execs):
+		s.shouldReturn = shouldReturn
 		s.execs = execs
 
 	def __unicode__(s):
