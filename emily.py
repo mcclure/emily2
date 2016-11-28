@@ -1,5 +1,8 @@
+# Entry point / command line interface
+
 import optparse
 import parse
+import macro
 import util
 import sys
 
@@ -8,11 +11,12 @@ import sys
 help  = "%prog [filename]\n"
 help += "\n"
 help += "Accepted arguments:\n"
-help += "-e [string]               # Instead of file, execute inline string"
-help += "--ast                     # Don't execute, dump AST"
+help += "-e [string]               # Instead of file, execute inline string\n"
+help += "--ast                     # Don't execute, dump AST\n"
+help += "--ast2                    # Don't execute, run macros and dump AST"
 
 parser = optparse.OptionParser(usage=help)
-for a in ["-ast"]: # Single letter args, flags
+for a in ["-ast", "-ast2"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
 for a in ["e"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
@@ -45,6 +49,14 @@ try:
 
 	if flag('ast'):
 		print ast
+		sys.exit(0)
+	
+	ast = macro.exeFromAst(ast)
+
+	if flag('ast2'):
+		print ast
+		sys.exit(0)
+
 except parse.ParseException as e:
 	print >>sys.stderr, e
 	sys.exit(1)

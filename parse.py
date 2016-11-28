@@ -1,20 +1,18 @@
-from util import switch, dynamic_switch
+# Reader: Turns unicode string iterator into parse tree
+# FIXME: Should be named reader.py?
+
+from core import *
+from util import switch, dynamic_switch, unicodeJoin, quotedString
 import unicodedata
 
 # AST
 
-class ParseException(Exception):
-	pass
-
-class Printable(object):
-	def __str__(s):
-		return unicode(s).encode('utf-8')
-
-class Node(Printable):
+class ParseException(EmilyException):
 	pass
 
 class ExpGroup(Node):
 	def __init__(s, line=0, char=0, openedWithParenthesis=False):
+		super(ExpGroup, s).__init__()
 		s.line = line
 		s.char = char
 		s.openedWithParenthesis = openedWithParenthesis
@@ -29,10 +27,11 @@ class ExpGroup(Node):
 		s.statements.append( Statement() )
 
 	def __unicode__(s):
-		return u"(%s)" % (u", ".join(unicode(stm) for stm in s.statements))
+		return u"(%s)" % (unicodeJoin(u", ", s.statements))
 
 class StringContentExp(Node):
 	def __init__(s):
+		super(StringContentExp, s).__init__()
 		s.content = u''
 
 	def append(s, ch):
@@ -48,10 +47,11 @@ class SymbolExp(StringContentExp):
 
 class QuoteExp(StringContentExp):
 	def __unicode__(s):
-		return u'"%s"' % (repr(s.content)[2:-1]) # FIXME: This only works because u'' and is not python3 compatible
+		return quotedString(s.content)
 
 class NumberExp(Node):
 	def __init(s):
+		super(NumberExp, s).__init__()
 		s.integer = u"0"
 		s.dot = False
 		s.decimal = None
@@ -76,13 +76,7 @@ class Statement(Printable): # Not a node, only a helper for ExpGroup
 		return s.nodes[-1]
 
 	def __unicode__(s):
-		return u" ".join(unicode(stm) for stm in s.nodes)
-
-class Error(object):
-	def __init__(s, line, char, msg):
-		s.line = line
-		s.char = char
-		s.msg = msg
+		return unicodeJoin(u" ", s.nodes)
 
 # Parser
 
@@ -410,7 +404,7 @@ def ast(iter):
 	if parser.errors:
 		output = []
 		for e in parser.errors:
-			output.append("Line %s char %s: %s" % (e.line, e.char, e.msg))
-		raise ParseException("\n".join(output))
+			output.append(u"Line %s char %s: %s" % (e.line, e.char, e.msg))
+		raise ParseException(u"\n".join(output))
 	return parser.finalGroup()
 

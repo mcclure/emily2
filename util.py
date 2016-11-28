@@ -1,3 +1,5 @@
+# Misc helper functions/classes
+
 import codecs
 import sys
 
@@ -26,6 +28,12 @@ def utf8string(s):
         return path
     return codecs.decode(s, 'utf-8')
     # TODO: py3
+
+def unicodeJoin(joiner, ary):
+    return joiner.join(unicode(v) for v in ary)
+
+def quotedString(content):
+    return u'"%s"' % (repr(content)[2:-1]) # FIXME: This only works because u'' and is not python3 compatible
 
 # Switch statement adapted from http://code.activestate.com/recipes/410692/
 # Used under the terms of the PSF license.
