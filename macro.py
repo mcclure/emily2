@@ -116,7 +116,7 @@ class ValueMacro(Macro):
 					value += "."
 				if node.decimal is not None:
 					value += node.decimal
-				node = execution.NumberLiteralExec(float(values))
+				node = execution.NumberLiteralExec(float(value))
 			elif case(parse.SymbolExp):
 				if node.isAtom:
 					node = execution.AtomLiteralExec(node.content)

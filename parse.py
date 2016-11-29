@@ -50,9 +50,9 @@ class QuoteExp(StringContentExp):
 		return quotedString(s.content)
 
 class NumberExp(Node):
-	def __init(s):
+	def __init__(s):
 		super(NumberExp, s).__init__()
-		s.integer = u"0"
+		s.integer = u''
 		s.dot = False
 		s.decimal = None
 
@@ -64,8 +64,13 @@ class NumberExp(Node):
 		else:
 			s.integer += ch
 
+	def appendDot(s):
+		if s.integer == u'':
+			s.integer = '0'
+		s.dot = True
+
 	def __unicode__(s):
-		return s.integer + (u"." if s.dot else u"") + (s.decimal if s.decimal is not None else u"")
+		return '#' + s.integer + (u"." if s.dot else u"") + (s.decimal if s.decimal is not None else u"")
 
 class Statement(Printable): # Not a node, only a helper for ExpGroup
 	def __init__(s):
@@ -133,7 +138,7 @@ def isOpenParen(ch):
 def isCloseParen(ch):
 	return unicodedata.category(ch) == 'Pe'
 def isDigit(ch):
-	return ch >= ord(u'0') and ch <= ord(u'9')
+	return ord(ch) >= ord(u'0') and ord(ch) <= ord(u'9')
 
 class ParserMachine:
 	def __init__(s):
@@ -279,7 +284,7 @@ class ParserMachine:
 						break # Whitespace after dot is not interesting. DONE
 					elif isDigit(ch):
 						s.reset(ParserState.Number)
-						s.finalExp().dot = True
+						s.finalExp().appendDot()
 					elif ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
 						s.error("'.' was followed by special character '%s'" % ch)
 					elif ch == u'#' or isLineSpace(ch):
@@ -384,7 +389,7 @@ class ParserMachine:
 						s.reset(ParserState.Symbol)
 
 				if case(ParserState.Number):
-					s.finalExp.append(ch)
+					s.finalExp().append(ch)
 					break # Added to number. DONE
 
 				if case(ParserState.Symbol):

@@ -57,8 +57,8 @@ class LiteralExec(Executable):
 		super(LiteralExec, s).__init__() # source.line, source.char
 
 class StringLiteralExec(Executable):
-	def __init__(s, source, value):
-		super(StringLiteralExec, s).__init__(source)
+	def __init__(s, value):
+		super(StringLiteralExec, s).__init__()
 		s.value = value
 
 	def __unicode__(s):
@@ -68,8 +68,8 @@ class StringLiteralExec(Executable):
 		return s.value
 
 class NumberLiteralExec(Executable):
-	def __init__(s, source, value):
-		super(NumberLiteralExec, s).__init__(source)
+	def __init__(s, value):
+		super(NumberLiteralExec, s).__init__()
 		s.value = value
 
 	def __unicode__(s):
@@ -157,15 +157,25 @@ defaultScope.atoms['%'] = PythonFunctionValue(2, lambda x,y: x % y)
 
 printWrapperLastNewline = True
 def printWrapper(x):
-	if x.endswith('\n'):
+	global printWrapperLastNewline
+	if type(x) == str and x.endswith('\n'):
 		printWrapperLastNewline = True
+		sys.stdout.flush()
 	else:
 		if printWrapperLastNewline:
 			printWrapperLastNewline = False
 		else:
 			sys.stdout.write(' ')
 	sys.stdout.write( unicode(x) ) # FIXME: Unicode
-	return printWrapper
-defaultScope.atoms['print'] = PythonFunctionValue(1, printWrapper)
+	return printWrapperValue
+printWrapperValue = PythonFunctionValue(1, printWrapper)
+defaultScope.atoms['print'] = printWrapperValue
+
+def printlnWrapper(x):
+	print unicode(x)
+	return printlnWrapperValue
+printlnWrapperValue = PythonFunctionValue(1, printlnWrapper)
+defaultScope.atoms['println'] = printlnWrapperValue
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, sys.exit)
+defaultScope.atoms['ln'] = "\n"
