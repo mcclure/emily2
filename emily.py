@@ -5,6 +5,7 @@ import parse
 import macro
 import util
 import sys
+import execution
 
 # Command line frontend
 
@@ -56,6 +57,8 @@ try:
 	if flag('ast2'):
 		print ast
 		sys.exit(0)
+
+	ast.eval(execution.defaultScope)
 
 except parse.ParseException as e:
 	print >>sys.stderr, e
