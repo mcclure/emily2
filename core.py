@@ -17,11 +17,16 @@ class Printable(object):
 
 class Node(Printable):
 	# Currently the parser handles ., comma and () itself so lowest possible is 1000
-	def __init__(s, progress = ProgressBase.Parsed):
+	def __init__(s, loc, progress = ProgressBase.Parsed):
+		s.loc = loc
 		s.progress = progress
 
 class Error(object):
-	def __init__(s, line, char, msg):
+	def __init__(s, loc, msg):
+		s.loc = loc
+		s.msg = msg
+
+class Loc(object):
+	def __init__(s, line, char):
 		s.line = line
 		s.char = char
-		s.msg = msg

@@ -11,3 +11,9 @@ parse/fail/lparen.em
 parse/fail/parenDedent.em
 parse/fail/rparen.em
 parse/fail/startingComma.em
+
+macro/value.em
+
+macro/fail/setCount.em
+macro/fail/setCount2.em
+macro/fail/setInvalid.em

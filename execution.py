@@ -32,15 +32,14 @@ class ObjectValue(object):
 # Executable nodes
 
 class Executable(Node):
-	def __init__(s, immutable = False): # , line, char
-		super(Executable, s).__init__()
+	def __init__(s, loc, immutable = False): # , line, char
+		super(Executable, s).__init__(loc)
 		s.immutable = immutable
 		s.progress = ProgressBase.Executable
-		#s.line = line
-		#s.char = char
 
 class SequenceExec(Executable):
-	def __init__(s, shouldReturn, execs):
+	def __init__(s, loc, shouldReturn, execs):
+		super(SequenceExec, s).__init__(loc)
 		s.shouldReturn = shouldReturn
 		s.execs = execs
 
@@ -53,12 +52,12 @@ class SequenceExec(Executable):
 		return result if s.shouldReturn else None
 
 class LiteralExec(Executable):
-	def __init__(s, source):
-		super(LiteralExec, s).__init__() # source.line, source.char
+	def __init__(s, loc, source):
+		super(LiteralExec, s).__init__(loc) # source.line, source.char
 
 class StringLiteralExec(Executable):
-	def __init__(s, value):
-		super(StringLiteralExec, s).__init__()
+	def __init__(s, loc, value):
+		super(StringLiteralExec, s).__init__(loc)
 		s.value = value
 
 	def __unicode__(s):
@@ -68,8 +67,8 @@ class StringLiteralExec(Executable):
 		return s.value
 
 class NumberLiteralExec(Executable):
-	def __init__(s, value):
-		super(NumberLiteralExec, s).__init__()
+	def __init__(s, loc, value):
+		super(NumberLiteralExec, s).__init__(loc)
 		s.value = value
 
 	def __unicode__(s):
@@ -79,8 +78,8 @@ class NumberLiteralExec(Executable):
 		return s.value
 
 class AtomLiteralExec(Executable):
-	def __init__(s, value):
-		super(AtomLiteralExec, s).__init__()
+	def __init__(s, loc, value):
+		super(AtomLiteralExec, s).__init__(loc)
 		s.value = value
 
 	def __unicode__(s):
@@ -90,8 +89,8 @@ class AtomLiteralExec(Executable):
 		return s
 
 class IfExec(Executable):
-	def __init__(s, loop, condClause, ifClause, elseClause):
-		super(IfExec, s).__init__()
+	def __init__(s, loc, loop, condClause, ifClause, elseClause):
+		super(IfExec, s).__init__(loc)
 		s.loop = loop
 		s.condClause = condClause
 		s.ifClause = ifClause
@@ -109,8 +108,8 @@ class IfExec(Executable):
 		return None
 
 class VarExec(Executable):
-	def __init__(s, symbol, source=None):
-		super(VarExec, s).__init__()
+	def __init__(s, loc, symbol, source=None):
+		super(VarExec, s).__init__(loc)
 		s.source = source
 		s.symbol = symbol
 
@@ -121,8 +120,8 @@ class VarExec(Executable):
 		return scope.atoms[s.symbol]
 
 class SetExec(Executable):
-	def __init__(s, symbol, valueClause, source=None): # TODO: indexClauses
-		super(SetExec, s).__init__()
+	def __init__(s, loc, symbol, valueClause, source=None): # TODO: indexClauses
+		super(SetExec, s).__init__(loc)
 		s.source = source
 		s.symbol = symbol
 		s.valueClause = valueClause
@@ -135,8 +134,8 @@ class SetExec(Executable):
 		return None
 
 class ApplyExec(Executable):
-	def __init__(s, f, arg): # f for function
-		super(ApplyExec, s).__init__() # FIXME: f.location
+	def __init__(s, loc, f, arg): # f for function
+		super(ApplyExec, s).__init__(loc) # FIXME: f.location
 		s.f = f
 		s.arg = arg
 

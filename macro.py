@@ -83,16 +83,16 @@ class MacroMachine(object):
 			arg = nodes.pop(0)
 			if arg.__class__ == parse.ExpGroup:
 				for statement in arg.statements:
-					result = execution.ApplyExec(result, s.process(statement.nodes))
+					result = execution.ApplyExec(result.loc, result, s.process(statement.nodes))
 			else:
 				s.checkComplete(arg)
-				result = execution.ApplyExec(result, arg)
+				result = execution.ApplyExec(result.loc, result, arg)
 
 		s.checkComplete(result)
 		return result
 
-	def makeSequence(s, statements):
-		return execution.SequenceExec(False, [s.process(stm.nodes) for stm in statements])
+	def makeSequence(s, loc, statements):
+		return execution.SequenceExec(loc, False, [s.process(stm.nodes) for stm in statements])
 
 # Standard macros-- "make values"
 
@@ -122,7 +122,7 @@ class SetMacro(Macro):
 			raise Exception("Can't do indices yet")
 		if left[0].__class__ != parse.SymbolExp:
 			raise Exception("Variable name must be alphanumeric")
-		return ([], execution.SetExec(left[0].content, m.process(right)), [])
+		return ([], execution.SetExec(node.loc, left[0].content, m.process(right)), [])
 
 class ValueMacro(Macro):
 	def __init__(s):
@@ -134,19 +134,19 @@ class ValueMacro(Macro):
 	def apply(s, m, left, node, right):
 		for case in switch(node.__class__):
 			if case(parse.QuoteExp):
-				node = execution.StringLiteralExec(node.content)
+				node = execution.StringLiteralExec(node.loc, node.content)
 			elif case(parse.NumberExp):
 				value = node.integer
 				if node.dot:
 					value += "."
 				if node.decimal is not None:
 					value += node.decimal
-				node = execution.NumberLiteralExec(float(value))
+				node = execution.NumberLiteralExec(node.loc, float(value))
 			elif case(parse.SymbolExp):
 				if node.isAtom:
-					node = execution.AtomLiteralExec(node.content)
+					node = execution.AtomLiteralExec(node.loc, node.content)
 				else:
-					node = execution.VarExec(node.content)
+					node = execution.VarExec(node.loc, node.content)
 			else:
 				raise Exception("Shouldn't have got here")
 			
@@ -160,7 +160,7 @@ standard_macros = [
 
 def exeFromAst(ast):
 	macros = MacroMachine()
-	result = macros.makeSequence(ast.statements) # TODO test to make sure it's a group
+	result = macros.makeSequence(ast.loc, ast.statements) # TODO test to make sure it's a group
 	if macros.errors:
 		output = []
 		for e in parser.errors:

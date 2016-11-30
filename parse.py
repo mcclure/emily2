@@ -11,10 +11,8 @@ class ParseException(EmilyException):
 	pass
 
 class ExpGroup(Node):
-	def __init__(s, line=0, char=0, openedWithParenthesis=False):
-		super(ExpGroup, s).__init__()
-		s.line = line
-		s.char = char
+	def __init__(s, loc, openedWithParenthesis=False):
+		super(ExpGroup, s).__init__(loc)
 		s.openedWithParenthesis = openedWithParenthesis
 		s.statements = []
 		s.appendStatement()
@@ -30,16 +28,16 @@ class ExpGroup(Node):
 		return u"(%s)" % (unicodeJoin(u", ", s.statements))
 
 class StringContentExp(Node):
-	def __init__(s):
-		super(StringContentExp, s).__init__()
+	def __init__(s, loc):
+		super(StringContentExp, s).__init__(loc)
 		s.content = u''
 
 	def append(s, ch):
 		s.content += ch
 
 class SymbolExp(StringContentExp):
-	def __init__(s, isAtom = False):
-		super(SymbolExp, s).__init__()
+	def __init__(s, loc, isAtom = False):
+		super(SymbolExp, s).__init__(loc)
 		s.isAtom = isAtom
 
 	def __unicode__(s):
@@ -50,8 +48,8 @@ class QuoteExp(StringContentExp):
 		return quotedString(s.content)
 
 class NumberExp(Node):
-	def __init__(s):
-		super(NumberExp, s).__init__()
+	def __init__(s, loc):
+		super(NumberExp, s).__init__(loc)
 		s.integer = u''
 		s.dot = False
 		s.decimal = None
@@ -148,6 +146,9 @@ class ParserMachine:
 		s.errors = []
 		s.appendGroup()
 
+	def loc(s):
+		return Loc(s.line, s.char)
+
 	def finalGroup(s):
 		return s.groupStack[-1]
 
@@ -158,7 +159,7 @@ class ParserMachine:
 		s.finalGroup().finalStatement().nodes.append( exp )
 
 	def appendGroup(s, inStatement = False, openedWithParenthesis = False):
-		group = ExpGroup(s.line, s.char, openedWithParenthesis)
+		group = ExpGroup(s.loc(), openedWithParenthesis)
 		if inStatement:
 			s.appendExp( group )
 		s.groupStack.append( group )
@@ -169,11 +170,11 @@ class ParserMachine:
 		s.currentIndent = u''
 		for case in switch(state):
 			if case(ParserState.Number):
-				s.appendExp( NumberExp() )
+				s.appendExp( NumberExp(s.loc()) )
 			elif case(ParserState.Symbol):
-				s.appendExp( SymbolExp() )
+				s.appendExp( SymbolExp(s.loc()) )
 			elif case(ParserState.Quote):
-				s.appendExp( QuoteExp() )
+				s.appendExp( QuoteExp(s.loc()) )
 
 	def newline(s):
 		s.line += 1
@@ -191,7 +192,7 @@ class ParserMachine:
 			s.reset(ParserState.Indent)
 
 	def error(s, msg, survivable = False): # Survivable as in: Can we continue parsing syntax
-		s.errors.append(Error(s.line, s.char, msg))
+		s.errors.append(Error(s.loc(), msg))
 		if not survivable:
 			s.finalGroup().finalStatement().dead = True
 			s.reset(ParserState.Scanning)

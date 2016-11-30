@@ -1,9 +1,18 @@
 # Requires the program to actually execute
 goal.em
 
-# Various minor inaccuracies in number parsing
+# Backslashes in quotes are not printed sensibly (otherwise works)
 parse/literals.em
+
+# a=3 is treated as one token
+parse/tokenize.em
 
 # regression.py doesn't load these correctly
 parse/unicode/utf16le.em
 parse/unicode/utf16be.em
+
+# () is not implemented yet
+macro/null.em
+
+# = is implemented but does not work yet
+macro/set.em
