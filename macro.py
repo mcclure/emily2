@@ -60,7 +60,7 @@ class MacroMachine(object):
 					continue
 				for macro in level.contents:
 					if macro.match(left, at, right):
-						(left, at, right) = macro.apply(left, at, right)
+						(left, at, right) = macro.apply(s, left, at, right)
 						break
 				if at:
 					left.append(at)
@@ -98,6 +98,31 @@ class MacroMachine(object):
 
 # TODO: do, if, while
 
+def isSymbol(exp, match):
+	return exp.__class__ == parse.SymbolExp and exp.content == match
+
+class SetMacro(Macro):
+	def __init__(s):
+		super(SetMacro, s).__init__(progress = ProgressBase.Macroed + 100)
+
+	def match(s, left, node, right):
+		return isSymbol(node, '=')
+
+	def apply(s, m, left, node, right):
+		isLet = False
+		for idx in range(len(left)):
+			if isSymbol(left[idx], 'let'):
+				isLet = True
+			else:
+				break
+		left = left[idx:]
+		if len(left) == 0:
+			raise Exception("Missing name")
+		if len(left) > 1:
+			raise Exception("Can't do indices yet")
+		if left[0].__class__ != parse.SymbolExp:
+			raise Exception("Variable name must be alphanumeric")
+		return ([], execution.SetExec(left[0].content, m.process(right)), [])
 
 class ValueMacro(Macro):
 	def __init__(s):
@@ -106,7 +131,7 @@ class ValueMacro(Macro):
 	def match(s, left, node, right):
 		return node.__class__ != parse.ExpGroup
 
-	def apply(s, left, node, right):
+	def apply(s, m, left, node, right):
 		for case in switch(node.__class__):
 			if case(parse.QuoteExp):
 				node = execution.StringLiteralExec(node.content)
@@ -128,7 +153,8 @@ class ValueMacro(Macro):
 		return (left, node, right)
 
 standard_macros = [
-	# DoMacro(), IfMacro(), WhileMacro(), SetMacro(),
+	# DoMacro(), IfMacro(), WhileMacro(),
+	SetMacro(),
 	ValueMacro()
 ]
 

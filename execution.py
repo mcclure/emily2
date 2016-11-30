@@ -121,7 +121,7 @@ class VarExec(Executable):
 		return scope.atoms[s.symbol]
 
 class SetExec(Executable):
-	def __init__(s, symbol, valueClause, source=None):
+	def __init__(s, symbol, valueClause, source=None): # TODO: indexClauses
 		super(SetExec, s).__init__()
 		s.source = source
 		s.symbol = symbol
