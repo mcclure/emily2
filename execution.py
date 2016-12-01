@@ -186,6 +186,11 @@ defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
 defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBool(bool(x) != bool(y)))
 defaultScope.atoms['eq'] = PythonFunctionValue(2, lambda x,y: toBool(x == y))
 defaultScope.atoms['ne'] = PythonFunctionValue(2, lambda x,y: toBool(x != y))
+defaultScope.atoms['lt']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
+defaultScope.atoms['lte'] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
+defaultScope.atoms['gt']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
+defaultScope.atoms['gte'] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
+defaultScope.atoms['null'] = None
 
 printWrapperLastNewline = True
 def printWrapper(x):

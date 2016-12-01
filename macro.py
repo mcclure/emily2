@@ -160,6 +160,44 @@ class SetMacro(Macro):
 			return Error(left[0].loc, "Variable name must be alphanumeric")
 		return ([], execution.SetExec(node.loc, isLet, left[0].content, m.process(right)), [])
 
+
+class DoMacro(Macro):
+	def __init__(s):
+		super(DoMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+
+	def match(s, left, node, right):
+		return isSymbol(node, 'do')
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, "Emptiness after \"do\"")
+		seq = right.pop(0)
+		if seq.__class__ != parse.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"do\"")
+		return (left, m.makeSequence(seq.loc, seq.statements, True), right)
+
+class IfMacro(Macro):
+	def __init__(s, loop):
+		super(IfMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+		s.loop = loop
+
+	def symbol(s):
+		return "while" if s.loop else "if"
+
+	def match(s, left, node, right):
+		return isSymbol(node, s.symbol())
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, "Emptiness after \"%s\"" % (s.symbol()))
+		cond = right.pop(0)
+		if not right:
+			return Error(node.loc, "Emptiness after \"%s (condition)\"" % (s.symbol()))
+		seq = right.pop(0)
+		if seq.__class__ != parse.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"%s (condition)\"" % (s.symbol()))
+		return (left, execution.IfExec(node.loc, s.loop, m.process([cond]), m.makeSequence(seq.loc, seq.statements, not s.loop), None), right)
+
 class ValueMacro(Macro):
 	def __init__(s):
 		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
@@ -189,23 +227,8 @@ class ValueMacro(Macro):
 			
 		return (left, node, right)
 
-class DoMacro(Macro):
-	def __init__(s):
-		super(DoMacro, s).__init__(progress = ProgressBase.Macroed + 100)
-
-	def match(s, left, node, right):
-		return isSymbol(node, 'do')
-
-	def apply(s, m, left, node, right):
-		if not right:
-			return Error(node.loc, "Emptiness after \"do\"")
-		seq = right.pop(0)
-		if seq.__class__ != parse.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"do\"")
-		return (left, m.makeSequence(seq.loc, seq.statements, True), right)
-
 standard_macros = [
-	DoMacro(), #IfMacro(), WhileMacro(),
+	DoMacro(), IfMacro(False), IfMacro(True),
 	SetMacro(),
 	ValueMacro()
 ]
