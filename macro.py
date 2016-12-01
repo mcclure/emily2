@@ -126,8 +126,8 @@ class MacroMachine(object):
 	def makeUnit(s, grp):
 		return execution.NullLiteralExec(grp.loc)
 
-	def makeSequence(s, loc, statements):
-		return execution.SequenceExec(loc, False, [s.process(stm.nodes) for stm in statements])
+	def makeSequence(s, loc, statements, shouldReturn = False):
+		return execution.SequenceExec(loc, shouldReturn, [s.process(stm.nodes) for stm in statements])
 
 # Standard macros-- "make values"
 
@@ -185,12 +185,27 @@ class ValueMacro(Macro):
 				else:
 					node = execution.VarExec(node.loc, node.content)
 			else:
-				return s.errorAt(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (node.__class__.__name__))
+				return Error(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (node.__class__.__name__))
 			
 		return (left, node, right)
 
+class DoMacro(Macro):
+	def __init__(s):
+		super(DoMacro, s).__init__(progress = ProgressBase.Macroed + 100)
+
+	def match(s, left, node, right):
+		return isSymbol(node, 'do')
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, "Emptiness after \"do\"")
+		seq = right.pop(0)
+		if seq.__class__ != parse.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"do\"")
+		return (left, m.makeSequence(seq.loc, seq.statements, True), right)
+
 standard_macros = [
-	# DoMacro(), IfMacro(), WhileMacro(),
+	DoMacro(), #IfMacro(), WhileMacro(),
 	SetMacro(),
 	ValueMacro()
 ]
