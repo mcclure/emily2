@@ -69,6 +69,7 @@ class MacroMachine(object):
 				while right:
 					at = right.pop(0)
 					if at.progress > level.progress:
+						left.append(at)
 						continue
 					for macro in level.contents:
 						if macro.match(left, at, right):
@@ -157,7 +158,7 @@ class SetMacro(Macro):
 			return Error(left[1].loc, "\"=\" can't do indices yet")
 		if left[0].__class__ != parse.SymbolExp:
 			return Error(left[0].loc, "Variable name must be alphanumeric")
-		return ([], execution.SetExec(node.loc, left[0].content, m.process(right)), [])
+		return ([], execution.SetExec(node.loc, isLet, left[0].content, m.process(right)), [])
 
 class ValueMacro(Macro):
 	def __init__(s):

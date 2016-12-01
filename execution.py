@@ -140,14 +140,15 @@ class VarExec(Executable):
 		return scope.atoms[s.symbol]
 
 class SetExec(Executable):
-	def __init__(s, loc, symbol, valueClause, source=None): # TODO: indexClauses
+	def __init__(s, loc, isLet, symbol, valueClause, source=None): # TODO: indexClauses
 		super(SetExec, s).__init__(loc)
+		s.isLet = isLet
 		s.source = source
 		s.symbol = symbol
 		s.valueClause = valueClause
 
 	def __unicode__(s):
-		return u"[Set %s %s]" % (s.symbol, unicode(s.valueClause))
+		return u"[%s %s %s]" % ("Let" if s.isLet else "Set", s.symbol, unicode(s.valueClause))
 
 	def eval(s, scope):
 		scope.atoms[s.symbol] = s.valueClause.eval(scope)
