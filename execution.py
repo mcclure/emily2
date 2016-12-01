@@ -121,10 +121,14 @@ class IfExec(Executable):
 			unicodeJoin(u" ", [s.condClause, s.ifClause] + ([s.elseClause] if s.elseClause else [])))
 
 	def eval(s, scope):
-		if s.condClause.eval(scope):
-			return s.ifClause.eval(scope)
-		if s.elseClause:
-			return s.elseClause.eval(scope)
+		if not s.loop:
+			if s.condClause.eval(scope):
+				return s.ifClause.eval(scope)
+			if s.elseClause:
+				return s.elseClause.eval(scope)
+		else:
+			while s.condClause.eval(scope):
+				s.ifClause.eval(scope)
 		return None
 
 class VarExec(Executable):
