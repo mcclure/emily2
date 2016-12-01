@@ -1,6 +1,6 @@
 # Goal for pass 1 is to execute this
 
-# Expect: 3628800
+# Expect: 3628800.0
 
 let x = 10
 let y = 1

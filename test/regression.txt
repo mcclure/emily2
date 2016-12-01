@@ -13,7 +13,10 @@ parse/fail/rparen.em
 parse/fail/startingComma.em
 
 macro/value.em
+macro/set.em
 
 macro/fail/setCount.em
 macro/fail/setCount2.em
 macro/fail/setInvalid.em
+
+goal.em

@@ -1,6 +1,3 @@
-# Requires the program to actually execute
-goal.em
-
 # Backslashes in quotes are not printed sensibly (otherwise works)
 parse/literals.em
 
@@ -14,5 +11,3 @@ parse/unicode/utf16be.em
 # () is not implemented yet
 macro/null.em
 
-# = is implemented but does not work yet
-macro/set.em
