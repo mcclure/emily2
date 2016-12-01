@@ -188,12 +188,12 @@ defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBool(not x))
 defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBool(x and y))
 defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
 defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBool(bool(x) != bool(y)))
-defaultScope.atoms['eq'] = PythonFunctionValue(2, lambda x,y: toBool(x == y))
-defaultScope.atoms['ne'] = PythonFunctionValue(2, lambda x,y: toBool(x != y))
-defaultScope.atoms['lt']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
-defaultScope.atoms['lte'] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
-defaultScope.atoms['gt']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
-defaultScope.atoms['gte'] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
+defaultScope.atoms['=='] = PythonFunctionValue(2, lambda x,y: toBool(x == y))
+defaultScope.atoms['!='] = PythonFunctionValue(2, lambda x,y: toBool(x != y))
+defaultScope.atoms['<']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
+defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
+defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
+defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['null'] = None
 
 printWrapperLastNewline = True

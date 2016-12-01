@@ -5,7 +5,7 @@
 let x = 10
 let y = 1
 
-while (gt x 0)
+while (> x 0)
 	y =
 		* y x
 	x =
