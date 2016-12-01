@@ -175,6 +175,18 @@ defaultScope.atoms['*'] = PythonFunctionValue(2, lambda x,y: x * y)
 defaultScope.atoms['/'] = PythonFunctionValue(2, lambda x,y: x / y)
 defaultScope.atoms['%'] = PythonFunctionValue(2, lambda x,y: x % y)
 
+def toBool(x):
+	return 1 if x else None
+defaultScope.atoms['bool'] = PythonFunctionValue(1, toBool)
+defaultScope.atoms['number'] = PythonFunctionValue(1, lambda x: float(x))
+defaultScope.atoms['string'] = PythonFunctionValue(1, lambda x: str(x))
+defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBool(not x))
+defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBool(x and y))
+defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
+defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBool(bool(x) != bool(y)))
+defaultScope.atoms['eq'] = PythonFunctionValue(2, lambda x,y: toBool(x == y))
+defaultScope.atoms['ne'] = PythonFunctionValue(2, lambda x,y: toBool(x != y))
+
 printWrapperLastNewline = True
 def printWrapper(x):
 	global printWrapperLastNewline
