@@ -21,6 +21,10 @@ class MacroLevel(object):
 		s.progress = progress
 		s.contents = contents
 
+class MacroShortCircuit(Exception):
+	def __init__(s, error):
+		s.error = error
+
 class MacroMachine(object):
 	def __init__(s):
 		s.errors = []
@@ -48,48 +52,78 @@ class MacroMachine(object):
 
 	def checkComplete(s, node):
 		if node.progress < ProgressBase.Executable:
-			raise Exception("Internal error: Macro processing completed but this node is unfinished")
+			return s.errorAt(node, "Internal error: Macro processing completed but this node is unfinished")
+		return None
+
+	def errorAt(s, loc, msg):
+		s.errors.append( Error(loc, msg) )
+		return execution.InvalidExec(loc)
 
 	def process(s, nodes):
-		for level in s.macros:
-			left = []
-			right = nodes
-			while right:
-				at = right.pop(0)
-				if at.progress > level.progress:
-					continue
-				for macro in level.contents:
-					if macro.match(left, at, right):
-						(left, at, right) = macro.apply(s, left, at, right)
-						break
-				if at:
-					left.append(at)
-			nodes = left
+		if not nodes:
+			raise Exception("Internal error: macro process() cannot work on an empty list")
+		try:
+			for level in s.macros:
+				left = []
+				right = nodes
+				while right:
+					at = right.pop(0)
+					if at.progress > level.progress:
+						continue
+					for macro in level.contents:
+						if macro.match(left, at, right):
+							result = macro.apply(s, left, at, right)
+							# TODO: Catch exceptions
+							if type(result) == Error:
+								raise MacroShortCircuit(result)
+							else:
+								(left, at, right) = result
+							break
+					if at:
+						left.append(at)
+				nodes = left
+		except MacroShortCircuit as e:
+			return s.errorAt( e.error.loc, e.error.msg )
 
 		if not nodes:
-			raise Exception("UNIMPLEMENTED") # TODO: Return null
+			# at is known non-None because otherwise we would have failed earlier
+			return s.errorAt(at.loc, "Macro malfunctioned and produced an empty list")
 		if nodes[0].__class__ == parse.ExpGroup:
 			if not nodes[0].statements:
-				raise Exception("Not understood: Line started with a ().")
+				result = s.makeUnit(nodes[0])
 			elif len(nodes[0].statements) > 1:
-				raise Exception("Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+				return s.errorAt(nodes[0].loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
 			else:
 				result = s.process(nodes.pop(0).statements[0].nodes) # FIXME: Hold on, what's line/char in this case?
 		else:
 			result = nodes.pop(0)
-			s.checkComplete(result)
+			completenessError = s.checkComplete(result)
+			if completenessError:
+				return completenessError
 
 		while nodes:
 			arg = nodes.pop(0)
 			if arg.__class__ == parse.ExpGroup:
-				for statement in arg.statements:
-					result = execution.ApplyExec(result.loc, result, s.process(statement.nodes))
+				if len(arg.statements) == 1 and not arg.statements[0].nodes:
+					return s.makeUnit(arg)
+				else:
+					idx = 0
+					for statement in arg.statements:
+						idx += 1
+						if not statement.nodes:
+							return s.errorAt(arg.loc, "Argument #%s to function is blank" % (idx))
+						result = execution.ApplyExec(result.loc, result, s.process(statement.nodes))
 			else:
-				s.checkComplete(arg)
+				completenessError = s.checkComplete(arg)
+				if completenessError:
+					return completenessError
 				result = execution.ApplyExec(result.loc, result, arg)
 
 		s.checkComplete(result)
 		return result
+
+	def makeUnit(s, grp):
+		return execution.NullLiteralExec(grp.loc)
 
 	def makeSequence(s, loc, statements):
 		return execution.SequenceExec(loc, False, [s.process(stm.nodes) for stm in statements])
@@ -115,13 +149,14 @@ class SetMacro(Macro):
 				isLet = True
 			else:
 				break
-		left = left[idx:]
+		if left:
+			left = left[idx:]
 		if len(left) == 0:
-			raise Exception("Missing name")
+			return Error(node.loc, "Missing name")
 		if len(left) > 1:
-			raise Exception("Can't do indices yet")
+			return Error(left[1].loc, "\"=\" can't do indices yet")
 		if left[0].__class__ != parse.SymbolExp:
-			raise Exception("Variable name must be alphanumeric")
+			return Error(left[0].loc, "Variable name must be alphanumeric")
 		return ([], execution.SetExec(node.loc, left[0].content, m.process(right)), [])
 
 class ValueMacro(Macro):
@@ -129,7 +164,8 @@ class ValueMacro(Macro):
 		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
 
 	def match(s, left, node, right):
-		return node.__class__ != parse.ExpGroup
+		c = node.__class__
+		return c == parse.QuoteExp or c == parse.NumberExp or c == parse.SymbolExp
 
 	def apply(s, m, left, node, right):
 		for case in switch(node.__class__):
@@ -148,7 +184,7 @@ class ValueMacro(Macro):
 				else:
 					node = execution.VarExec(node.loc, node.content)
 			else:
-				raise Exception("Shouldn't have got here")
+				return s.errorAt(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (node.__class__.__name__))
 			
 		return (left, node, right)
 
@@ -163,7 +199,7 @@ def exeFromAst(ast):
 	result = macros.makeSequence(ast.loc, ast.statements) # TODO test to make sure it's a group
 	if macros.errors:
 		output = []
-		for e in parser.errors:
-			output.append("Line %s char %s: %s" % (e.line, e.char, e.msg))
+		for e in macros.errors:
+			output.append("Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
 		raise MacroException("\n".join(output))
 	return result

@@ -60,6 +60,6 @@ try:
 
 	ast.eval(execution.defaultScope)
 
-except parse.ParseException as e:
+except parse.EmilyException as e:
 	print >>sys.stderr, e
 	sys.exit(1)

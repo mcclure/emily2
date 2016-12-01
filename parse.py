@@ -268,7 +268,7 @@ class ParserMachine:
 							# Error
 							if parenthesisIssue:
 								group = s.groupStack[unrollIdx] # Redundant but ehhh
-								s.error("Indentation on this line doesn't match any since parenthesis on line %d char %d" % (group.line, group.char))
+								s.error("Indentation on this line doesn't match any since parenthesis on line %d char %d" % (group.loc.line, group.loc.char))
 							elif unrollIdx < 0:
 								s.error("Indentation on this line doesn't match any previous one")
 
@@ -401,7 +401,7 @@ class ParserMachine:
 		while len(s.groupStack) > 1:
 			group = s.finalGroup()
 			if group.openedWithParenthesis:
-				s.error("Parenthesis on line %d char %d never closed" % (group.line, group.char))
+				s.error("Parenthesis on line %d char %d never closed" % (group.loc.line, group.loc.char))
 			s.groupStack.pop()
 
 def ast(iter):
@@ -410,7 +410,7 @@ def ast(iter):
 	if parser.errors:
 		output = []
 		for e in parser.errors:
-			output.append(u"Line %s char %s: %s" % (e.line, e.char, e.msg))
+			output.append(u"Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
 		raise ParseException(u"\n".join(output))
 	return parser.finalGroup()
 

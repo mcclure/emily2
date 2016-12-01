@@ -4,3 +4,4 @@
 # Expect: TODO
 
 a ()
+() b

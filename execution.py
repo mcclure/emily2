@@ -37,6 +37,16 @@ class Executable(Node):
 		s.immutable = immutable
 		s.progress = ProgressBase.Executable
 
+class InvalidExec(Executable):
+	def __init__(s, loc):
+		super(InvalidExec, s).__init__(loc)
+		
+	def __unicode__(s):
+		return u"[Invalid node]" % (unicodeJoin(u" ", s.execs))
+
+	def eval(s, scope):
+		raise Exception("Cannot evaluate invalid program")
+
 class SequenceExec(Executable):
 	def __init__(s, loc, shouldReturn, execs):
 		super(SequenceExec, s).__init__(loc)
@@ -87,6 +97,16 @@ class AtomLiteralExec(Executable):
 
 	def eval(s, scope):
 		return s
+
+class NullLiteralExec(Executable):
+	def __init__(s, loc):
+		super(NullLiteralExec, s).__init__(loc)
+
+	def __unicode__(s):
+		return u"[NullLiteral]"
+
+	def eval(s, scope):
+		return None
 
 class IfExec(Executable):
 	def __init__(s, loc, loop, condClause, ifClause, elseClause):
