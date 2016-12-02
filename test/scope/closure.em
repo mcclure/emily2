@@ -1,13 +1,13 @@
 let generator = function (x)
-	let counter = 0
+	let counter = x
 	let generated = function (x)
 		counter =
 			+ counter x
 		counter
 	generated
 
-one = generator()
-two = generator()
+let one = generator 0
+let two = generator 100
 
 println
 	one 1

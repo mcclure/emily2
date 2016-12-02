@@ -44,12 +44,20 @@ class ObjectValue(object):
 		s.atoms = {}
 		s.parent = parent
 
-	def lookup(s, value): # Already sanitized for atom correctness
-		if value in s.atoms:
-			return s.atoms[value]
+	def lookup(s, key): # Already sanitized for atom correctness
+		if key in s.atoms:
+			return s.atoms[key]
 		if s.parent:
-			return s.parent.lookup(value)
-		raise Exception("Object lacks key %s" % (value))
+			return s.parent.lookup(key)
+		raise Exception("Object lacks key %s" % (key))
+
+	def assign(s, isLet, key, value):
+		if isLet or key in s.atoms:
+			s.atoms[key] = value
+		elif s.parent:
+			s.parent.assign(isLet, key, value)
+		else:
+			raise Exception("Object lacks key %s being set" % (key))
 
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
@@ -186,7 +194,7 @@ class SetExec(Executable):
 		return u"[%s %s %s]" % ("Let" if s.isLet else "Set", s.symbol, unicode(s.valueClause))
 
 	def eval(s, scope):
-		scope.atoms[s.symbol] = s.valueClause.eval(scope)
+		scope.assign(s.isLet, s.symbol, s.valueClause.eval(scope))
 		return None
 
 class ApplyExec(Executable):
