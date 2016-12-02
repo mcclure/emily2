@@ -42,6 +42,9 @@ else:
 		parser.error("Multiple files given")
 
 # TODO: Convert -e to unicode
+
+sys.setrecursionlimit(10000)
+
 try:
 	ast = parse.ast(
 		util.utf8string(flag('e')[0]) if flag('e') 
