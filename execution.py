@@ -20,6 +20,25 @@ class PythonFunctionValue(object):
 			return s.fn(*newArgs)
 		return PythonFunctionValue(s.argCount, s.fn, newArgs)
 
+# TODO: Can any code be shared with PythonFunctionValue?
+class FunctionValue(object):
+	def __init__(s, args, exe, scope, startingArgs = []): # Takes ownership of startingArgs
+		s.args = args
+		s.exe = exe
+		s.scope = scope
+		s.startingArgs = startingArgs
+
+	def apply(s, value):
+		if not s.args:
+			return s.exe.eval(s.scope)
+		newArgs = s.args + [value]
+		if len(newArgs) >= len(s.args):
+			scope = ObjectValue(s.scope)
+			for idx in range(len(s.args)):
+				scope.atoms[s.args[idx]] = newArgs[idx]
+			return s.exe.eval(scope)
+		return FunctionValue(s.args, s.exe, s.scope, newArgs)
+
 class ObjectValue(object):
 	def __init__(s, parent=None):
 		s.atoms = {}
@@ -184,13 +203,15 @@ class ApplyExec(Executable):
 
 class MakeFuncExec(Executable):
 	def __init__(s, loc, args, body): # f for function
-		super(ApplyExec, s).__init__(loc) # FIXME: f.location
+		super(MakeFuncExec, s).__init__(loc) # FIXME: f.location
 		s.args = args
 		s.body = body
 
 	def __unicode__(s):
 		return u"[Function [%s] %s" % (unicodeJoin(u" ", BLEARGH))
 
+	def eval(s, scope):
+		return FunctionValue(s.args, s.body, scope)
 
 # Base scope
 

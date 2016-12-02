@@ -216,7 +216,7 @@ class FunctionMacro(Macro):
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s\"" % (name))
 		args = right.pop(0)
-		if seq.__class__ != parse.ExpGroup:
+		if args.__class__ != parse.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s\"" % (name))
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s (args)\"" % (name))
@@ -227,9 +227,9 @@ class FunctionMacro(Macro):
 		for stm in seq.statements:
 			if not stm:
 				return Error(node.loc, "Arg #%d on %s is blank" % (len(args)+1, name))
-			if stm[0].__class__ != parse.SymbolExp:
+			if stm.nodes[0].__class__ != parse.SymbolExp:
 				return Error(node.loc, "Arg #%d on %s is not a symbol" % (len(args)+1, name))
-			args.append(stm[0].content)
+			args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
 class ValueMacro(Macro):
@@ -262,7 +262,7 @@ class ValueMacro(Macro):
 		return (left, node, right)
 
 standard_macros = [
-	DoMacro(), IfMacro(False), IfMacro(True),
+	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(),
 	SetMacro(),
 	ValueMacro()
 ]
