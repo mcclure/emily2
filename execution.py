@@ -21,13 +21,21 @@ class PythonFunctionValue(object):
 		return PythonFunctionValue(s.argCount, s.fn, newArgs)
 
 class ObjectValue(object):
-	def __init__(s):
+	def __init__(s, parent=None):
 		s.atoms = {}
+		s.parent = parent
 
-	def apply(s, value):
-		if type(value) != AtomLiteralExec:
+	def lookup(s, value): # Already sanitized for atom correctness
+		if value in s.atoms:
+			return s.atoms[value]
+		if s.parent:
+			return s.parent.lookup(value)
+		raise Exception("Object lacks key %s" % (value))
+
+	def apply(s, key):
+		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
-		return s.atoms[value.value] # FIXME throw
+		return s.lookup(key.value)
 
 # Executable nodes
 
@@ -59,6 +67,8 @@ class SequenceExec(Executable):
 		return u"[Sequence%s %s]" % (("(%s)"%u", ".join(tags)) if tags else "", unicodeJoin(u" ", s.execs))
 
 	def eval(s, scope):
+		if s.hasScope:
+			scope = ObjectValue(scope)
 		for exe in s.execs:
 			result = exe.eval(scope)
 		return result if s.shouldReturn else None
@@ -143,7 +153,7 @@ class VarExec(Executable):
 		return u"[Var %s]" % (s.symbol)
 
 	def eval(s, scope):
-		return scope.atoms[s.symbol]
+		return scope.lookup(s.symbol)
 
 class SetExec(Executable):
 	def __init__(s, loc, isLet, symbol, valueClause, source=None): # TODO: indexClauses
