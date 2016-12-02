@@ -22,22 +22,22 @@ class PythonFunctionValue(object):
 
 # TODO: Can any code be shared with PythonFunctionValue?
 class FunctionValue(object):
-	def __init__(s, args, exe, scope, startingArgs = []): # Takes ownership of startingArgs
-		s.args = args
+	def __init__(s, argNames, exe, scope, startingArgs = []): # Takes ownership of startingArgs
+		s.argNames = argNames
 		s.exe = exe
 		s.scope = scope
-		s.startingArgs = startingArgs
+		s.args = startingArgs
 
 	def apply(s, value):
-		if not s.args:
+		if not s.argNames:
 			return s.exe.eval(s.scope)
 		newArgs = s.args + [value]
-		if len(newArgs) >= len(s.args):
+		if len(newArgs) >= len(s.argNames):
 			scope = ObjectValue(s.scope)
-			for idx in range(len(s.args)):
-				scope.atoms[s.args[idx]] = newArgs[idx]
+			for idx in range(len(s.argNames)):
+				scope.atoms[s.argNames[idx]] = newArgs[idx]
 			return s.exe.eval(scope)
-		return FunctionValue(s.args, s.exe, s.scope, newArgs)
+		return FunctionValue(s.argNames, s.exe, s.scope, newArgs)
 
 class ObjectValue(object):
 	def __init__(s, parent=None):
@@ -208,7 +208,7 @@ class MakeFuncExec(Executable):
 		s.body = body
 
 	def __unicode__(s):
-		return u"[Function [%s] %s" % (unicodeJoin(u" ", BLEARGH))
+		return u"[Function [%s] %s" % (u", ".join(s.args), unicode(s.body))
 
 	def eval(s, scope):
 		return FunctionValue(s.args, s.body, scope)

@@ -215,8 +215,8 @@ class FunctionMacro(Macro):
 		name = node.content
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s\"" % (name))
-		args = right.pop(0)
-		if args.__class__ != parse.ExpGroup:
+		argSymbols = right.pop(0)
+		if argSymbols.__class__ != parse.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s\"" % (name))
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s (args)\"" % (name))
@@ -224,8 +224,8 @@ class FunctionMacro(Macro):
 		if seq.__class__ != parse.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s (args)\"" % (name))
 		args = []
-		for stm in seq.statements:
-			if not stm:
+		for stm in argSymbols.statements:
+			if not stm.nodes:
 				return Error(node.loc, "Arg #%d on %s is blank" % (len(args)+1, name))
 			if stm.nodes[0].__class__ != parse.SymbolExp:
 				return Error(node.loc, "Arg #%d on %s is not a symbol" % (len(args)+1, name))
