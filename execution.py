@@ -48,13 +48,15 @@ class InvalidExec(Executable):
 		raise Exception("Cannot evaluate invalid program")
 
 class SequenceExec(Executable):
-	def __init__(s, loc, shouldReturn, execs):
+	def __init__(s, loc, shouldReturn, hasScope, execs):
 		super(SequenceExec, s).__init__(loc)
 		s.shouldReturn = shouldReturn
+		s.hasScope = hasScope
 		s.execs = execs
 
 	def __unicode__(s):
-		return u"[Sequence %s]" % (unicodeJoin(u" ", s.execs))
+		tags = (["Scoped"] if s.hasScope else []) + (["Returning"] if s.shouldReturn else [])
+		return u"[Sequence%s %s]" % (("(%s)"%u", ".join(tags)) if tags else "", unicodeJoin(u" ", s.execs))
 
 	def eval(s, scope):
 		for exe in s.execs:
@@ -169,6 +171,16 @@ class ApplyExec(Executable):
 
 	def eval(s, scope):
 		return s.f.eval(scope).apply(s.arg.eval(scope))
+
+class MakeFuncExec(Executable):
+	def __init__(s, loc, args, body): # f for function
+		super(ApplyExec, s).__init__(loc) # FIXME: f.location
+		s.args = args
+		s.body = body
+
+	def __unicode__(s):
+		return u"[Function [%s] %s" % (unicodeJoin(u" ", BLEARGH))
+
 
 # Base scope
 

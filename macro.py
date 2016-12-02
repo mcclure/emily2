@@ -127,7 +127,13 @@ class MacroMachine(object):
 		return execution.NullLiteralExec(grp.loc)
 
 	def makeSequence(s, loc, statements, shouldReturn = False):
-		return execution.SequenceExec(loc, shouldReturn, [s.process(stm.nodes) for stm in statements])
+		execs = [s.process(stm.nodes) for stm in statements]
+		hasLets = False
+		for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
+			if exe.__class__ == execution.SetExec and exe.isLet:
+				hasLets = True
+				break
+		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
 
 # Standard macros-- "make values"
 
@@ -197,6 +203,34 @@ class IfMacro(Macro):
 		if seq.__class__ != parse.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s (condition)\"" % (s.symbol()))
 		return (left, execution.IfExec(node.loc, s.loop, m.process([cond]), m.makeSequence(seq.loc, seq.statements, not s.loop), None), right)
+
+class FunctionMacro(Macro):
+	def __init__(s):
+		super(FunctionMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+
+	def match(s, left, node, right):
+		return isSymbol(node, "function") or isSymbol(node, "func")
+
+	def apply(s, m, left, node, right):
+		name = node.content
+		if not right:
+			return Error(node.loc, "Emptiness after \"%s\"" % (name))
+		args = right.pop(0)
+		if seq.__class__ != parse.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"%s\"" % (name))
+		if not right:
+			return Error(node.loc, "Emptiness after \"%s (args)\"" % (name))
+		seq = right.pop(0)
+		if seq.__class__ != parse.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"%s (args)\"" % (name))
+		args = []
+		for stm in seq.statements:
+			if not stm:
+				return Error(node.loc, "Arg #%d on %s is blank" % (len(args)+1, name))
+			if stm[0].__class__ != parse.SymbolExp:
+				return Error(node.loc, "Arg #%d on %s is not a symbol" % (len(args)+1, name))
+			args.append(stm[0].content)
+		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
 class ValueMacro(Macro):
 	def __init__(s):
