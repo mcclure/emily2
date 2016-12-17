@@ -1,11 +1,11 @@
-# Transformations applied to parse tree to gradually make it executable
+# Parser: Transformations ("macros") applied to parse tree to gradually make it executable
 
 from core import *
 from util import switch
-import parse
+import reader
 import execution
 
-class MacroException(EmilyException):
+class ParserException(EmilyException):
 	pass
 
 # Standard macros-- "ast"
@@ -25,7 +25,7 @@ class MacroShortCircuit(Exception):
 	def __init__(s, error):
 		s.error = error
 
-class MacroMachine(object):
+class Parser(object):
 	def __init__(s):
 		s.errors = []
 		s.macros = []
@@ -89,7 +89,7 @@ class MacroMachine(object):
 		if not nodes:
 			# at is known non-None because otherwise we would have failed earlier
 			return s.errorAt(at.loc, "Macro malfunctioned and produced an empty list")
-		if nodes[0].__class__ == parse.ExpGroup:
+		if nodes[0].__class__ == reader.ExpGroup:
 			if not nodes[0].statements:
 				result = s.makeUnit(nodes[0])
 			elif len(nodes[0].statements) > 1:
@@ -104,7 +104,7 @@ class MacroMachine(object):
 
 		while nodes:
 			arg = nodes.pop(0)
-			if arg.__class__ == parse.ExpGroup:
+			if arg.__class__ == reader.ExpGroup:
 				if len(arg.statements) == 1 and not arg.statements[0].nodes:
 					return s.makeUnit(arg)
 				else:
@@ -140,7 +140,7 @@ class MacroMachine(object):
 # TODO: do, if, while
 
 def isSymbol(exp, match):
-	return exp.__class__ == parse.SymbolExp and exp.content == match
+	return exp.__class__ == reader.SymbolExp and exp.content == match
 
 class SetMacro(Macro):
 	def __init__(s):
@@ -162,7 +162,7 @@ class SetMacro(Macro):
 			return Error(node.loc, "Missing name")
 		if len(left) > 1:
 			return Error(left[1].loc, "\"=\" can't do indices yet")
-		if left[0].__class__ != parse.SymbolExp:
+		if left[0].__class__ != reader.SymbolExp:
 			return Error(left[0].loc, "Variable name must be alphanumeric")
 		return ([], execution.SetExec(node.loc, isLet, left[0].content, m.process(right)), [])
 
@@ -178,7 +178,7 @@ class DoMacro(Macro):
 		if not right:
 			return Error(node.loc, "Emptiness after \"do\"")
 		seq = right.pop(0)
-		if seq.__class__ != parse.ExpGroup:
+		if seq.__class__ != reader.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"do\"")
 		return (left, m.makeSequence(seq.loc, seq.statements, True), right)
 
@@ -200,7 +200,7 @@ class IfMacro(Macro):
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s (condition)\"" % (s.symbol()))
 		seq = right.pop(0)
-		if seq.__class__ != parse.ExpGroup:
+		if seq.__class__ != reader.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s (condition)\"" % (s.symbol()))
 		return (left, execution.IfExec(node.loc, s.loop, m.process([cond]), m.makeSequence(seq.loc, seq.statements, not s.loop), None), right)
 
@@ -216,18 +216,18 @@ class FunctionMacro(Macro):
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s\"" % (name))
 		argSymbols = right.pop(0)
-		if argSymbols.__class__ != parse.ExpGroup:
+		if argSymbols.__class__ != reader.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s\"" % (name))
 		if not right:
 			return Error(node.loc, "Emptiness after \"%s (args)\"" % (name))
 		seq = right.pop(0)
-		if seq.__class__ != parse.ExpGroup:
+		if seq.__class__ != reader.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s (args)\"" % (name))
 		args = []
 		for stm in argSymbols.statements:
 			if not stm.nodes:
 				return Error(node.loc, "Arg #%d on %s is blank" % (len(args)+1, name))
-			if stm.nodes[0].__class__ != parse.SymbolExp:
+			if stm.nodes[0].__class__ != reader.SymbolExp:
 				return Error(node.loc, "Arg #%d on %s is not a symbol" % (len(args)+1, name))
 			args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
@@ -238,20 +238,20 @@ class ValueMacro(Macro):
 
 	def match(s, left, node, right):
 		c = node.__class__
-		return c == parse.QuoteExp or c == parse.NumberExp or c == parse.SymbolExp
+		return c == reader.QuoteExp or c == reader.NumberExp or c == reader.SymbolExp
 
 	def apply(s, m, left, node, right):
 		for case in switch(node.__class__):
-			if case(parse.QuoteExp):
+			if case(reader.QuoteExp):
 				node = execution.StringLiteralExec(node.loc, node.content)
-			elif case(parse.NumberExp):
+			elif case(reader.NumberExp):
 				value = node.integer
 				if node.dot:
 					value += "."
 				if node.decimal is not None:
 					value += node.decimal
 				node = execution.NumberLiteralExec(node.loc, float(value))
-			elif case(parse.SymbolExp):
+			elif case(reader.SymbolExp):
 				if node.isAtom:
 					node = execution.AtomLiteralExec(node.loc, node.content)
 				else:
@@ -268,11 +268,11 @@ standard_macros = [
 ]
 
 def exeFromAst(ast):
-	macros = MacroMachine()
-	result = macros.makeSequence(ast.loc, ast.statements) # TODO test to make sure it's a group
-	if macros.errors:
+	parser = Parser()
+	result = parser.makeSequence(ast.loc, ast.statements) # TODO test to make sure it's a group
+	if parser.errors:
 		output = []
-		for e in macros.errors:
+		for e in parser.errors:
 			output.append("Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
-		raise MacroException("\n".join(output))
+		raise ParserException("\n".join(output))
 	return result

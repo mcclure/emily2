@@ -1,5 +1,4 @@
 # Reader: Turns unicode string iterator into parse tree
-# FIXME: Should be named reader.py?
 
 from core import *
 from util import switch, dynamic_switch, unicodeJoin, quotedString
@@ -7,7 +6,7 @@ import unicodedata
 
 # AST
 
-class ParseException(EmilyException):
+class ReaderException(EmilyException):
 	pass
 
 class ExpGroup(Node):
@@ -81,7 +80,7 @@ class Statement(Printable): # Not a node, only a helper for ExpGroup
 	def __unicode__(s):
 		return unicodeJoin(u" ", s.nodes)
 
-# Parser
+# Reader/Lexer
 
 # Lexer FSM:
 # All states except Quote,Comment,Dot,Cr,Indent:
@@ -114,7 +113,7 @@ class Statement(Printable): # Not a node, only a helper for ExpGroup
 # Cr: Hit CR, looking for LF
 # Dot: Ambiguous; could become either Symbol or Number
 # QuoteCr: Hit CR, looking for LF, inside quote
-class ParserState:
+class ReaderState:
 	Indent, Scanning, Cr, Dot, Symbol, Number, Quote, QuoteCr, Comment = range(9)
 
 def isNonLineSpace(ch):
@@ -138,7 +137,7 @@ def isCloseParen(ch):
 def isDigit(ch):
 	return ord(ch) >= ord(u'0') and ord(ch) <= ord(u'9')
 
-class ParserMachine:
+class Reader:
 	def __init__(s):
 		s.line = 1
 		s.char = 0
@@ -169,11 +168,11 @@ class ParserMachine:
 		s.backslashed = backslashed
 		s.currentIndent = u''
 		for case in switch(state):
-			if case(ParserState.Number):
+			if case(ReaderState.Number):
 				s.appendExp( NumberExp(s.loc()) )
-			elif case(ParserState.Symbol):
+			elif case(ReaderState.Symbol):
 				s.appendExp( SymbolExp(s.loc()) )
-			elif case(ParserState.Quote):
+			elif case(ReaderState.Quote):
 				s.appendExp( QuoteExp(s.loc()) )
 
 	def newline(s):
@@ -186,32 +185,32 @@ class ParserMachine:
 
 	def handleLineSpace(s, ch):
 		if ch == '\r':
-			s.reset(ParserState.Cr)
+			s.reset(ReaderState.Cr)
 		else:
 			s.newline()
-			s.reset(ParserState.Indent)
+			s.reset(ReaderState.Indent)
 
 	def error(s, msg, survivable = False): # Survivable as in: Can we continue parsing syntax
 		s.errors.append(Error(s.loc(), msg))
 		if not survivable:
 			s.finalGroup().finalStatement().dead = True
-			s.reset(ParserState.Scanning)
+			s.reset(ReaderState.Scanning)
 
 	def ast(s, iter):
-		s.reset(ParserState.Indent)
+		s.reset(ReaderState.Indent)
 
 		for ch in iter:
 			for case in dynamic_switch(s, 'parserState'):
 				s.char += 1
 
-				if case(ParserState.Cr):
+				if case(ReaderState.Cr):
 					s.newline()
 					s.newexp()
-					s.reset(ParserState.Indent)
+					s.reset(ReaderState.Indent)
 					if i == u'\n':
 						break # If complete CRLF, DONE
 
-				if case(ParserState.Indent) and not isCloseParen(ch):
+				if case(ReaderState.Indent) and not isCloseParen(ch):
 					if isNonLineSpace(ch):
 						s.currentIndent += ch
 						break # If indent continued, DONE
@@ -219,7 +218,7 @@ class ParserMachine:
 						s.handleLineSpace(ch)
 						break # If indent ended line (with newline), DONE
 					if ch == u'#':
-						s.reset(ParserState.Comment)
+						s.reset(ReaderState.Comment)
 						break; # If indent ended line (with comment), DONE
 					if ch == u',':
 						s.error("Comma at start of line not understood") # FIXME: This should clear entire line
@@ -278,23 +277,23 @@ class ParserMachine:
 								s.finalGroup().appendStatement()
 
 					# If we didn't break above, we're done with the indent.
-					s.reset(ParserState.Scanning)
+					s.reset(ReaderState.Scanning)
 
-				if case(ParserState.Dot):
+				if case(ReaderState.Dot):
 					if isNonLineSpace(ch):
 						break # Whitespace after dot is not interesting. DONE
 					elif isDigit(ch):
-						s.reset(ParserState.Number)
+						s.reset(ReaderState.Number)
 						s.finalExp().appendDot()
 					elif ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
 						s.error("'.' was followed by special character '%s'" % ch)
 					elif ch == u'#' or isLineSpace(ch):
 						s.error("Line ended with a '.'")
 					else:
-						s.reset(ParserState.Symbol)
+						s.reset(ReaderState.Symbol)
 						s.finalExp().isAtom = True
 
-				if case(ParserState.Quote):
+				if case(ReaderState.Quote):
 					trueCh = ch
 					if s.backslashed:
 						for chCase in switch(ch):
@@ -320,7 +319,7 @@ class ParserMachine:
 						s.backslashed = True
 						break # Consumed backslash inside string. DONE
 					elif isQuote(ch):
-						s.reset(ParserState.Scanning)
+						s.reset(ReaderState.Scanning)
 						break # Consumed quote at end of string. DONE.
 
 					s.finalExp().append(trueCh)
@@ -331,16 +330,16 @@ class ParserMachine:
 					s.handleLineSpace(ch)
 					break # Consumed newline. DONE
 
-				if case(ParserState.Comment): # FIXME: This + linespace could go earlier?
+				if case(ReaderState.Comment): # FIXME: This + linespace could go earlier?
 					break # Inside comment, don't care. DONE
 
 				# These checks are shared by: Scanning Symbol Number (and Indent for right parens)
 				if isNonLineSpace(ch):
-					s.reset(ParserState.Scanning)
+					s.reset(ReaderState.Scanning)
 					break
 				if isOpenParen(ch):
 					s.appendGroup(True, True)
-					s.reset(ParserState.Scanning)
+					s.reset(ReaderState.Scanning)
 					break # Have consumed (. DONE
 				if isCloseParen(ch):
 					# Unroll stack looking for last parenthesis-based group
@@ -359,41 +358,41 @@ class ParserMachine:
 					else:
 						s.unrollTo(unrollIdx)
 
-					s.reset(ParserState.Scanning)
+					s.reset(ReaderState.Scanning)
 					break # Have consumed (. DONE
 				if isQuote(ch):
-					s.reset(ParserState.Quote)
+					s.reset(ReaderState.Quote)
 					break # Have consumed ". DONE
 				if ch == u',':
 					s.finalGroup().appendStatement()
-					s.reset(ParserState.Scanning)
+					s.reset(ReaderState.Scanning)
 					break # Have consumed ,. DONE
 				if ch == u'#':
-					s.reset(ParserState.Comment)
+					s.reset(ReaderState.Comment)
 					break # Have consumed #. DONE
 
 				if ch == u'.': # Shared by: Scanning Symbol Number
-					if case(ParserState.Number):
+					if case(ReaderState.Number):
 						if s.finalExp().dot:
-							s.reset(ParserState.Dot) # We're starting an atom or something
+							s.reset(ReaderState.Dot) # We're starting an atom or something
 						else:
 							# FIXME: This will ridiculously require 3..function to call a function on number
 							s.finalExp().dot = True # This is a decimal in a number
 					else:
-						s.reset(ParserState.Dot)
+						s.reset(ReaderState.Dot)
 					break # Have consumed .. DONE
 				elif isDigit(ch):
-					if case(ParserState.Scanning):
-						s.reset(ParserState.Number)
+					if case(ReaderState.Scanning):
+						s.reset(ReaderState.Number)
 				else: # Symbol character
-					if case(ParserState.Scanning) or case(ParserState.Number):
-						s.reset(ParserState.Symbol)
+					if case(ReaderState.Scanning) or case(ReaderState.Number):
+						s.reset(ReaderState.Symbol)
 
-				if case(ParserState.Number):
+				if case(ReaderState.Number):
 					s.finalExp().append(ch)
 					break # Added to number. DONE
 
-				if case(ParserState.Symbol):
+				if case(ReaderState.Symbol):
 					s.finalExp().append(ch)
 					break # Added to symbol. DONE
 
@@ -405,12 +404,12 @@ class ParserMachine:
 			s.groupStack.pop()
 
 def ast(iter):
-	parser = ParserMachine()
+	parser = Reader()
 	parser.ast(iter)
 	if parser.errors:
 		output = []
 		for e in parser.errors:
 			output.append(u"Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
-		raise ParseException(u"\n".join(output))
+		raise ReaderException(u"\n".join(output))
 	return parser.finalGroup()
 
