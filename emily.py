@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Entry point / command line interface
 
 import optparse

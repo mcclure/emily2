@@ -1,4 +1,4 @@
-# Goal for pass 1 is to execute this
+# Test loop
 
 # Expect: 3628800.0
 

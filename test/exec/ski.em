@@ -1,7 +1,7 @@
 # Test turing completeness by way of combinators
 
 # Expect:
-# 1729.
+# 1729.0
 
 let i = function (x) (x)
 

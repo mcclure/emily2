@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # This is a simple test harness script. It targets Emily files, extracts expected
 # results from codes in the comments, and verifies the script runs as expected.
