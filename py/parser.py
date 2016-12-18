@@ -202,7 +202,17 @@ class IfMacro(Macro):
 		seq = right.pop(0)
 		if seq.__class__ != reader.ExpGroup:
 			return Error(node.loc, "Expected a (group) after \"%s (condition)\"" % (s.symbol()))
-		return (left, execution.IfExec(node.loc, s.loop, m.process([cond]), m.makeSequence(seq.loc, seq.statements, not s.loop), None), right)
+		elseq = None
+		if not s.loop and right:
+			elseq = right.pop(0)
+			if elseq.__class__ != reader.ExpGroup:
+				return Error(node.loc, "Expected a (group) after \"%s (condition) (ifGroup)\"" % (s.symbol()))
+		
+		cond = m.process([cond])
+		seq = m.makeSequence(seq.loc, seq.statements, not s.loop)
+		if elseq:
+			elseq = m.makeSequence(elseq.loc, elseq.statements, True)
+		return (left, execution.IfExec(node.loc, s.loop, cond, seq, elseq), right)
 
 class FunctionMacro(Macro):
 	def __init__(s):
