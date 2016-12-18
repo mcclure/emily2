@@ -157,6 +157,7 @@ class SetMacro(OneSymbolMacro):
 
 	def apply(s, m, left, node, right):
 		isLet = False
+		target = None
 		for idx in range(len(left)):
 			if isSymbol(left[idx], u"let"):
 				isLet = True
@@ -166,11 +167,15 @@ class SetMacro(OneSymbolMacro):
 			left = left[idx:]
 		if len(left) == 0:
 			return Error(node.loc, "Missing name")
+		key = left[-1]
 		if len(left) > 1:
-			return Error(left[1].loc, "\"=\" can't do indices yet")
-		if left[0].__class__ != reader.SymbolExp:
-			return Error(left[0].loc, "Variable name must be alphanumeric")
-		return ([], execution.SetExec(node.loc, isLet, left[0].content, m.process(right)), [])
+			if key.__class__ != reader.SymbolExp or not key.isAtom:
+				return Error(key.loc, "Assigned key must be a field name")
+			target = m.process(left[:-1])
+		else:
+			if key.__class__ != reader.SymbolExp or key.isAtom:
+				return Error(key.loc, "Assigned name must be alphanumeric")
+		return ([], execution.SetExec(node.loc, isLet, key.content, m.process(right), target), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):
@@ -293,7 +298,6 @@ class ObjectMacro(OneSymbolMacro):
 				return Error(assign.loc, "\"let\" is redundant in an object literal")
 			assign.isLet = True
 		return (left, execution.MakeObjectExec(node.loc, base, seq), right)
-
 
 # Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):

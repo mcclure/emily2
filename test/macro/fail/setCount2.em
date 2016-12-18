@@ -1,6 +1,6 @@
-# Set too many things
+# Set something not yet supported
 
 # Arg: --ast2
 # Expect failure
 
-a b = 3
+a 3 = 3

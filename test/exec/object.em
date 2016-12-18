@@ -35,3 +35,14 @@ while (< counter 2)
 	println
 		obj1.c
 		obj3.c
+
+# Expect:
+# 10.0
+# 11.0
+
+obj2.c = 10
+let obj1.e = 11
+
+println
+	obj2.c
+	obj2.e

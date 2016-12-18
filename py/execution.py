@@ -204,8 +204,13 @@ class SetExec(Executable):
 	def __unicode__(s):
 		return u"[%s %s %s]" % ("Let" if s.isLet else "Set", s.symbol, unicode(s.valueClause))
 
-	def eval(s, scope):
-		target = s.source if s.source else scope
+	def eval(s, scope, targetOverride = None):
+		if targetOverride:
+			target = targetOverride
+		elif s.source:
+			target = s.source.eval(scope)
+		else:
+			target = scope
 		target.assign(s.isLet, s.symbol, s.valueClause.eval(scope))
 		return None
 
@@ -266,9 +271,7 @@ class MakeObjectExec(Executable):
 			base = None
 		result = ObjectValue(base)
 		for exe in s.values:
-			exe.source = result # HACK HACK HACK THE UGLIEST HACK
-			exe.eval(scope)
-			exe.source = None
+			exe.eval(scope, result)
 		return result
 
 # Base scope

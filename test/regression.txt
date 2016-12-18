@@ -23,3 +23,6 @@ exec/if.em
 exec/while.em
 exec/ski.em
 exec/array.em
+exec/object.em
+
+exec/fail/objectSet.em
