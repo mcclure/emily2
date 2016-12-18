@@ -142,17 +142,23 @@ class Parser(object):
 def isSymbol(exp, match):
 	return exp.__class__ == reader.SymbolExp and exp.content == match
 
-class SetMacro(Macro):
+# Abstract macro: matches on just one known symbol
+class OneSymbolMacro(Macro):
+	def match(s, left, node, right):
+		return isSymbol(node, s.symbol())
+
+# = sign
+class SetMacro(OneSymbolMacro):
 	def __init__(s):
 		super(SetMacro, s).__init__(progress = ProgressBase.Macroed + 100)
 
-	def match(s, left, node, right):
-		return isSymbol(node, '=')
+	def symbol(s):
+		return u"="
 
 	def apply(s, m, left, node, right):
 		isLet = False
 		for idx in range(len(left)):
-			if isSymbol(left[idx], 'let'):
+			if isSymbol(left[idx], u"let"):
 				isLet = True
 			else:
 				break
@@ -166,47 +172,50 @@ class SetMacro(Macro):
 			return Error(left[0].loc, "Variable name must be alphanumeric")
 		return ([], execution.SetExec(node.loc, isLet, left[0].content, m.process(right)), [])
 
+# Abstract macro: Expects SYMBOL (GROUP)
+class SeqMacro(OneSymbolMacro):
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
+		seq = right.pop(0)
+		if seq.__class__ != reader.ExpGroup:
+			return Error(node.loc, u"Expected a (group) after \"%s\"" % (s.symbol()))
+		return (left, s.construct(m, seq), right)
 
-class DoMacro(Macro):
+# do (statements)
+class DoMacro(SeqMacro):
 	def __init__(s):
 		super(DoMacro, s).__init__(progress = ProgressBase.Macroed + 400)
 
-	def match(s, left, node, right):
-		return isSymbol(node, 'do')
+	def symbol(s):
+		return u"do"
 
-	def apply(s, m, left, node, right):
-		if not right:
-			return Error(node.loc, "Emptiness after \"do\"")
-		seq = right.pop(0)
-		if seq.__class__ != reader.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"do\"")
-		return (left, m.makeSequence(seq.loc, seq.statements, True), right)
+	def construct(s, m, seq):
+		return m.makeSequence(seq.loc, seq.statements, True)
 
-class IfMacro(Macro):
+# if (cond) (ifBlock) (elseBlock?) -- OR -- while (cond) (whileBlock)
+class IfMacro(OneSymbolMacro):
 	def __init__(s, loop):
 		super(IfMacro, s).__init__(progress = ProgressBase.Macroed + 400)
 		s.loop = loop
 
 	def symbol(s):
-		return "while" if s.loop else "if"
-
-	def match(s, left, node, right):
-		return isSymbol(node, s.symbol())
+		return u"while" if s.loop else u"if"
 
 	def apply(s, m, left, node, right):
 		if not right:
-			return Error(node.loc, "Emptiness after \"%s\"" % (s.symbol()))
+			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
 		cond = right.pop(0)
 		if not right:
-			return Error(node.loc, "Emptiness after \"%s (condition)\"" % (s.symbol()))
+			return Error(node.loc, u"Emptiness after \"%s (condition)\"" % (s.symbol()))
 		seq = right.pop(0)
 		if seq.__class__ != reader.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"%s (condition)\"" % (s.symbol()))
+			return Error(node.loc, u"Expected a (group) after \"%s (condition)\"" % (s.symbol()))
 		elseq = None
 		if not s.loop and right:
 			elseq = right.pop(0)
 			if elseq.__class__ != reader.ExpGroup:
-				return Error(node.loc, "Expected a (group) after \"%s (condition) (ifGroup)\"" % (s.symbol()))
+				return Error(node.loc, u"Expected a (group) after \"%s (condition) (ifGroup)\"" % (s.symbol()))
 		
 		cond = m.process([cond])
 		seq = m.makeSequence(seq.loc, seq.statements, not s.loop)
@@ -214,49 +223,47 @@ class IfMacro(Macro):
 			elseq = m.makeSequence(elseq.loc, elseq.statements, True)
 		return (left, execution.IfExec(node.loc, s.loop, cond, seq, elseq), right)
 
+# function (args) (body) -- OR -- func (args) (body)
 class FunctionMacro(Macro):
 	def __init__(s):
 		super(FunctionMacro, s).__init__(progress = ProgressBase.Macroed + 400)
 
 	def match(s, left, node, right):
-		return isSymbol(node, "function") or isSymbol(node, "func")
+		return isSymbol(node, u"function") or isSymbol(node, u"func")
 
 	def apply(s, m, left, node, right):
 		name = node.content
 		if not right:
-			return Error(node.loc, "Emptiness after \"%s\"" % (name))
+			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
 		argSymbols = right.pop(0)
 		if argSymbols.__class__ != reader.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"%s\"" % (name))
+			return Error(node.loc, u"Expected a (group) after \"%s\"" % (name))
 		if not right:
-			return Error(node.loc, "Emptiness after \"%s (args)\"" % (name))
+			return Error(node.loc, u"Emptiness after \"%s (args)\"" % (name))
 		seq = right.pop(0)
 		if seq.__class__ != reader.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"%s (args)\"" % (name))
+			return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 		args = []
 		for stm in argSymbols.statements:
 			if not stm.nodes:
-				return Error(node.loc, "Arg #%d on %s is blank" % (len(args)+1, name))
+				return Error(node.loc, u"Arg #%d on %s is blank" % (len(args)+1, name))
 			if stm.nodes[0].__class__ != reader.SymbolExp:
-				return Error(node.loc, "Arg #%d on %s is not a symbol" % (len(args)+1, name))
+				return Error(node.loc, u"Arg #%d on %s is not a symbol" % (len(args)+1, name))
 			args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
-class ArrayMacro(Macro):
+# array (contents)
+class ArrayMacro(SeqMacro):
 	def __init__(s):
 		super(ArrayMacro, s).__init__(progress = ProgressBase.Macroed + 500)
 
-	def match(s, left, node, right):
-		return isSymbol(node, 'array')
+	def symbol(s):
+		return u"array"
 
-	def apply(s, m, left, node, right):
-		if not right:
-			return Error(node.loc, "Emptiness after \"array\"")
-		seq = right.pop(0)
-		if seq.__class__ != reader.ExpGroup:
-			return Error(node.loc, "Expected a (group) after \"array\"")
-		return (left, execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements]), right)
+	def construct(s, m, seq):
+		return execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements])
 
+# Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):
 	def __init__(s):
 		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
@@ -299,6 +306,6 @@ def exeFromAst(ast):
 	if parser.errors:
 		output = []
 		for e in parser.errors:
-			output.append("Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
-		raise ParserException("\n".join(output))
+			output.append(u"Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
+		raise ParserException(u"\n".join(output))
 	return result
