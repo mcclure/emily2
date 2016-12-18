@@ -51,18 +51,23 @@ class ObjectValue(object):
 			return s.parent.lookup(key)
 		raise Exception("Object lacks key %s" % (key))
 
-	def assign(s, isLet, key, value):
-		if isLet or key in s.atoms:
-			s.atoms[key] = value
-		elif s.parent:
-			s.parent.assign(isLet, key, value)
-		else:
-			raise Exception("Object lacks key %s being set" % (key))
-
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
 		return s.lookup(key.value)
+
+	def lookAssign(s, isLet, key, value): # Again, sanitized for atom correctness
+		if isLet or key in s.atoms:
+			s.atoms[key] = value
+		elif s.parent:
+			s.parent.lookAssign(isLet, key, value)
+		else:
+			raise Exception("Object lacks key %s being set" % (key))
+
+	def assign(s, isLet, key, value):
+		if type(key) != AtomLiteralExec:
+			raise Exception("Objects have atom keys only")
+		return s.lookAssign(isLet, key.value, value)
 
 class ArrayValue(object):
 	def __init__(s, values):
@@ -73,7 +78,15 @@ class ArrayValue(object):
 			key = int(key) # IS ROUND-DOWN ACTUALLY GOOD?
 		if type(key) == int:
 			return s.values[key]
-		raise Exception("Arrays have key values only")
+		raise Exception("Arrays have number keys only")
+
+	def assign(s, isLet, key, value):
+		if type(key) == float:
+			key = int(key)
+		elif type(key) != int:
+			raise Exception("Arrays have int keys only")
+		s.values[key] = value
+		return None
 
 # Executable nodes
 
@@ -194,24 +207,24 @@ class VarExec(Executable):
 		return scope.lookup(s.symbol)
 
 class SetExec(Executable):
-	def __init__(s, loc, isLet, symbol, valueClause, source=None): # TODO: indexClauses
+	def __init__(s, loc, isLet, target, index, valueClause): # TODO: indexClauses
 		super(SetExec, s).__init__(loc)
 		s.isLet = isLet
-		s.source = source
-		s.symbol = symbol
+		s.target = target
+		s.index = index
 		s.valueClause = valueClause
 
 	def __unicode__(s):
-		return u"[%s %s %s]" % ("Let" if s.isLet else "Set", s.symbol, unicode(s.valueClause))
+		return u"[%s %s %s %s]" % ("Let" if s.isLet else "Set", unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
 
 	def eval(s, scope, targetOverride = None):
 		if targetOverride:
 			target = targetOverride
-		elif s.source:
-			target = s.source.eval(scope)
+		elif s.target:
+			target = s.target.eval(scope)
 		else:
 			target = scope
-		target.assign(s.isLet, s.symbol, s.valueClause.eval(scope))
+		target.assign(s.isLet, s.index.eval(scope), s.valueClause.eval(scope))
 		return None
 
 class ApplyExec(Executable):

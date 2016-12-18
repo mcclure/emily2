@@ -169,13 +169,13 @@ class SetMacro(OneSymbolMacro):
 			return Error(node.loc, "Missing name")
 		key = left[-1]
 		if len(left) > 1:
-			if type(key) != reader.SymbolExp or not key.isAtom:
-				return Error(key.loc, "Assigned key must be a field name")
 			target = m.process(left[:-1])
-		else:
+			key = m.process([key])
+		else: # Currently under all circumstances a = b is a flat atom assignment
 			if type(key) != reader.SymbolExp or key.isAtom:
 				return Error(key.loc, "Assigned name must be alphanumeric")
-		return ([], execution.SetExec(node.loc, isLet, key.content, m.process(right), target), [])
+			key = execution.AtomLiteralExec(key.loc, key.content)
+		return ([], execution.SetExec(node.loc, isLet, target, key, m.process(right)), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):
@@ -266,7 +266,7 @@ class ArrayMacro(SeqMacro):
 		return u"array"
 
 	def construct(s, m, seq):
-		return execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements])
+		return execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements] if seq.nonempty() else [])
 
 # array (contents)
 class ObjectMacro(OneSymbolMacro):
@@ -288,11 +288,11 @@ class ObjectMacro(OneSymbolMacro):
 			if type(seq) != reader.ExpGroup:
 				return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 
-		seq = m.makeSequence(seq.loc, seq.statements, False).execs
+		seq = m.makeSequence(seq.loc, seq.statements, False).execs if seq.nonempty() else []
 		for assign in seq:
 			if type(assign) != execution.SetExec:
 				return Error(assign.loc, "Found a stray value expression inside an object literal")
-			if assign.source:
+			if assign.target:
 				return Error(assign.loc, "Assignment inside object literal was not of form key=value")
 			if assign.isLet:
 				return Error(assign.loc, "\"let\" is redundant in an object literal")

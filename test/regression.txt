@@ -16,8 +16,16 @@ macro/value.em
 macro/set.em
 
 macro/fail/setCount.em
-macro/fail/setCount2.em
+macro/fail/setType.em
+macro/fail/setType2.em
 macro/fail/setInvalid.em
+macro/fail/emptyComma.em
+
+scope/letSequence.em
+scope/closure.em
+scope/argument.em
+
+scope/fail/noLet.em
 
 exec/if.em
 exec/while.em
@@ -26,3 +34,4 @@ exec/array.em
 exec/object.em
 
 exec/fail/objectSet.em
+exec/fail/arraySet.em

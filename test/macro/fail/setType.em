@@ -3,4 +3,4 @@
 # Arg: --ast2
 # Expect failure
 
-a 3 = 3
+3 = 3

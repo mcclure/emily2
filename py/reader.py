@@ -20,6 +20,9 @@ class ExpGroup(Node):
 	def finalStatement(s):
 		return s.statements[-1]
 
+	def nonempty(s):
+		return len(s.statements) > 1 or (len(s.statements) == 1 and s.statements[0].nodes)
+
 	def appendStatement(s):
 		s.statements.append( Statement() )
 

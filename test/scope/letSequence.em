@@ -1,3 +1,15 @@
+# Test scope assignment
+# Expect:
+# 1.0
+# 2.0
+# 3.0
+# 4.0
+# 5.0
+# 4.0
+# 4.0
+# 2.0
+# 2.0
+
 let x = 1
 println x
 
