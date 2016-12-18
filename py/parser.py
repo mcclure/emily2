@@ -89,7 +89,7 @@ class Parser(object):
 		if not nodes:
 			# at is known non-None because otherwise we would have failed earlier
 			return s.errorAt(at.loc, "Macro malfunctioned and produced an empty list")
-		if nodes[0].__class__ == reader.ExpGroup:
+		if type(nodes[0]) == reader.ExpGroup:
 			if not nodes[0].statements:
 				result = s.makeUnit(nodes[0])
 			elif len(nodes[0].statements) > 1:
@@ -104,7 +104,7 @@ class Parser(object):
 
 		while nodes:
 			arg = nodes.pop(0)
-			if arg.__class__ == reader.ExpGroup:
+			if type(arg) == reader.ExpGroup:
 				if len(arg.statements) == 1 and not arg.statements[0].nodes:
 					return s.makeUnit(arg)
 				else:
@@ -130,7 +130,7 @@ class Parser(object):
 		execs = [s.process(stm.nodes) for stm in statements]
 		hasLets = False
 		for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
-			if exe.__class__ == execution.SetExec and exe.isLet:
+			if type(exe) == execution.SetExec and exe.isLet:
 				hasLets = True
 				break
 		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
@@ -140,7 +140,7 @@ class Parser(object):
 # TODO: do, if, while
 
 def isSymbol(exp, match):
-	return exp.__class__ == reader.SymbolExp and exp.content == match
+	return type(exp) == reader.SymbolExp and exp.content == match
 
 # Abstract macro: matches on just one known symbol
 class OneSymbolMacro(Macro):
@@ -169,11 +169,11 @@ class SetMacro(OneSymbolMacro):
 			return Error(node.loc, "Missing name")
 		key = left[-1]
 		if len(left) > 1:
-			if key.__class__ != reader.SymbolExp or not key.isAtom:
+			if type(key) != reader.SymbolExp or not key.isAtom:
 				return Error(key.loc, "Assigned key must be a field name")
 			target = m.process(left[:-1])
 		else:
-			if key.__class__ != reader.SymbolExp or key.isAtom:
+			if type(key) != reader.SymbolExp or key.isAtom:
 				return Error(key.loc, "Assigned name must be alphanumeric")
 		return ([], execution.SetExec(node.loc, isLet, key.content, m.process(right), target), [])
 
@@ -183,7 +183,7 @@ class SeqMacro(OneSymbolMacro):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
 		seq = right.pop(0)
-		if seq.__class__ != reader.ExpGroup:
+		if type(seq) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s\"" % (s.symbol()))
 		return (left, s.construct(m, seq), right)
 
@@ -214,12 +214,12 @@ class IfMacro(OneSymbolMacro):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s (condition)\"" % (s.symbol()))
 		seq = right.pop(0)
-		if seq.__class__ != reader.ExpGroup:
+		if type(seq) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s (condition)\"" % (s.symbol()))
 		elseq = None
 		if not s.loop and right:
 			elseq = right.pop(0)
-			if elseq.__class__ != reader.ExpGroup:
+			if type(elseq) != reader.ExpGroup:
 				return Error(node.loc, u"Expected a (group) after \"%s (condition) (ifGroup)\"" % (s.symbol()))
 		
 		cond = m.process([cond])
@@ -241,18 +241,18 @@ class FunctionMacro(Macro):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
 		argSymbols = right.pop(0)
-		if argSymbols.__class__ != reader.ExpGroup:
+		if type(argSymbols) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s\"" % (name))
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s (args)\"" % (name))
 		seq = right.pop(0)
-		if seq.__class__ != reader.ExpGroup:
+		if type(seq) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 		args = []
 		for stm in argSymbols.statements:
 			if not stm.nodes:
 				return Error(node.loc, u"Arg #%d on %s is blank" % (len(args)+1, name))
-			if stm.nodes[0].__class__ != reader.SymbolExp:
+			if type(stm.nodes[0]) != reader.SymbolExp:
 				return Error(node.loc, u"Arg #%d on %s is not a symbol" % (len(args)+1, name))
 			args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
@@ -285,12 +285,12 @@ class ObjectMacro(OneSymbolMacro):
 			seq = reader.ExpGroup(base.loc)
 		else:
 			seq = right.pop(0)
-			if seq.__class__ != reader.ExpGroup:
+			if type(seq) != reader.ExpGroup:
 				return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 
 		seq = m.makeSequence(seq.loc, seq.statements, False).execs
 		for assign in seq:
-			if assign.__class__ != execution.SetExec:
+			if type(assign) != execution.SetExec:
 				return Error(assign.loc, "Found a stray value expression inside an object literal")
 			if assign.source:
 				return Error(assign.loc, "Assignment inside object literal was not of form key=value")
@@ -305,11 +305,11 @@ class ValueMacro(Macro):
 		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
 
 	def match(s, left, node, right):
-		c = node.__class__
+		c = type(node)
 		return c == reader.QuoteExp or c == reader.NumberExp or c == reader.SymbolExp
 
 	def apply(s, m, left, node, right):
-		for case in switch(node.__class__):
+		for case in switch(type(node)):
 			if case(reader.QuoteExp):
 				node = execution.StringLiteralExec(node.loc, node.content)
 			elif case(reader.NumberExp):
@@ -325,7 +325,7 @@ class ValueMacro(Macro):
 				else:
 					node = execution.VarExec(node.loc, node.content)
 			else:
-				return Error(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (node.__class__.__name__))
+				return Error(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (type(node).__name__))
 			
 		return (left, node, right)
 
