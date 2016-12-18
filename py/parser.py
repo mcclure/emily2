@@ -263,6 +263,38 @@ class ArrayMacro(SeqMacro):
 	def construct(s, m, seq):
 		return execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements])
 
+# array (contents)
+class ObjectMacro(OneSymbolMacro):
+	def __init__(s):
+		super(ObjectMacro, s).__init__(progress = ProgressBase.Macroed + 500)
+
+	def symbol(s):
+		return u"new"
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"new\"")
+		base = right.pop(0)
+		base = m.process([base])
+		if not right:
+			seq = reader.ExpGroup(base.loc)
+		else:
+			seq = right.pop(0)
+			if seq.__class__ != reader.ExpGroup:
+				return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
+
+		seq = m.makeSequence(seq.loc, seq.statements, False).execs
+		for assign in seq:
+			if assign.__class__ != execution.SetExec:
+				return Error(assign.loc, "Found a stray value expression inside an object literal")
+			if assign.source:
+				return Error(assign.loc, "Assignment inside object literal was not of form key=value")
+			if assign.isLet:
+				return Error(assign.loc, "\"let\" is redundant in an object literal")
+			assign.isLet = True
+		return (left, execution.MakeObjectExec(node.loc, base, seq), right)
+
+
 # Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):
 	def __init__(s):
@@ -295,7 +327,7 @@ class ValueMacro(Macro):
 
 standard_macros = [
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(),
-	ArrayMacro(),
+	ArrayMacro(), ObjectMacro(),
 	SetMacro(),
 	ValueMacro()
 ]

@@ -205,7 +205,8 @@ class SetExec(Executable):
 		return u"[%s %s %s]" % ("Let" if s.isLet else "Set", s.symbol, unicode(s.valueClause))
 
 	def eval(s, scope):
-		scope.assign(s.isLet, s.symbol, s.valueClause.eval(scope))
+		target = s.source if s.source else scope
+		target.assign(s.isLet, s.symbol, s.valueClause.eval(scope))
 		return None
 
 class ApplyExec(Executable):
@@ -227,7 +228,7 @@ class MakeFuncExec(Executable):
 		s.body = body
 
 	def __unicode__(s):
-		return u"[Function [%s] %s" % (u", ".join(s.args), unicode(s.body))
+		return u"[Function [%s] %s]" % (u", ".join(s.args), unicode(s.body))
 
 	def eval(s, scope):
 		return FunctionValue(s.args, s.body, scope)
@@ -238,7 +239,7 @@ class MakeArrayExec(Executable):
 		s.contents = contents
 
 	def __unicode__(s):
-		return u"[Array [%s] %s" % (unicodeJoin(u", ", s.contents))
+		return u"[Array %s]" % (unicodeJoin(u", ", s.contents))
 
 	def eval(s, scope):
 		values = [None] * len(s.contents)
@@ -247,6 +248,28 @@ class MakeArrayExec(Executable):
 			values[idx] = exe.eval(scope)
 			idx += 1
 		return ArrayValue(values)
+
+rootObject = ObjectValue() # Singleton "root object"
+
+class MakeObjectExec(Executable):
+	def __init__(s, loc, base, values):
+		super(MakeObjectExec, s).__init__(loc)
+		s.base = base
+		s.values = values
+
+	def __unicode__(s):
+		return u"[New %s [%s]]" % (unicode(s.base), unicodeJoin(u", ", s.values))
+
+	def eval(s, scope):
+		base = s.base.eval(scope)
+		if base == rootObject: # Tiny optimization: Don't actually inherit from Object
+			base = None
+		result = ObjectValue(base)
+		for exe in s.values:
+			exe.source = result # HACK HACK HACK THE UGLIEST HACK
+			exe.eval(scope)
+			exe.source = None
+		return result
 
 # Base scope
 
@@ -273,6 +296,7 @@ defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
 defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['null'] = None
+defaultScope.atoms['object'] = rootObject
 
 printWrapperLastNewline = True
 def printWrapper(x):
