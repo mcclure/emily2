@@ -22,3 +22,4 @@ macro/fail/setInvalid.em
 exec/if.em
 exec/while.em
 exec/ski.em
+exec/array.em

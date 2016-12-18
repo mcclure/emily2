@@ -64,6 +64,17 @@ class ObjectValue(object):
 			raise Exception("Objects have atom keys only")
 		return s.lookup(key.value)
 
+class ArrayValue(object):
+	def __init__(s, values):
+		s.values = values
+
+	def apply(s, key):
+		if type(key) == float:
+			key = int(key) # IS ROUND-DOWN ACTUALLY GOOD?
+		if type(key) == int:
+			return s.values[key]
+		raise Exception("Arrays have key values only")
+
 # Executable nodes
 
 class Executable(Node):
@@ -220,6 +231,22 @@ class MakeFuncExec(Executable):
 
 	def eval(s, scope):
 		return FunctionValue(s.args, s.body, scope)
+
+class MakeArrayExec(Executable):
+	def __init__(s, loc, contents):
+		super(MakeArrayExec, s).__init__(loc)
+		s.contents = contents
+
+	def __unicode__(s):
+		return u"[Array [%s] %s" % (unicodeJoin(u", ", s.contents))
+
+	def eval(s, scope):
+		values = [None] * len(s.contents)
+		idx = 0
+		for exe in s.contents:
+			values[idx] = exe.eval(scope)
+			idx += 1
+		return ArrayValue(values)
 
 # Base scope
 

@@ -242,6 +242,21 @@ class FunctionMacro(Macro):
 			args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
+class ArrayMacro(Macro):
+	def __init__(s):
+		super(ArrayMacro, s).__init__(progress = ProgressBase.Macroed + 500)
+
+	def match(s, left, node, right):
+		return isSymbol(node, 'array')
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, "Emptiness after \"array\"")
+		seq = right.pop(0)
+		if seq.__class__ != reader.ExpGroup:
+			return Error(node.loc, "Expected a (group) after \"array\"")
+		return (left, execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements]), right)
+
 class ValueMacro(Macro):
 	def __init__(s):
 		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
@@ -273,6 +288,7 @@ class ValueMacro(Macro):
 
 standard_macros = [
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(),
+	ArrayMacro(),
 	SetMacro(),
 	ValueMacro()
 ]
