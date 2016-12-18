@@ -90,7 +90,7 @@ class Parser(object):
 			# at is known non-None because otherwise we would have failed earlier
 			return s.errorAt(at.loc, "Macro malfunctioned and produced an empty list")
 		if type(nodes[0]) == reader.ExpGroup:
-			if not nodes[0].statements:
+			if not nodes[0].nonempty():
 				result = s.makeUnit(nodes[0])
 			elif len(nodes[0].statements) > 1:
 				return s.errorAt(nodes[0].loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
@@ -105,8 +105,8 @@ class Parser(object):
 		while nodes:
 			arg = nodes.pop(0)
 			if type(arg) == reader.ExpGroup:
-				if len(arg.statements) == 1 and not arg.statements[0].nodes:
-					return s.makeUnit(arg)
+				if not arg.nonempty():
+					result = execution.ApplyExec(result.loc, result, s.makeUnit(arg))
 				else:
 					idx = 0
 					for statement in arg.statements:
@@ -253,12 +253,13 @@ class FunctionMacro(Macro):
 		if type(seq) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 		args = []
-		for stm in argSymbols.statements:
-			if not stm.nodes:
-				return Error(node.loc, u"Arg #%d on %s is blank" % (len(args)+1, name))
-			if type(stm.nodes[0]) != reader.SymbolExp:
-				return Error(node.loc, u"Arg #%d on %s is not a symbol" % (len(args)+1, name))
-			args.append(stm.nodes[0].content)
+		if argSymbols.nonempty():
+			for stm in argSymbols.statements:
+				if not stm.nodes:
+					return Error(node.loc, u"Arg #%d on %s is blank" % (len(args)+1, name))
+				if type(stm.nodes[0]) != reader.SymbolExp:
+					return Error(node.loc, u"Arg #%d on %s is not a symbol" % (len(args)+1, name))
+				args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
 # array (contents)
