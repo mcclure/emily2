@@ -157,10 +157,13 @@ class SetMacro(OneSymbolMacro):
 
 	def apply(s, m, left, node, right):
 		isLet = False
+		isMethod = False
 		target = None
 		for idx in range(len(left)):
 			if isSymbol(left[idx], u"let"):
 				isLet = True
+			elif isSymbol(left[idx], u"method"):
+				isMethod = True
 			else:
 				break
 		if left:
@@ -175,7 +178,8 @@ class SetMacro(OneSymbolMacro):
 			if type(key) != reader.SymbolExp or key.isAtom:
 				return Error(key.loc, "Assigned name must be alphanumeric")
 			key = execution.AtomLiteralExec(key.loc, key.content)
-		return ([], execution.SetExec(node.loc, isLet, target, key, m.process(right)), [])
+		value = m.process(right)
+		return ([], execution.SetExec(node.loc, isLet, isMethod, target, key, value), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):

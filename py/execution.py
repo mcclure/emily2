@@ -39,35 +39,51 @@ class FunctionValue(object):
 			return s.exe.eval(scope)
 		return FunctionValue(s.argNames, s.exe, s.scope, newArgs)
 
+class MethodPseudoValue(object):
+	def __init__(s, exe, scope):
+		s.exe = exe
+		s.scope = scope
+
+	def call(s, target):
+		scope = ObjectValue(s.scope)
+		scope.atoms['this'] = target
+		return s.exe.eval(scope)
+
 class ObjectValue(object):
 	def __init__(s, parent=None):
 		s.atoms = {}
 		s.parent = parent
 
-	def lookup(s, key): # Already sanitized for atom correctness
+	def innerLookup(s, key): # Already sanitized for atom correctness, method irrelevant
 		if key in s.atoms:
 			return s.atoms[key]
 		if s.parent:
 			return s.parent.lookup(key)
 		raise Exception("Object lacks key %s" % (key))
 
+	def lookup(s, key): # Already sanitized for atom correctness
+		value = s.innerLookup(key)
+		if type(value) == MethodPseudoValue: # This is a get property (method) & must be evaluated
+			return value.call(s)
+		return value
+
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
 		return s.lookup(key.value)
 
-	def lookAssign(s, isLet, key, value): # Again, sanitized for atom correctness
+	def innerAssign(s, isLet, key, value): # Again, sanitized for atom correctness
 		if isLet or key in s.atoms:
 			s.atoms[key] = value
 		elif s.parent:
-			s.parent.lookAssign(isLet, key, value)
+			s.parent.innerAssign(isLet, key, value)
 		else:
 			raise Exception("Object lacks key %s being set" % (key))
 
 	def assign(s, isLet, key, value):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
-		return s.lookAssign(isLet, key.value, value)
+		return s.innerAssign(isLet, key.value, value)
 
 class ArrayValue(object):
 	def __init__(s, values):
@@ -207,9 +223,10 @@ class VarExec(Executable):
 		return scope.lookup(s.symbol)
 
 class SetExec(Executable):
-	def __init__(s, loc, isLet, target, index, valueClause): # TODO: indexClauses
+	def __init__(s, loc, isLet, isMethod, target, index, valueClause): # TODO: indexClauses
 		super(SetExec, s).__init__(loc)
 		s.isLet = isLet
+		s.isMethod = isMethod
 		s.target = target
 		s.index = index
 		s.valueClause = valueClause
@@ -224,7 +241,13 @@ class SetExec(Executable):
 			target = s.target.eval(scope)
 		else:
 			target = scope
-		target.assign(s.isLet, s.index.eval(scope), s.valueClause.eval(scope))
+
+		if s.isMethod:
+			value = MethodPseudoValue(s.valueClause, scope)
+		else:
+			value = s.valueClause.eval(scope)
+
+		target.assign(s.isLet, s.index.eval(scope), value)
 		return None
 
 class ApplyExec(Executable):

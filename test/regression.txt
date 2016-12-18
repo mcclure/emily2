@@ -32,6 +32,7 @@ exec/while.em
 exec/ski.em
 exec/array.em
 exec/object.em
+exec/method.em
 
 exec/fail/objectSet.em
 exec/fail/arraySet.em
