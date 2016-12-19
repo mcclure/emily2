@@ -1,4 +1,5 @@
-# "let"s in this language, currently, are not legit lets and should be "var"s. Prove this is true:
+# "let"s in this language, currently, are not legit lets and should be named "var". Prove this is true:
+# Expect: 5.0
 
 let x = 3
 

@@ -24,6 +24,7 @@ macro/fail/emptyComma.em
 scope/letSequence.em
 scope/closure.em
 scope/argument.em
+scope/badLet.em
 
 scope/fail/noLet.em
 
@@ -33,6 +34,7 @@ exec/ski.em
 exec/array.em
 exec/object.em
 exec/method.em
+exec/super.em
 
 exec/fail/objectSet.em
 exec/fail/arraySet.em

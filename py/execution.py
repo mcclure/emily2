@@ -40,16 +40,16 @@ class FunctionValue(object):
 		return FunctionValue(s.argNames, s.exe, s.scope, newArgs)
 
 class SuperValue(object):
-	def __init__(s, owner, parentTarget):
-		s.owner = owner
-		s.parentTarget = parentTarget
+	def __init__(s, parent, target):
+		s.parent = parent
+		s.target = target
 
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
-		value = s.parentTarget.innerLookup(key.value)
+		value = s.parent.innerLookup(key.value)
 		if type(value) == MethodPseudoValue: # This is a get property (method) & must be evaluated
-			return value.call(s.owner)
+			return value.call(s.target)
 		return value
 
 # Pseudovalue since it can never escape
@@ -63,7 +63,7 @@ class MethodPseudoValue(object):
 		scope = ObjectValue(s.scope)
 		scope.atoms['this'] = target
 		scope.atoms['current'] = s.owner
-		scope.atoms['super'] = SuperValue(s.owner, target.parent)
+		scope.atoms['super'] = SuperValue(s.owner.parent, target)
 		return s.exe.eval(scope)
 
 class ObjectValue(object):
