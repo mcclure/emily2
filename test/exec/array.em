@@ -42,6 +42,13 @@ println
 	a 2
 	a 3
 
-# Test empty array
+# Test dynamic array methods
+# Expect: 0.0 1.0 2.0 3.0 4.0
 
-let empty = array()
+let build = array()
+while (< (build.length) 5)
+	let len = build.length
+	build.append len
+	print
+		build len
+print ln

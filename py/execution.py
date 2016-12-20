@@ -47,24 +47,32 @@ class SuperValue(object):
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
-		value = s.parent.innerLookup(key.value)
-		if type(value) == MethodPseudoValue: # This is a get property (method) & must be evaluated
-			return value.call(s.target)
-		return value
+		return MethodPseudoValue.fetch(s.parent, key.value, s)
 
 # Pseudovalue since it can never escape
 class MethodPseudoValue(object):
-	def __init__(s, scope, owner, exe):
+	def __init__(s, scope=None, owner=None, exe=None, pythonFunction=None):
 		s.scope = scope
 		s.owner = owner
 		s.exe = exe
+		s.pythonFunction = pythonFunction
 
 	def call(s, target):
-		scope = ObjectValue(s.scope)
-		scope.atoms['this'] = target
-		scope.atoms['current'] = s.owner
-		scope.atoms['super'] = SuperValue(s.owner.parent, target)
-		return s.exe.eval(scope)
+		if s.pythonFunction:
+			return s.pythonFunction.apply(target)
+		else:
+			scope = ObjectValue(s.scope)
+			scope.atoms['this'] = target
+			scope.atoms['current'] = s.owner
+			scope.atoms['super'] = SuperValue(s.owner.parent, target)
+			return s.exe.eval(scope)
+
+	@staticmethod
+	def fetch(source, key, this):
+		value = source.innerLookup(key)
+		if type(value) == MethodPseudoValue:
+			return value.call(this)
+		return value
 
 class ObjectValue(object):
 	def __init__(s, parent=None):
@@ -79,10 +87,7 @@ class ObjectValue(object):
 		raise Exception("Object lacks key %s" % (key))
 
 	def lookup(s, key): # Already sanitized for atom correctness
-		value = s.innerLookup(key)
-		if type(value) == MethodPseudoValue: # This is a get property (method) & must be evaluated
-			return value.call(s)
-		return value
+		return MethodPseudoValue.fetch(s, key, s)
 
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
@@ -102,6 +107,10 @@ class ObjectValue(object):
 			raise Exception("Objects have atom keys only")
 		return s.innerAssign(isLet, key.value, value)
 
+arrayPrototype = ObjectValue()
+arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
+arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, lambda x,y:x.values.append(y)))
+
 class ArrayValue(object):
 	def __init__(s, values):
 		s.values = values
@@ -111,6 +120,8 @@ class ArrayValue(object):
 			key = int(key) # IS ROUND-DOWN ACTUALLY GOOD?
 		if type(key) == int:
 			return s.values[key]
+		if type(key) == AtomLiteralExec:
+			return MethodPseudoValue.fetch(arrayPrototype, key.value, s)
 		raise Exception("Arrays have number keys only")
 
 	def assign(s, isLet, key, value):
