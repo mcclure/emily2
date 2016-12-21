@@ -75,9 +75,10 @@ class MethodPseudoValue(object):
 		return value
 
 class ObjectValue(object):
-	def __init__(s, parent=None):
+	def __init__(s, fields = None, parent=None):
 		s.atoms = {}
 		s.parent = parent
+		s.fields = None
 
 	def innerLookup(s, key): # Already sanitized for atom correctness, method irrelevant
 		if key in s.atoms:
@@ -251,10 +252,11 @@ class VarExec(Executable):
 		return scope.lookup(s.symbol)
 
 class SetExec(Executable):
-	def __init__(s, loc, isLet, isMethod, target, index, valueClause): # TODO: indexClauses
+	def __init__(s, loc, isLet, isMethod, isField, target, index, valueClause): # TODO: indexClauses
 		super(SetExec, s).__init__(loc)
 		s.isLet = isLet
 		s.isMethod = isMethod
+		s.isField = isField
 		s.target = target
 		s.index = index
 		s.valueClause = valueClause
@@ -321,21 +323,35 @@ class MakeArrayExec(Executable):
 rootObject = ObjectValue() # Singleton "root object"
 
 class MakeObjectExec(Executable):
-	def __init__(s, loc, base, values):
+	def __init__(s, loc, base, values, isInstance):
 		super(MakeObjectExec, s).__init__(loc)
 		s.base = base
 		s.values = values
+		s.isInstance = isInstance
 
 	def __unicode__(s):
-		return u"[New %s [%s]]" % (unicode(s.base), unicodeJoin(u", ", s.values))
+		return u"[%s %s [%s]]" % ("New" if s.isInstance else "Inherit", unicode(s.base), unicodeJoin(u", ", s.values))
 
 	def eval(s, scope):
 		base = s.base.eval(scope)
 		if base == rootObject: # Tiny optimization: Don't actually inherit from Object
 			base = None
+		infields = base.fields if base else None
 		result = ObjectValue(base)
+		if s.isInstance and infields:
+			for field in infields:
+				result.assign(True, field, base.apply(field))
 		for exe in s.values:
-			exe.eval(scope, result)
+			key = exe.index.eval(scope) # do this early for field handling
+			if exe.isField:
+				if type(key) != AtomLiteralExec:
+					raise "Objects have atom keys only"
+				if not result.fields:
+					result.fields = list(infields) if infields else []
+				result.fields.append(key)
+			exe.eval(scope, result, key)
+		if not result.fields:
+			result.fields = infields
 		return result
 
 # Base scope

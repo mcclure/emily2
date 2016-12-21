@@ -1,4 +1,4 @@
-let total = new object
+let total = inherit object
 	value = 0
 	method increment = function (x)
 		this.value =
@@ -16,7 +16,7 @@ println
 # Okay, so the method x = function thing is just a tad awkward, but
 # the neat thing about it is methods are automatically get-properties
 
-let totalShadow = new total
+let totalShadow = inherit total
 	method valuePlusOne =
 		+
 			this.value

@@ -6,12 +6,12 @@
 # 4.0
 # 5.0
 
-let obj1 = new object
+let obj1 = inherit object
 	a = 1
 	b = 2
 	c = 3
 
-let obj2 = new obj1
+let obj2 = inherit obj1
 	c = 4
 	d = 5
 
@@ -31,7 +31,7 @@ let counter = 0
 while (< counter 2)
 	counter =
 		+ counter 1
-	let obj3 = new obj2
+	let obj3 = inherit obj2
 		c =
 			* counter 10
 	println
@@ -67,12 +67,12 @@ println
 # Expect:
 # 30.0
 
-obj2.c = new object
-	x = new object
+obj2.c = inherit object
+	x = inherit object
 		y = null
 
-obj2.c.x.y = new object()
-let obj2.c.x.y.z = new object
+obj2.c.x.y = inherit object()
+let obj2.c.x.y.z = inherit object
 	w = 0
 obj2.c.x.y.z.w = 30.0
 

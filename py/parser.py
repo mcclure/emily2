@@ -158,12 +158,15 @@ class SetMacro(OneSymbolMacro):
 	def apply(s, m, left, node, right):
 		isLet = False
 		isMethod = False
+		isField = False
 		target = None
 		for idx in range(len(left)):
 			if isSymbol(left[idx], u"let"):
 				isLet = True
 			elif isSymbol(left[idx], u"method"):
 				isMethod = True
+			elif isSymbol(left[idx], u"field"):
+				isField = True
 			else:
 				break
 		if left:
@@ -179,7 +182,7 @@ class SetMacro(OneSymbolMacro):
 				return Error(key.loc, "Assigned name must be alphanumeric")
 			key = execution.AtomLiteralExec(key.loc, key.content)
 		value = m.process(right)
-		return ([], execution.SetExec(node.loc, isLet, isMethod, target, key, value), [])
+		return ([], execution.SetExec(node.loc, isLet, isMethod, isField, target, key, value), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):
@@ -275,11 +278,12 @@ class ArrayMacro(SeqMacro):
 
 # array (contents)
 class ObjectMacro(OneSymbolMacro):
-	def __init__(s):
+	def __init__(s, isInstance):
 		super(ObjectMacro, s).__init__(progress = ProgressBase.Macroed + 500)
+		s.isInstance = isInstance
 
 	def symbol(s):
-		return u"new"
+		return u"new" if s.isInstance else u"inherit"
 
 	def apply(s, m, left, node, right):
 		if not right:
@@ -302,7 +306,7 @@ class ObjectMacro(OneSymbolMacro):
 			if assign.isLet:
 				return Error(assign.loc, "\"let\" is redundant in an object literal")
 			assign.isLet = True
-		return (left, execution.MakeObjectExec(node.loc, base, seq), right)
+		return (left, execution.MakeObjectExec(node.loc, base, seq, s.isInstance), right)
 
 # Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):
@@ -331,12 +335,12 @@ class ValueMacro(Macro):
 					node = execution.VarExec(node.loc, node.content)
 			else:
 				return Error(node.loc, "Internal error: AST node of indecipherable type %s found in a place that shouldn't be possible" % (type(node).__name__))
-			
+
 		return (left, node, right)
 
 standard_macros = [
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(),
-	ArrayMacro(), ObjectMacro(),
+	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),
 	SetMacro(),
 	ValueMacro()
 ]
