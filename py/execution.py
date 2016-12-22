@@ -75,10 +75,10 @@ class MethodPseudoValue(object):
 		return value
 
 class ObjectValue(object):
-	def __init__(s, fields = None, parent=None):
+	def __init__(s, parent=None, fields=None):
 		s.atoms = {}
 		s.parent = parent
-		s.fields = None
+		s.fields = fields
 
 	def innerLookup(s, key): # Already sanitized for atom correctness, method irrelevant
 		if key in s.atoms:
@@ -264,7 +264,7 @@ class SetExec(Executable):
 	def __unicode__(s):
 		return u"[%s %s %s %s]" % ("Let" if s.isLet else "Set", unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
 
-	def eval(s, scope, targetOverride = None):
+	def eval(s, scope, targetOverride = None, indexOverride = None):
 		if targetOverride:
 			target = targetOverride
 		elif s.target:
@@ -272,12 +272,17 @@ class SetExec(Executable):
 		else:
 			target = scope
 
+		if indexOverride: # FIXME: Will act surprisingly if index evaluates to None
+			index = indexOverride
+		else:
+			index = s.index.eval(scope)
+
 		if s.isMethod:
 			value = MethodPseudoValue(scope, target, s.valueClause)
 		else:
 			value = s.valueClause.eval(scope)
 
-		target.assign(s.isLet, s.index.eval(scope), value)
+		target.assign(s.isLet, index, value)
 		return None
 
 class ApplyExec(Executable):

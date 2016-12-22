@@ -1,3 +1,8 @@
+# Test methods on objects
+
+# Test 'this' mutation
+# Expect: 30.0 30.0
+
 let total = inherit object
 	value = 0
 	method increment = function (x)
@@ -5,16 +10,16 @@ let total = inherit object
 			+
 				this.value
 				x
+	method valueProperty = this.value
 
 total.increment 10
 total.increment 20
 
-# Expect: 30.0
-println
-	total.value
+print
+	total.value, total.valueProperty, ln
 
-# Okay, so the method x = function thing is just a tad awkward, but
-# the neat thing about it is methods are automatically get-properties
+# Test inheritance with 'this' (child calls parent)
+# Expect: 31.0
 
 let totalShadow = inherit total
 	method valuePlusOne =
@@ -22,11 +27,33 @@ let totalShadow = inherit total
 			this.value
 			1
 
-# Expect: 31.0
 println
 	totalShadow.valuePlusOne
 
-# Also did I mention scopes are objects in this language
+# Test inheritance with 'this' (parent calls child)
+
+let totalMirror = inherit totalShadow
+	value = 100
+
+# Expect:
+# 30.0 30.0
+# 100.0 100.0 101.0
+
+print
+	total.value,       total.valueProperty,                                 ln
+	totalMirror.value, totalMirror.valueProperty, totalMirror.valuePlusOne, ln
+
+# Expect:
+# 30.0 30.0
+# 110.0 110.0 111.0
+
+totalMirror.increment 10
+
+print
+	total.value,       total.valueProperty,                                 ln
+	totalMirror.value, totalMirror.valueProperty, totalMirror.valuePlusOne, ln
+
+# Test methods on scope object
 
 let x = 3
 let method xPlusThree =
