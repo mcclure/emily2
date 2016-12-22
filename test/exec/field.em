@@ -41,3 +41,16 @@ a 2 = 100
 print
 	a 2
 	ln
+
+# Positional key assignment (Notice: 100.0 as a leftover effect of key alias test)
+# Expect: 201.0 203.0 100.0
+
+let c = new a
+	201
+	202
+
+c 1 = 203
+
+print
+	c 0, c 1, c 2
+	ln

@@ -335,10 +335,11 @@ class MakeArrayExec(Executable):
 rootObject = ObjectValue() # Singleton "root object"
 
 class MakeObjectExec(Executable):
-	def __init__(s, loc, base, values, isInstance):
+	def __init__(s, loc, base, values, assigns, isInstance):
 		super(MakeObjectExec, s).__init__(loc)
 		s.base = base
 		s.values = values
+		s.assigns = assigns
 		s.isInstance = isInstance
 
 	def __unicode__(s):
@@ -353,7 +354,12 @@ class MakeObjectExec(Executable):
 		if s.isInstance and infields:
 			for field in infields:
 				result.assign(True, field, base.apply(field))
+		valueProgress = 0
 		for exe in s.values:
+			value = exe.eval(scope)
+			result.atoms[ infields[valueProgress].value ] = value
+			valueProgress += 1
+		for exe in s.assigns:
 			key = exe.index.eval(scope) # do this early for field handling
 			if exe.isField:
 				if type(key) != AtomLiteralExec:

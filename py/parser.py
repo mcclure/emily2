@@ -298,15 +298,24 @@ class ObjectMacro(OneSymbolMacro):
 				return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
 
 		seq = m.makeSequence(seq.loc, seq.statements, False).execs if seq.nonempty() else []
+		values = []
+		assigns = []
+		foundSet = False
 		for assign in seq:
 			if type(assign) != execution.SetExec:
-				return Error(assign.loc, "Found a stray value expression inside an object literal")
-			if assign.target:
-				return Error(assign.loc, "Assignment inside object literal was not of form key=value")
-			if assign.isLet:
-				return Error(assign.loc, "\"let\" is redundant in an object literal")
-			assign.isLet = True
-		return (left, execution.MakeObjectExec(node.loc, base, seq, s.isInstance), right)
+				if foundSet:
+					return Error(assign.loc, "Found a stray value expression inside an object literal")
+				else:
+					values.append(assign)
+			else:
+				foundSet = True
+				if assign.target:
+					return Error(assign.loc, "Assignment inside object literal was not of form key=value")
+				if assign.isLet:
+					return Error(assign.loc, "\"let\" is redundant in an object literal")
+				assign.isLet = True
+				assigns.append(assign)
+		return (left, execution.MakeObjectExec(node.loc, base, values, assigns, s.isInstance), right)
 
 # Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):
