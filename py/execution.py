@@ -47,7 +47,7 @@ class SuperValue(object):
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			raise Exception("Objects have atom keys only")
-		return MethodPseudoValue.fetch(s.parent, key.value, s)
+		return MethodPseudoValue.fetch(s.parent, key.value, s.target)
 
 # Pseudovalue since it can never escape
 class MethodPseudoValue(object):
@@ -84,7 +84,7 @@ class ObjectValue(object):
 		if key in s.atoms:
 			return s.atoms[key]
 		if s.parent:
-			return s.parent.lookup(key)
+			return s.parent.innerLookup(key)
 		raise Exception("Object lacks key %s" % (key))
 
 	def lookup(s, key): # Already sanitized for atom correctness
