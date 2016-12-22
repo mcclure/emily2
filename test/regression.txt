@@ -38,4 +38,6 @@ exec/super.em
 exec/field.em
 
 exec/fail/objectSet.em
+exec/fail/objectSetType.em
 exec/fail/arraySet.em
+exec/fail/arraySetType.em

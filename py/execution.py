@@ -80,6 +80,15 @@ class ObjectValue(object):
 		s.parent = parent
 		s.fields = fields
 
+	def key(s, key):
+		if type(key) == float:
+			key = int(key)
+		if type(key) == int:
+			key = s.fields[key]
+		if type(key) != AtomLiteralExec:
+			raise Exception("Object has atom%s keys only" % (" or numeric" if s.fields else ""))
+		return key
+
 	def innerLookup(s, key): # Already sanitized for atom correctness, method irrelevant
 		if key in s.atoms:
 			return s.atoms[key]
@@ -91,8 +100,7 @@ class ObjectValue(object):
 		return MethodPseudoValue.fetch(s, key, s)
 
 	def apply(s, key):
-		if type(key) != AtomLiteralExec:
-			raise Exception("Objects have atom keys only")
+		key = s.key(key)
 		return s.lookup(key.value)
 
 	def innerAssign(s, isLet, key, value): # Again, sanitized for atom correctness
@@ -104,8 +112,7 @@ class ObjectValue(object):
 			raise Exception("Object lacks key %s being set" % (key))
 
 	def assign(s, isLet, key, value):
-		if type(key) != AtomLiteralExec:
-			raise Exception("Objects have atom keys only")
+		key = s.key(key)
 		return s.innerAssign(isLet, key.value, value)
 
 arrayPrototype = ObjectValue()

@@ -30,3 +30,14 @@ print
 	b.x, b.y, b.z
 	b.cProperty
 	ln
+
+# Numeric key aliases
+# Expect: 3.0 100.0
+print
+	a 2
+
+a 2 = 100
+
+print
+	a 2
+	ln
