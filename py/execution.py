@@ -39,6 +39,36 @@ class FunctionValue(object):
 			return s.exe.eval(scope)
 		return FunctionValue(s.argNames, s.exe, s.scope, newArgs)
 
+def isImpl(parent, child):
+	if parent == child:
+		return True
+	if type(child) == ObjectValue:
+		if parent == rootObject:
+			return True
+		while child.parent:
+			child = child.parent
+			if parent == child:
+				return True
+	return False
+
+class MatchFunctionValue(object):
+	def __init__(s, matches, scope):
+		s.matches = matches
+		s.scope = scope
+
+	def apply(s, value):
+		for m in s.matches:
+			if not m.targetExe or isImpl(m.targetExe.eval(s.scope), value):
+				scope = s.scope
+				if m.unpacks:
+					scope = ObjectValue(scope)
+					unpackIdx = 0
+					for atom in m.unpacks:
+						scope.atoms[atom.value] = value.apply(unpackIdx)
+						unpackIdx += 1
+				return m.statement.eval(scope)
+		raise Exception("No match met")
+
 class SuperValue(object):
 	def __init__(s, parent, target):
 		s.parent = parent
@@ -246,6 +276,21 @@ class IfExec(Executable):
 				s.ifClause.eval(scope)
 		return None
 
+class MakeMatchExec(Executable):
+	def __init__(s, loc, matches):
+		super(MakeMatchExec, s).__init__(loc)
+		s.matches = matches
+
+	def __unicode__(s):
+		result = u"[Match"
+		for match in s.matches:
+			result += " [Case %s [%s] %s]" % (unicode(this.targetExe), unicodeJoin(", ", this.unpacks), unicode(this.statement))
+		result += "]"
+		return result
+
+	def eval(s, scope):
+		return MatchFunctionValue(s.matches, scope)
+
 class VarExec(Executable):
 	def __init__(s, loc, symbol, source=None):
 		super(VarExec, s).__init__(loc)
@@ -398,6 +443,11 @@ defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['null'] = None
 defaultScope.atoms['object'] = rootObject
+defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
+defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
+
+def printable(x):
+	return unicode(x) if x is not None else "null"
 
 printWrapperLastNewline = True
 def printWrapper(x):
@@ -410,13 +460,13 @@ def printWrapper(x):
 			printWrapperLastNewline = False
 		else:
 			sys.stdout.write(' ')
-	sys.stdout.write( unicode(x) ) # FIXME: Unicode
+	sys.stdout.write( printable(x) ) # FIXME: Unicode
 	return printWrapperValue
 printWrapperValue = PythonFunctionValue(1, printWrapper)
 defaultScope.atoms['print'] = printWrapperValue
 
 def printlnWrapper(x):
-	print unicode(x)
+	print printable(x)
 	return printlnWrapperValue
 printlnWrapperValue = PythonFunctionValue(1, printlnWrapper)
 defaultScope.atoms['println'] = printlnWrapperValue

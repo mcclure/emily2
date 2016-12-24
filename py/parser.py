@@ -265,6 +265,79 @@ class FunctionMacro(Macro):
 				args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
+# match (matchbody)
+class MatchCase(object):
+	def __init__(s, targetExe, unpacks, statement):
+		s.targetExe = targetExe
+		s.unpacks = unpacks
+		s.statement = statement
+
+class MatchMacro(OneSymbolMacro):
+	def __init__(s):
+		super(MatchMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+
+	def symbol(s):
+		return u"match"
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
+		lines = right.pop(0)
+		if type(lines) != reader.ExpGroup:
+			return Error(node.loc, u"Expected a (group) after \"%s\"" % (name))
+		result = []
+		for stmIdx in range(len(lines.statements) if lines.statements else 0):
+			stm = lines.statements[stmIdx]
+			if not stm.nodes: # Match is "like code" so may contain a blank line...?
+				continue
+			eqIdx = None # Find = sign
+			for idx in range(len(stm.nodes)):
+				if isSymbol(stm.nodes[idx], '='):
+					eqIdx = idx
+					break
+			if eqIdx is None:
+				return Error(node.loc, u"match line #%d does not have an =" % (stmIdx+1))
+			eqNode = stm.nodes[eqIdx]
+			eqLeft = stm.nodes[:eqIdx]
+			eqRight = stm.nodes[eqIdx+1:]
+			if not eqLeft:
+				return Error(node.loc, u"On match line #%d, left of = is blank" % (stmIdx+1))
+			if len(eqLeft) > 2:
+				return Error(node.loc, u"On match line #%d, left of = has too many symbols. Try adding parenthesis?" % (stmIdx+1))
+			if not eqRight:
+				return Error(node.loc, u"On match line #%d, right of = is blank" % (stmIdx+1))
+			target = eqLeft.pop(0)
+			unpacks = None
+			if eqLeft:
+				unpacks = eqLeft[0]
+				foundUnpack = False
+				if type(unpacks) == reader.SymbolExp:
+					unpacks = [execution.AtomLiteralExec(unpacks.loc, unpacks.content)]
+					foundUnpack = True
+				elif type(unpacks) == reader.ExpGroup:
+					unpacks = []
+					for statement in unpacks.statements:
+						if not statement.nodes or type(statement.nodes[0]) != reader.SymbolExp:
+							foundUnpack = False
+							break
+						unpacks.append(AtomLiteralExec(statement.nodes[0].loc, statement.nodes[0].content))
+						foundUnpack = True
+				if not foundUnpack:
+					return Error(node.loc, u"On match line #%d, variable unpack list on right of = is garbled" % (stmIdx+1))
+			if isSymbol(target, '_'):
+				if unpacks:
+					return Error(node.loc, u"On match line #%d, variable unpack list used with _" % (stmIdx+1))
+				target = None
+			elif isSymbol(target, 'array'):
+				if not unpacks:
+					return Error(node.loc, u"On match line #%d, \"array\" used but no unpack list found" % (stmIdx+1))
+				target = None
+			if target:
+				target = m.process([target])
+			tempStatement = m.process(eqRight)
+			result.append( MatchCase(target, unpacks, tempStatement) )
+		return (left, execution.MakeMatchExec(node.loc, result), right)
+
 # array (contents)
 class ArrayMacro(SeqMacro):
 	def __init__(s):
@@ -295,7 +368,7 @@ class ObjectMacro(OneSymbolMacro):
 		else:
 			seq = right.pop(0)
 			if type(seq) != reader.ExpGroup:
-				return Error(node.loc, u"Expected a (group) after \"%s (args)\"" % (name))
+				return Error(node.loc, u"Expected a (group) after \"new [base]\"")
 
 		seq = m.makeSequence(seq.loc, seq.statements, False).execs if seq.nonempty() else []
 		values = []
@@ -348,7 +421,7 @@ class ValueMacro(Macro):
 		return (left, node, right)
 
 standard_macros = [
-	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(),
+	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
 	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),
 	SetMacro(),
 	ValueMacro()
