@@ -26,10 +26,13 @@ class MacroShortCircuit(Exception):
 		s.error = error
 
 class Parser(object):
-	def __init__(s):
-		s.errors = []
-		s.macros = []
-		s.loadAll(standard_macros)
+	def __init__(s, clone = None):
+		s.errors = clone.errors if clone else []
+		if clone:
+			s.macros = [MacroLevel(level.progress, list(level.contents)) for level in clone.macros]
+		else:
+			s.macros = []
+			s.loadAll(standard_macros)
 
 	def _innerLoad(s, macro):
 		for existing in s.macros:
@@ -127,13 +130,26 @@ class Parser(object):
 		return execution.NullLiteralExec(grp.loc)
 
 	def makeSequence(s, loc, statements, shouldReturn = False):
-		execs = [s.process(stm.nodes) for stm in statements]
+		execs = []
+		m = None
+		for stm in statements:
+			exe = (m or s).process(stm.nodes)
+			if type(exe) == UserMacroList: # Apply these macros to all following lines
+				if not m:
+					m = Parser(s)
+				m.loadAll(exe.contents)
+			else:
+				execs.append(exe)
+
 		hasLets = False
 		for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
 			if type(exe) == execution.SetExec and exe.isLet:
 				hasLets = True
 				break
 		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
+
+	def makeArray(s, seq):
+		return [s.process(stm.nodes) for stm in seq.statements] if seq.nonempty() else []
 
 # Standard macros-- "make values"
 
@@ -146,6 +162,36 @@ def isSymbol(exp, match):
 class OneSymbolMacro(Macro):
 	def match(s, left, node, right):
 		return isSymbol(node, s.symbol())
+
+# Macro for loading macros -- Can masquerade as an Executable
+class UserMacroList(execution.Executable):
+	def __init__(s, loc, contents):
+		super(UserMacroList, s).__init__(loc)
+		s.contents = contents
+
+	def __unicode__(s):
+		return u"[Misplaced macro node]"
+
+	def eval(s, scope):
+		raise Exception("\"Macro\" statement in invalid place")
+
+class MacroMacro(OneSymbolMacro):
+	def __init__(s):
+		super(MacroMacro, s).__init__(progress=ProgressBase.Macroed + 10)
+
+	def symbol(s):
+		return u"macro"
+
+	def apply(s, m, left, node, right):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"macro\"")
+		macroGroup = right.pop(0)
+		if type(macroGroup) != reader.ExpGroup:
+			return Error(node.loc, u"Expected a (group) after \"macro\"")
+		if right:
+			return Error(node.loc, u"Stray garbage after \"macro (group)\"")
+		macros = m.makeArray(macroGroup)
+		return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros]), [])
 
 # = sign
 class SetMacro(OneSymbolMacro):
@@ -265,6 +311,23 @@ class FunctionMacro(Macro):
 				args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
+class SplitMacro(OneSymbolMacro):
+	def __init__(s, progress, symbol):
+		super(SplitMacro, s).__init__(progress = progress)
+		s.symbolCache = symbol
+
+	def symbol(s):
+		return s.symbolCache
+
+	def apply(s, m, left, node, right):
+		return ([],
+			execution.ApplyExec(node.loc,
+				execution.ApplyExec(node.loc,
+						execution.VarExec(node.loc, s.symbolCache),
+						m.process(left)),
+				m.process(right)),
+			[])
+
 # match (matchbody)
 class MatchCase(object):
 	def __init__(s, targetExe, unpacks, statement):
@@ -347,7 +410,7 @@ class ArrayMacro(SeqMacro):
 		return u"array"
 
 	def construct(s, m, seq):
-		return execution.MakeArrayExec(seq.loc, [m.process(stm.nodes) for stm in seq.statements] if seq.nonempty() else [])
+		return execution.MakeArrayExec(seq.loc, m.makeArray(seq))
 
 # array (contents)
 class ObjectMacro(OneSymbolMacro):
@@ -421,6 +484,7 @@ class ValueMacro(Macro):
 		return (left, node, right)
 
 standard_macros = [
+	MacroMacro(),
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
 	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),
 	SetMacro(),

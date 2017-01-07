@@ -21,6 +21,8 @@ macro/fail/setType2.em
 macro/fail/setInvalid.em
 macro/fail/emptyComma.em
 
+macro/custom/splitter.em
+
 scope/letSequence.em
 scope/closure.em
 scope/argument.em

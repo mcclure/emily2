@@ -3,6 +3,7 @@
 import sys
 from core import *
 from util import unicodeJoin, quotedString
+import parser
 
 # Values
 
@@ -445,6 +446,14 @@ defaultScope.atoms['null'] = None
 defaultScope.atoms['object'] = rootObject
 defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
 defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
+
+def makeSplitMacro(progress, symbol):
+	if progress < 0 or progress >= 1000:
+		raise Exception("Macro progress must be between 0 and 999 inclusive")
+	if type(symbol) != unicode:
+		raise Exception("Macro symbol is not a symbol")
+	return parser.SplitMacro(ProgressBase.Macroed + progress, symbol)
+defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
 
 def printable(x):
 	return unicode(x) if x is not None else "null"
