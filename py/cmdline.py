@@ -27,6 +27,7 @@ for a in ["e"]: # Long args with arguments
     cmdline.add_option("-"+a, action="append")
 
 (options, cmds) = cmdline.parse_args()
+argv = []
 
 def flag(a, b=None):
     x = getattr(options, a)
@@ -37,13 +38,11 @@ def flag(a, b=None):
 if flag('e'):
 	if len(flag('e')) > 2:
 		cmdline.error("Multiple -e arguments seen")
-	if cmds:
-		cmdline.error("Both -e and filename seen")
+	argv = cmds
 else:
 	if not cmds:
 		cmdline.error("No file given")
-	if len(cmds) > 1:
-		cmdline.error("Multiple files given")
+	argv = cmds[1:]
 
 # TODO: Convert -e to unicode
 
@@ -65,7 +64,9 @@ try:
 		print ast
 		sys.exit(0)
 
-	ast.eval(execution.defaultScope)
+	scope = execution.ObjectValue(execution.defaultScope)
+	scope.atoms['argv'] = execution.ArrayValue(argv)
+	ast.eval(scope)
 
 except core.EmilyException as e:
 	print >>sys.stderr, e

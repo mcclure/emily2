@@ -1,3 +1,6 @@
+# Embarrassingly, doesn't work.
+parse/blank.em
+
 # Backslashes in quotes are not printed sensibly (otherwise works)
 parse/literals.em
 
@@ -11,3 +14,5 @@ parse/unicode/utf16be.em
 # () is not implemented yet
 macro/null.em
 
+# - args are mishandled
+lib/argv.3.em

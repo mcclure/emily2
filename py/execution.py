@@ -482,3 +482,4 @@ defaultScope.atoms['println'] = printlnWrapperValue
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, sys.exit)
 defaultScope.atoms['ln'] = "\n"
+defaultScope.atoms['argv'] = ArrayValue([])
