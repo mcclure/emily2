@@ -146,9 +146,27 @@ class ObjectValue(object):
 		key = s.key(key)
 		return s.innerAssign(isLet, key.value, value)
 
+arrayIteratorSource = object()
+arrayIteratorIdx = object()
+arrayIteratorPrototype = ObjectValue()
+arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource].values))))
+def arrayIteratorNextImpl(i):
+	x = i.atoms[arrayIteratorSource].values[ i.atoms[arrayIteratorIdx] ]
+	i.atoms[arrayIteratorIdx] += 1
+	return x
+arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorNextImpl))
+
 arrayPrototype = ObjectValue()
 arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
 arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, lambda x,y:x.values.append(y)))
+
+# "Hidden" values in object
+def arrayIteratorImpl(ary):
+	x = ObjectValue(arrayIteratorPrototype)
+	x.atoms[arrayIteratorSource] = ary
+	x.atoms[arrayIteratorIdx] = 0
+	return x
+arrayPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorImpl))
 
 class ArrayValue(object):
 	def __init__(s, values):
