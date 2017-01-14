@@ -13,7 +13,7 @@ import execution
 
 # Command line frontend -- mimic optparse
 
-help  = "%1 [filename]\n"
+help  = "{0} [filename] [program-args]\n"
 help += "\n"
 help += "Accepted arguments:\n"
 help += "-e [string]               # Instead of file, execute inline string\n"
@@ -26,8 +26,9 @@ cmd_append = ["-e"] # Long args with arguments
 def cmd_strip(s):
 	return s.lstrip('-')
 def cmd_fail(msg):
-	inner_help = help % (sys.argv[0])
+	inner_help = help.format(sys.argv[0])
 	out = "%s: Error: %s\n\nUsage:\n%s\n" % (sys.argv[0], msg, inner_help)
+	sys.stderr.write(out)
 	sys.exit(2)
 
 options, target, argv = {}, None, []

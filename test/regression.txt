@@ -6,6 +6,7 @@ parse/unicode/utf8.em
 parse/unicode/utf8-bom.em
 
 parse/fail/ambiguousIndent.em
+parse/fail/cmdline.em
 parse/fail/dot.em
 parse/fail/lparen.em
 parse/fail/parenDedent.em
