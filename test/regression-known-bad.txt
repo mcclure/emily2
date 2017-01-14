@@ -13,6 +13,3 @@ parse/unicode/utf16be.em
 
 # () is not implemented yet
 macro/null.em
-
-# - args are mishandled
-lib/argv.3.em
