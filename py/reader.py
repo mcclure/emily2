@@ -1,7 +1,7 @@
 # Reader: Turns unicode string iterator into parse tree
 
 from core import *
-from util import switch, dynamic_switch, unicodeJoin, quotedString
+from util import switch, dynamicSwitch, unicodeJoin, quotedString
 import unicodedata
 
 # AST
@@ -203,7 +203,7 @@ class Reader:
 		s.reset(ReaderState.Indent)
 
 		for ch in iter:
-			for case in dynamic_switch(s, 'parserState'):
+			for case in dynamicSwitch(s, 'parserState'):
 				s.char += 1
 
 				if case(ReaderState.Cr):

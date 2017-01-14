@@ -7,14 +7,14 @@ import sys
 py3 = sys.version_info >= (3, 0)
 
 # Take a path to a UTF-8 or UTF-16 file. Return an object to be used with utflines()
-def utfopen(path):
+def utfOpen(path):
     with open(path, 'rb') as f:
         start = f.read(2) # Check first bytes for BOM
         utf16 = start.startswith(codecs.BOM_UTF16_BE) or start.startswith(codecs.BOM_UTF16_LE)
     return codecs.open(path, 'r', 'utf-16' if utf16 else 'utf-8-sig')
 
 # Iterator that sweeps a file 1 character at a time
-def filechars(f):
+def fileChars(f):
     while True:
         ch = f.read(1)
         if ch:
@@ -54,7 +54,7 @@ class switch(object):
             return False
 
 # FIXME: Maybe this is not such a good thing.
-class dynamic_switch(object):
+class dynamicSwitch(object):
     def __init__(self, value, key):
         self.value = value
         self.key = key
