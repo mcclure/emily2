@@ -49,3 +49,4 @@ exec/fail/arraySetType.em
 lib/argv.em
 lib/argv.2.em
 lib/iter.em
+lib/stdout.em

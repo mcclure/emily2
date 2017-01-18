@@ -146,6 +146,8 @@ class ObjectValue(object):
 		key = s.key(key)
 		return s.innerAssign(isLet, key.value, value)
 
+# Small chunk of standard library: The array prototype
+
 arrayIteratorSource = object()
 arrayIteratorIdx = object()
 arrayIteratorPrototype = ObjectValue()
@@ -160,10 +162,9 @@ arrayPrototype = ObjectValue()
 arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
 arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, lambda x,y:x.values.append(y)))
 
-# "Hidden" values in object
 def arrayIteratorImpl(ary):
 	x = ObjectValue(arrayIteratorPrototype)
-	x.atoms[arrayIteratorSource] = ary
+	x.atoms[arrayIteratorSource] = ary # Store "hidden" values in object
 	x.atoms[arrayIteratorIdx] = 0
 	return x
 arrayPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorImpl))
@@ -436,14 +437,21 @@ class MakeObjectExec(Executable):
 			result.fields = infields
 		return result
 
-# Base scope
+# Base scope ("standard library")
+
+# Basics/math
 
 defaultScope = ObjectValue()
+defaultScope.atoms['null'] = None
+defaultScope.atoms['object'] = rootObject
+defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
 defaultScope.atoms['+'] = PythonFunctionValue(2, lambda x,y: x + y)
 defaultScope.atoms['-'] = PythonFunctionValue(2, lambda x,y: x - y)
 defaultScope.atoms['*'] = PythonFunctionValue(2, lambda x,y: x * y)
 defaultScope.atoms['/'] = PythonFunctionValue(2, lambda x,y: x / y)
 defaultScope.atoms['%'] = PythonFunctionValue(2, lambda x,y: x % y)
+
+# Boolean math
 
 def toBool(x):
 	return 1 if x else None
@@ -460,10 +468,9 @@ defaultScope.atoms['<']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
 defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
 defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
-defaultScope.atoms['null'] = None
-defaultScope.atoms['object'] = rootObject
-defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
 defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
+
+# Macro support
 
 def makeSplitMacro(progress, symbol):
 	if progress < 0 or progress >= 1000:
@@ -473,30 +480,66 @@ def makeSplitMacro(progress, symbol):
 	return parser.SplitMacro(ProgressBase.Macroed + progress, symbol)
 defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
 
+# IO
+
+fileObjectHandle = object()
+fileObjectLastNewline = object()
+infileObjectPrototype = ObjectValue()
+outfileObjectPrototype = ObjectValue()
+
 def printable(x):
 	return unicode(x) if x is not None else "null"
 
-printWrapperLastNewline = True
-def printWrapper(x):
-	global printWrapperLastNewline
-	if type(x) == str and x.endswith('\n'):
-		printWrapperLastNewline = True
-		sys.stdout.flush()
-	else:
-		if printWrapperLastNewline:
-			printWrapperLastNewline = False
-		else:
-			sys.stdout.write(' ')
-	sys.stdout.write( printable(x) ) # FIXME: Unicode
-	return printWrapperValue
-printWrapperValue = PythonFunctionValue(1, printWrapper)
-defaultScope.atoms['print'] = printWrapperValue
+def setLooper(into, key, fn):
+	def looper(obj, x):
+		fn(obj, x)
+		return obj.atoms[key].call(obj) # Have to do it like this in case it was overridden
+	into.atoms[key] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, looper))
 
-def printlnWrapper(x):
-	print printable(x)
-	return printlnWrapperValue
-printlnWrapperValue = PythonFunctionValue(1, printlnWrapper)
-defaultScope.atoms['println'] = printlnWrapperValue
+def writeWrapper(obj, x):
+	handle = obj.atoms[fileObjectHandle]
+	obj.atoms[fileObjectLastNewline] = True
+	handle.write( printable(x) ) # FIXME: Unicode
+
+def flushWrapper(obj):
+	handle = obj.atoms[fileObjectHandle]
+	handle.flush()
+
+def printWrapper(obj, x):
+	handle = obj.atoms[fileObjectHandle]
+	if type(x) == str and x.endswith('\n'):
+		obj.atoms[fileObjectLastNewline] = True
+		handle.flush()
+	else:
+		if obj.atoms[fileObjectLastNewline]:
+			obj.atoms[fileObjectLastNewline] = False
+		else:
+			handle.write(' ')
+	handle.write( printable(x) ) # FIXME: Unicode
+
+def printlnWrapper(obj, x):
+	handle = obj.atoms[fileObjectHandle]
+	handle.write( printable(x) ) # FIXME: Unicode
+	handle.write( "\n" ) # FIXME: Unicode
+	obj.atoms[fileObjectLastNewline] = True
+setLooper(defaultScope, 'println', printlnWrapper)
+
+def makeOutfileObject(handle):
+	obj = ObjectValue(outfileObjectPrototype)
+	obj.atoms[fileObjectHandle] = handle
+	obj.atoms[fileObjectLastNewline] = True
+	setLooper(obj, 'write', writeWrapper)
+	obj.atoms['flush'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,flushWrapper))
+	setLooper(obj, 'print', printWrapper)
+	setLooper(obj, 'println', printlnWrapper)
+	return obj
+
+stdoutObject = makeOutfileObject(sys.stdout)
+defaultScope.atoms['stdout'] = stdoutObject
+stderrObject = makeOutfileObject(sys.stderr)
+defaultScope.atoms['stderr'] = stderrObject
+defaultScope.atoms['print'] = stdoutObject.atoms['print'].call(stdoutObject)
+defaultScope.atoms['println'] = stdoutObject.atoms['println'].call(stdoutObject)
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
 defaultScope.atoms['ln'] = "\n"

@@ -87,22 +87,19 @@ let Statement = inherit object
 	field nodes = array()
 	field dead = null
 
-let Reader = inherit object
-	field line = 1
-	field char = 0
-	field groupStack = array()
-	field errors = array()
+let ast = function(i)
+	let line = 1
+	let char = 0
+	let groupStack = array()
+	let errors = array()
 
 	method finalGroup = lastFrom (this.groupStack)
 
-	method ast = function (i)
-		
+	while (i.more)
+		let ch = i.next
 
-let ast = function(iter)
-	let reader = new Reader
-	reader.ast iter
-	if (> 0 (reader.errors.length))
-		print(reader.errors.length, "errors", ln)
+	if (> 0 (errors.length))
+		print(errors.length, "errors", ln)
 		exit 1
 	reader.finalGroup
 
