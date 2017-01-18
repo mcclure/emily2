@@ -491,10 +491,12 @@ def printable(x):
 	return unicode(x) if x is not None else "null"
 
 def setLooper(into, key, fn):
-	def looper(obj, x):
-		fn(obj, x)
-		return obj.atoms[key].call(obj) # Have to do it like this in case it was overridden
-	into.atoms[key] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, looper))
+	looperValue = None
+	def looper(x):
+		fn(into, x)
+		return looperValue # Have to do it like this in case it was overridden
+	looperValue = PythonFunctionValue(1, looper)
+	into.atoms[key] = looperValue
 
 def writeWrapper(obj, x):
 	handle = obj.atoms[fileObjectHandle]
@@ -522,7 +524,6 @@ def printlnWrapper(obj, x):
 	handle.write( printable(x) ) # FIXME: Unicode
 	handle.write( "\n" ) # FIXME: Unicode
 	obj.atoms[fileObjectLastNewline] = True
-setLooper(defaultScope, 'println', printlnWrapper)
 
 def makeOutfileObject(handle):
 	obj = ObjectValue(outfileObjectPrototype)
@@ -538,8 +539,8 @@ stdoutObject = makeOutfileObject(sys.stdout)
 defaultScope.atoms['stdout'] = stdoutObject
 stderrObject = makeOutfileObject(sys.stderr)
 defaultScope.atoms['stderr'] = stderrObject
-defaultScope.atoms['print'] = stdoutObject.atoms['print'].call(stdoutObject)
-defaultScope.atoms['println'] = stdoutObject.atoms['println'].call(stdoutObject)
+defaultScope.atoms['print'] = stdoutObject.atoms['print']
+defaultScope.atoms['println'] = stdoutObject.atoms['println']
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
 defaultScope.atoms['ln'] = "\n"
