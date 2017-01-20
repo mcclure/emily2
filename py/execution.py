@@ -480,9 +480,10 @@ def makeSplitMacro(progress, symbol):
 	return parser.SplitMacro(ProgressBase.Macroed + progress, symbol)
 defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
 
-# IO
+# IO : Output
 
 fileObjectHandle = object()
+fileObjectNextIn = object()
 fileObjectLastNewline = object()
 infileObjectPrototype = ObjectValue()
 outfileObjectPrototype = ObjectValue()
@@ -506,6 +507,12 @@ def writeWrapper(obj, x):
 def flushWrapper(obj):
 	handle = obj.atoms[fileObjectHandle]
 	handle.flush()
+flushWrapperValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,flushWrapper))
+
+def closeWrapper(obj):
+	handle = obj.atoms[fileObjectHandle]
+	handle.close()
+closeWrapperValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,closeWrapper))
 
 def printWrapper(obj, x):
 	handle = obj.atoms[fileObjectHandle]
@@ -530,9 +537,10 @@ def makeOutfileObject(handle):
 	obj.atoms[fileObjectHandle] = handle
 	obj.atoms[fileObjectLastNewline] = True
 	setLooper(obj, 'write', writeWrapper)
-	obj.atoms['flush'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,flushWrapper))
+	obj.atoms['flush'] = flushWrapperValue
 	setLooper(obj, 'print', printWrapper)
 	setLooper(obj, 'println', printlnWrapper)
+	obj.atoms['close'] = closeWrapperValue
 	return obj
 
 stdoutObject = makeOutfileObject(sys.stdout)
@@ -541,6 +549,57 @@ stderrObject = makeOutfileObject(sys.stderr)
 defaultScope.atoms['stderr'] = stderrObject
 defaultScope.atoms['print'] = stdoutObject.atoms['print']
 defaultScope.atoms['println'] = stdoutObject.atoms['println']
+
+fileObject = ObjectValue()
+defaultScope.atoms['file'] = fileObject
+def makeOutOpen(arg):
+	def outOpen(filename):
+		return makeOutfileObject(open(filename, arg))
+	return PythonFunctionValue(1, outOpen)
+fileObject.atoms['out'] = makeOutOpen("w")
+fileObject.atoms['append'] = makeOutOpen("a")
+
+# IO: Input
+
+def fileNextCached(obj): # If None: not known. If '': at eof. 
+	nextIn = obj.atoms[fileObjectNextIn]
+	if nextIn is None:
+		handle = obj.atoms[fileObjectHandle]
+		nextIn = handle.read(1)
+		obj.atoms[fileObjectNextIn] = nextIn
+	return nextIn
+
+def fileMore(obj):
+	value = fileNextCached(obj)
+	return value != ''
+fileMoreValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,fileMore))
+
+def filePeek(obj):
+	value = fileNextCached(obj)
+	if value == '':
+		raise Exception("Read on filehandle with no data")
+	return value
+filePeekValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,filePeek))
+
+def fileNext(obj):
+	value = filePeek(obj)
+	obj.atoms[fileObjectNextIn] = None
+	return value
+fileNextValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,fileNext))
+
+def makeInfileObject(handle):
+	obj = ObjectValue(infileObjectPrototype)
+	obj.atoms[fileObjectHandle] = handle
+	obj.atoms[fileObjectNextIn] = None
+	obj.atoms['more'] = fileMoreValue
+	obj.atoms['next'] = fileNextValue
+	obj.atoms['peek'] = filePeekValue
+	obj.atoms['close'] = closeWrapperValue
+	return obj
+
+def makeInOpen(filename):
+	return makeInfileObject(open(filename, "r"))
+fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
 defaultScope.atoms['ln'] = "\n"
