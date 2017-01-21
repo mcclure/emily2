@@ -49,3 +49,5 @@ while (x.more)
 
 println
 	== sum printResult
+
+x.close

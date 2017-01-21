@@ -70,6 +70,8 @@ let ExpGroup = inherit Node
 	field indent = null
 	field statements = array()
 
+	method finalStatement = lastFrom (this.statements)
+
 let StringContentExp = inherit Node
 	field content = ""
 
@@ -87,13 +89,28 @@ let Statement = inherit object
 	field nodes = array()
 	field dead = null
 
-let ast = function(i)
+let StatementKind = inherit object
+let StatementKind.Outermost = inherit StatementKind
+let StatementKind.Indent = inherit StatementKind
+let StatementKind.Parenthesis = inherit StatementKind
+
+let makeAst = function(i)
 	let line = 1
 	let char = 0
 	let groupStack = array()
 	let errors = array()
 
-	method finalGroup = lastFrom (this.groupStack)
+	let method loc = new Loc(line, char)
+	let method finalGroup = lastFrom (this.groupStack)
+	let appendExp = function (node)
+		finalGroup.finalStatement.nodes.append node
+	let appendGroup = function (statementKind)
+		let group = new ExpGroup(== statementKind (StatementKind.Parenthesis))
+		if (!= statementKind (StatementKind.Outermost))
+			appendExp group
+		groupStack.append group
+
+	appendGroup (StatementKind.Outermost)
 
 	while (i.more)
 		let ch = i.next
@@ -101,7 +118,17 @@ let ast = function(i)
 	if (> 0 (errors.length))
 		print(errors.length, "errors", ln)
 		exit 1
-	reader.finalGroup
+	
+	finalGroup
+
+let codeIter = with cmdTarget match
+	null = cmdExecute.iter
+	_ =    file.in cmdTarget
+
+let ast = makeAst codeIter
+
+if (cmdTarget)
+	codeIter.close
 
 println
 	"ok"
