@@ -110,6 +110,18 @@ let makeAst = function(i)
 			appendExp group
 		groupStack.append group
 
+	let State = inherit object
+	let state = null
+	let method nextState = function (x)
+		state = nextState
+
+	let Scanning = inherit State
+		if (not (char.isNonLineSpace))
+			
+	let Symbol = inherit State
+		handle = function(ch)
+
+
 	appendGroup (StatementKind.Outermost)
 
 	while (i.more)

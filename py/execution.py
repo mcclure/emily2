@@ -3,7 +3,7 @@
 import sys
 from core import *
 from util import unicodeJoin, quotedString
-import parser
+import reader, parser
 
 # Values
 
@@ -550,6 +550,10 @@ defaultScope.atoms['stderr'] = stderrObject
 defaultScope.atoms['print'] = stdoutObject.atoms['print']
 defaultScope.atoms['println'] = stdoutObject.atoms['println']
 
+defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
+defaultScope.atoms['ln'] = "\n"
+defaultScope.atoms['argv'] = ArrayValue([])
+
 fileObject = ObjectValue()
 defaultScope.atoms['file'] = fileObject
 def makeOutOpen(arg):
@@ -558,7 +562,6 @@ def makeOutOpen(arg):
 	return PythonFunctionValue(1, outOpen)
 fileObject.atoms['out'] = makeOutOpen("w")
 fileObject.atoms['append'] = makeOutOpen("a")
-
 # IO: Input
 
 def fileNextCached(obj): # If None: not known. If '': at eof. 
@@ -601,6 +604,15 @@ def makeInOpen(filename):
 	return makeInfileObject(open(filename, "r"))
 fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
 
-defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
-defaultScope.atoms['ln'] = "\n"
-defaultScope.atoms['argv'] = ArrayValue([])
+# String garbage
+
+charObject = ObjectValue()
+defaultScope.atoms['char'] = charObject
+charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, reader.isNonLineSpace)
+charObject.atoms['isLineSpace'] = PythonFunctionValue(1, reader.isLineSpace)
+charObject.atoms['isSpace'] = PythonFunctionValue(1, lambda x: reader.isSpace(x) or reader.isNonLineSpace(x))
+charObject.atoms['isQuote'] = PythonFunctionValue(1, reader.isQuote)
+charObject.atoms['isOpenParen'] = PythonFunctionValue(1, reader.isOpenParen)
+charObject.atoms['isCloseParen'] = PythonFunctionValue(1, reader.isCloseParen)
+charObject.atoms['isParen'] = PythonFunctionValue(1, lambda x: reader.isOpenParen(x) or reader.isCloseParen(x))
+charObject.atoms['isDigit'] = PythonFunctionValue(1, reader.isDigit)

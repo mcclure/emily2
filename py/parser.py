@@ -25,6 +25,11 @@ class MacroShortCircuit(Exception):
 	def __init__(s, error):
 		s.error = error
 
+class SequenceTracker(object):
+	def __init__(s, statements):
+		s.statements = statements
+		s.idx = 0
+
 class Parser(object):
 	def __init__(s, clone = None):
 		s.errors = clone.errors if clone else []
@@ -62,7 +67,7 @@ class Parser(object):
 		s.errors.append( Error(loc, msg) )
 		return execution.InvalidExec(loc)
 
-	def process(s, nodes):
+	def process(s, nodes, tracker = None):
 		if not nodes:
 			raise Exception("Internal error: macro process() cannot work on an empty list")
 		try:
@@ -76,7 +81,7 @@ class Parser(object):
 						continue
 					for macro in level.contents:
 						if macro.match(left, at, right):
-							result = macro.apply(s, left, at, right)
+							result = macro.apply(s, left, at, right, tracker)
 							# TODO: Catch exceptions
 							if type(result) == Error:
 								raise MacroShortCircuit(result)
@@ -111,12 +116,15 @@ class Parser(object):
 				if not arg.nonempty():
 					result = execution.ApplyExec(result.loc, result, s.makeUnit(arg))
 				else:
-					idx = 0
-					for statement in arg.statements:
-						idx += 1
+					argIdx = 0
+					tracker = SequenceTracker(arg.statements)
+					while tracker.idx < len(tracker.statements):
+						statement = tracker.statements[tracker.idx]
+						tracker.idx += 1
+						argIdx += 1
 						if not statement.nodes:
 							return s.errorAt(arg.loc, "Argument #%s to function is blank" % (idx))
-						result = execution.ApplyExec(result.loc, result, s.process(statement.nodes))
+						result = execution.ApplyExec(result.loc, result, s.process(statement.nodes, tracker))
 			else:
 				completenessError = s.checkComplete(arg)
 				if completenessError:
@@ -132,8 +140,12 @@ class Parser(object):
 	def makeSequence(s, loc, statements, shouldReturn = False):
 		execs = []
 		m = None
-		for stm in statements:
-			exe = (m or s).process(stm.nodes)
+		tracker = SequenceTracker(statements)
+		while tracker.idx < len(tracker.statements):
+			stm = tracker.statements[tracker.idx]
+			tracker.idx += 1
+
+			exe = (m or s).process(stm.nodes, tracker)
 			if type(exe) == UserMacroList: # Apply these macros to all following lines
 				if not m:
 					m = Parser(s)
@@ -182,7 +194,7 @@ class MacroMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"macro"
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"macro\"")
 		macroGroup = right.pop(0)
@@ -201,7 +213,7 @@ class SetMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"="
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		isLet = False
 		isMethod = False
 		isField = False
@@ -232,7 +244,7 @@ class SetMacro(OneSymbolMacro):
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
 		seq = right.pop(0)
@@ -260,7 +272,7 @@ class IfMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"while" if s.loop else u"if"
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, tracker):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
 		cond = right.pop(0)
@@ -289,7 +301,7 @@ class FunctionMacro(Macro):
 	def match(s, left, node, right):
 		return isSymbol(node, u"function") or isSymbol(node, u"func")
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		name = node.content
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
@@ -319,7 +331,7 @@ class SplitMacro(OneSymbolMacro):
 	def symbol(s):
 		return s.symbolCache
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		return ([],
 			execution.ApplyExec(node.loc,
 				execution.ApplyExec(node.loc,
@@ -342,7 +354,7 @@ class MatchMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"match"
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
 		lines = right.pop(0)
@@ -421,7 +433,7 @@ class ObjectMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"new" if s.isInstance else u"inherit"
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"new\"")
 		base = right.pop(0)
@@ -462,7 +474,7 @@ class ValueMacro(Macro):
 		c = type(node)
 		return c == reader.QuoteExp or c == reader.NumberExp or c == reader.SymbolExp
 
-	def apply(s, m, left, node, right):
+	def apply(s, m, left, node, right, _):
 		for case in switch(type(node)):
 			if case(reader.QuoteExp):
 				node = execution.StringLiteralExec(node.loc, node.content)
