@@ -13,3 +13,6 @@ parse/unicode/utf16be.em
 
 # () is not implemented yet
 macro/null.em
+
+# This ought to fail, but succeeds, becuase stealing works across commas
+macro/fail/steal.em

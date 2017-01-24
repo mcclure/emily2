@@ -14,7 +14,7 @@ if y
 	println "two"
 
 println
-	if x ("x true") ("x false")
+	if x ("x true") else ("x false")
 
 println
-	if y ("y true") ("y false")
+	if y ("y true") else ("y false")

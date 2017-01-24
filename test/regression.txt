@@ -15,6 +15,7 @@ parse/fail/startingComma.em
 
 macro/value.em
 macro/set.em
+macro/steal.em
 
 macro/fail/setCount.em
 macro/fail/setType.em

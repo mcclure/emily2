@@ -30,6 +30,14 @@ class SequenceTracker(object):
 		s.statements = statements
 		s.idx = 0
 
+	def steal(s, symbol):
+		if s.idx < len(s.statements):
+			nodes = s.statements[s.idx].nodes
+			if nodes and isSymbol(nodes[0], symbol):
+				s.idx += 1
+				return nodes
+		return None
+
 class Parser(object):
 	def __init__(s, clone = None):
 		s.errors = clone.errors if clone else []
@@ -282,11 +290,14 @@ class IfMacro(OneSymbolMacro):
 		if type(seq) != reader.ExpGroup:
 			return Error(node.loc, u"Expected a (group) after \"%s (condition)\"" % (s.symbol()))
 		elseq = None
-		if not s.loop and right:
-			elseq = right.pop(0)
-			if type(elseq) != reader.ExpGroup:
-				return Error(node.loc, u"Expected a (group) after \"%s (condition) (ifGroup)\"" % (s.symbol()))
-		
+		if not s.loop:
+			if not right:
+				right = tracker.steal(u"else")
+			if right and isSymbol(right[0], "else"):
+				right.pop(0) # Throw away else symbol
+				elseq = right.pop(0)
+				if type(elseq) != reader.ExpGroup:
+					return Error(node.loc, u"Expected a (group) after \"else\"")
 		cond = m.process([cond])
 		seq = m.makeSequence(seq.loc, seq.statements, not s.loop)
 		if elseq:

@@ -55,9 +55,9 @@ println
 # 20.0
 # 21.0
 
-let key = if 1 (.c) (.d)
+let key = if 1 (.c) else (.d)
 obj2 key = 20.0
-obj2 (if null (.c) (.d)) = 21.0
+obj2 (if null (.c) else (.d)) = 21.0
 
 println
 	obj2.c
