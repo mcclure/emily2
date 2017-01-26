@@ -443,6 +443,7 @@ class MakeObjectExec(Executable):
 
 defaultScope = ObjectValue()
 defaultScope.atoms['null'] = None
+defaultScope.atoms['nullfn'] = PythonFunctionValue(1, lambda x: None)
 defaultScope.atoms['object'] = rootObject
 defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
 defaultScope.atoms['+'] = PythonFunctionValue(2, lambda x,y: x + y)

@@ -71,12 +71,23 @@ let ExpGroup = inherit Node
 	field statements = array()
 
 	method finalStatement = lastFrom (this.statements)
+	method toString = do
+		let result = ""
+		let i = this.statements.iter
+		while (i.more)
+			if (!= result "")
+				result = + result ", "
+			result = + result (i.next)
 
 let StringContentExp = inherit Node
 	field content = ""
 
 let SymbolExp = inherit StringContentExp
 	field isAtom = null
+
+	method toString = +
+		if (this.isAtom) (".") else ("")
+		this.content
 
 let QuoteExp = inherit StringContentExp
 
@@ -102,6 +113,7 @@ let makeAst = function(i)
 
 	let method loc = new Loc(line, char)
 	let method finalGroup = lastFrom (this.groupStack)
+	let method lastExp = lastFrom (finalGroup.finalStatement.nodes)
 	let appendExp = function (node)
 		finalGroup.finalStatement.nodes.append node
 	let appendGroup = function (statementKind)
@@ -111,16 +123,30 @@ let makeAst = function(i)
 		groupStack.append group
 
 	let State = inherit object
+		enter = nullfn
+		leave = nullfn
+		handle = nullfn
 	let state = null
 	let method nextState = function (x)
 		state = nextState
 
 	let Scanning = inherit State
-		if (not (char.isNonLineSpace))
-			
-	let Symbol = inherit State
 		handle = function(ch)
+			if (not (char.isNonLineSpace))
+				nextState Symbol
+				state.handle ch
 
+	let Symbol = inherit State
+		enter = function(ch)
+			appendExp
+				new SymbolExp
+		handle = function(ch)
+			if (char.isSpace)
+				nextState Scanning
+				state.handle ch
+			else
+				let e = lastExp
+				e.content = + (e.content) ch
 
 	appendGroup (StatementKind.Outermost)
 
@@ -133,17 +159,18 @@ let makeAst = function(i)
 	
 	finalGroup
 
-let codeIter = with cmdTarget match
-	null = cmdExecute.iter
-	_ =    file.in cmdTarget
+let codeIter = do
+	if cmdTarget
+		file.in cmdTarget
+	else
+		cmdExecute.iter
 
 let ast = makeAst codeIter
 
-if (cmdTarget)
+if cmdTarget
 	codeIter.close
 
-println
-	"ok"
-	cmdExecute
-	cmdTarget
-
+if cmdAst
+	println (ast.toString)
+else
+	println "UNIMPLEMENTED"
