@@ -26,7 +26,7 @@ class Error(object):
 		s.loc = loc
 		s.msg = msg
 
-class Loc(object):
+class Loc(Printable):
 	def __init__(s, line, char):
 		s.line = line
 		s.char = char

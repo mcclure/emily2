@@ -102,6 +102,15 @@ try:
 	scope.atoms['argv'] = execution.ArrayValue(argv)
 	ast.eval(scope)
 
+except execution.ExecutionException as e:
+	output = u"Execution failed:\n\t%s\n\nAt location:" % (e)
+	for frame in e.stack:
+		output += u"\n\t%s at line %s char %s" % (frame.what, frame.loc.line, frame.loc.char)
+
+	print >>sys.stderr, unicode(output).encode('utf-8')
+	sys.exit(1)
+
 except core.EmilyException as e:
+	print >>sys.stderr, "Compilation failed:"
 	print >>sys.stderr, e
 	sys.exit(1)

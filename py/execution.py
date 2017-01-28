@@ -7,6 +7,44 @@ import reader, parser
 
 # Values
 
+class ExecutionExceptionFrame(object):
+	def __init__(s, loc, what):
+		s.loc = loc
+		s.what = what
+
+class ExecutionException(EmilyException):
+	def __init__(s, loc, what, msg):
+		super(EmilyException, s).__init__(msg)
+		s.msg = msg
+		s.stack = []
+		s.push(loc, what)
+
+	def push(s, loc, what):
+		s.stack.append( ExecutionExceptionFrame(loc, what) )
+
+class InternalExecutionException(Exception):
+	pass
+
+class LookupException(InternalExecutionException):
+	def __init__(s, msg):
+		super(InternalExecutionException, s).__init__(u"Lookup error: " + msg)
+
+class TypeException(InternalExecutionException):
+	def __init__(s, msg):
+		super(InternalExecutionException, s).__init__(u"Type error: " + msg)
+
+class LibraryException(InternalExecutionException):
+	pass
+
+def atomKeysOnly(fields=False):
+	raise TypeException(u"Object has atom%s keys only" % (" or numeric" if fields else ""))
+
+def intKeysOnly(fields=False):
+	raise TypeException(u"Array has numeric keys only")
+
+def noSuchKey(key, beingSet=False):
+	raise LookupException(u"No such key: %s%s" % (key, " (trying to set)" if beingSet else ""))
+
 class PythonFunctionValue(object):
 	def __init__(s, argCount, fn, startingArgs = []): # Takes ownership of startingArgs
 		s.argCount = argCount
@@ -68,7 +106,7 @@ class MatchFunctionValue(object):
 						scope.atoms[atom.value] = value.apply(unpackIdx)
 						unpackIdx += 1
 				return m.statement.eval(scope)
-		raise Exception("No match met")
+		raise InternalExecutionException("No match clause was met")
 
 class SuperValue(object):
 	def __init__(s, parent, target):
@@ -77,7 +115,7 @@ class SuperValue(object):
 
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
-			raise Exception("Objects have atom keys only")
+			atomKeysOnly() # Raises
 		return MethodPseudoValue.fetch(s.parent, key.value, s.target)
 
 # Pseudovalue since it can never escape
@@ -117,7 +155,7 @@ class ObjectValue(object):
 		if type(key) == int:
 			key = s.fields[key]
 		if type(key) != AtomLiteralExec:
-			raise Exception("Object has atom%s keys only" % (" or numeric" if s.fields else ""))
+			atomKeysOnly(True) # Raises
 		return key
 
 	def innerLookup(s, key): # Already sanitized for atom correctness, method irrelevant
@@ -125,7 +163,7 @@ class ObjectValue(object):
 			return s.atoms[key]
 		if s.parent:
 			return s.parent.innerLookup(key)
-		raise Exception("Object lacks key %s" % (key))
+		noSuchKey(key) # Raises
 
 	def lookup(s, key): # Already sanitized for atom correctness
 		return MethodPseudoValue.fetch(s, key, s)
@@ -140,7 +178,7 @@ class ObjectValue(object):
 		elif s.parent:
 			s.parent.innerAssign(isLet, key, value)
 		else:
-			raise Exception("Object lacks key %s being set" % (key))
+			noSuchKey(key, True) # Raises
 
 	def assign(s, isLet, key, value):
 		key = s.key(key)
@@ -180,13 +218,13 @@ class ArrayValue(object):
 			return s.values[key]
 		if type(key) == AtomLiteralExec:
 			return MethodPseudoValue.fetch(arrayPrototype, key.value, s)
-		raise Exception("Arrays have number keys only")
+		intKeysOnly()
 
 	def assign(s, isLet, key, value):
 		if type(key) == float:
 			key = int(key)
 		elif type(key) != int:
-			raise Exception("Arrays have int keys only")
+			intKeysOnly()
 		s.values[key] = value
 		return None
 
@@ -206,7 +244,7 @@ class InvalidExec(Executable):
 		return u"[Invalid node]" % (unicodeJoin(u" ", s.execs))
 
 	def eval(s, scope):
-		raise Exception("Cannot evaluate invalid program")
+		raise ExecutionException(s.loc, "Invalid expression", "Tried to execute invalid program")
 
 class SequenceExec(Executable):
 	def __init__(s, loc, shouldReturn, hasScope, execs):
@@ -321,7 +359,10 @@ class VarExec(Executable):
 		return u"[Var %s]" % (s.symbol)
 
 	def eval(s, scope):
-		return scope.lookup(s.symbol)
+		try:
+			return scope.lookup(s.symbol)
+		except InternalExecutionException as e:
+			raise ExecutionException(s.loc, "Variable read", unicode(e))
 
 class SetExec(Executable):
 	def __init__(s, loc, isLet, isMethod, isField, target, index, valueClause): # TODO: indexClauses
@@ -354,7 +395,11 @@ class SetExec(Executable):
 		else:
 			value = s.valueClause.eval(scope)
 
-		target.assign(s.isLet, index, value)
+		try:
+			target.assign(s.isLet, index, value)
+		except InternalExecutionException as e:
+			raise ExecutionException(s.loc, "Assignment", unicode(e))
+
 		return None
 
 class ApplyExec(Executable):
@@ -367,7 +412,10 @@ class ApplyExec(Executable):
 		return u"[Apply %s]" % (unicodeJoin(u" ", [s.f, s.arg]))
 
 	def eval(s, scope):
-		return s.f.eval(scope).apply(s.arg.eval(scope))
+		try:
+			return s.f.eval(scope).apply(s.arg.eval(scope))
+		except InternalExecutionException as e:
+			raise ExecutionException(s.loc, "Application", unicode(e))
 
 class MakeFuncExec(Executable):
 	def __init__(s, loc, args, body): # f for function
@@ -581,7 +629,7 @@ fileMoreValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,fileMore)
 def filePeek(obj):
 	value = fileNextCached(obj)
 	if value == '':
-		raise Exception("Read on filehandle with no data")
+		raise LibraryException("Read on filehandle with no data")
 	return value
 filePeekValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,filePeek))
 
