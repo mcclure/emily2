@@ -193,9 +193,9 @@ class ObjectValue(EmilyValue):
 arrayIteratorSource = object()
 arrayIteratorIdx = object()
 arrayIteratorPrototype = ObjectValue()
-arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource].values))))
+arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource]))))
 def arrayIteratorNextImpl(i):
-	x = i.atoms[arrayIteratorSource].values[ i.atoms[arrayIteratorIdx] ]
+	x = i.atoms[arrayIteratorSource][ i.atoms[arrayIteratorIdx] ]
 	i.atoms[arrayIteratorIdx] += 1
 	return x
 arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorNextImpl))
@@ -206,7 +206,7 @@ arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunction
 
 def arrayIteratorImpl(ary):
 	x = ObjectValue(arrayIteratorPrototype)
-	x.atoms[arrayIteratorSource] = ary # Store "hidden" values in object
+	x.atoms[arrayIteratorSource] = ary.values # Assumes values array is never reassigned for an ArrayValue
 	x.atoms[arrayIteratorIdx] = 0
 	return x
 arrayPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorImpl))
@@ -219,7 +219,10 @@ class ArrayValue(EmilyValue):
 		if type(key) == float:
 			key = int(key) # IS ROUND-DOWN ACTUALLY GOOD?
 		if type(key) == int:
-			return s.values[key]
+			try:
+				return s.values[key]
+			except IndexError:
+				raise InternalExecutionException(u'Index %d out of range' % key)
 		if type(key) == AtomLiteralExec:
 			return MethodPseudoValue.fetch(arrayPrototype, key.value, s)
 		intKeysOnly()
@@ -415,21 +418,36 @@ class ApplyExec(Executable):
 	def __unicode__(s):
 		return u"[Apply %s]" % (unicodeJoin(u" ", [s.f, s.arg]))
 
-	def eval(s, scope):
+	def eval(s, scope): # This is the core "apply X to Y" of the entire engine
 		try:
 			value = s.f.eval(scope)
+			arg = s.arg.eval(scope)
 
-			# Screen for "weird" values
+			# Normal case
 			if isinstance(value, EmilyValue):
-				pass
-			elif type(value) == unicode:
-				value = stringPrototype
+				return value.apply(arg)
+			
+			# Screen for "weird" values
+			wasString = False
+			if type(value) == unicode: # String not only has a prototype, it's indexable
+				if type(arg) == float:
+					arg = int(arg)
+				if type(arg) == int:
+					try:
+						return value[arg]
+					except IndexError:
+						raise InternalExecutionException(u'Index %d out of range' % arg)
+
+				prototype = stringPrototype
+				wasString = True
 			elif type(value) == float or type(value) == int:
-				value = numberPrototype
+				prototype = numberPrototype
 			else:
 				raise InternalExecutionException(u"Don't know how to apply value of Python-type %s: %s\n\tThis error probably indicates a bug in the interpreter." % (type(value), unicode(value)))
 
-			return value.apply(s.arg.eval(scope))
+			if type(arg) != AtomLiteralExec:
+				atomKeysOnly(wasString)
+			return MethodPseudoValue.fetch(prototype, arg.value, value)			
 		except InternalExecutionException as e:
 			raise ExecutionException(s.loc, u"Application", unicode(e))
 
@@ -689,3 +707,12 @@ numberPrototype = ObjectValue()
 # Strings
 
 stringPrototype = ObjectValue()
+
+# Reuses arrayIteratorPrototype
+stringPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x))))
+def stringIteratorImpl(ary):
+	x = ObjectValue(arrayIteratorPrototype)
+	x.atoms[arrayIteratorSource] = ary # Store "hidden" values in object
+	x.atoms[arrayIteratorIdx] = 0
+	return x
+stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
