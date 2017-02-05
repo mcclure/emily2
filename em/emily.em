@@ -68,16 +68,18 @@ let Error = inherit object
 let ExpGroup = inherit Node
 	field openedWithParenthesis = null
 	field indent = null
-	field statements = array()
+	field method statements = array( new Statement )
 
 	method finalStatement = lastFrom (this.statements)
 	method toString = do
-		let result = ""
+		let result = "("
 		let i = this.statements.iter
 		while (i.more)
-			if (!= result "")
+			if (> (result.length) 1)
 				result = + result ", "
-			result = + result (i.next)
+			result = + result (i.next.toString)
+		result = + result ")"
+		result
 
 let StringContentExp = inherit Node
 	field content = ""
@@ -97,8 +99,17 @@ let NumberExp = inherit Node
 	field decimal = null
 
 let Statement = inherit object
-	field nodes = array()
+	field method nodes = array()
 	field dead = null
+
+	method toString = do
+		let result = ""
+		let i = this.nodes.iter
+		while (i.more)
+			if (> (result.length) 0)
+				result = + result " "
+			result = + result (i.next.toString)
+		result
 
 let StatementKind = inherit object
 let StatementKind.Outermost = inherit StatementKind
@@ -106,12 +117,12 @@ let StatementKind.Indent = inherit StatementKind
 let StatementKind.Parenthesis = inherit StatementKind
 
 let makeAst = function(i)
-	let line = 1
-	let char = 0
+	let lineAt = 1
+	let charAt = 0
 	let groupStack = array()
 	let errors = array()
 
-	let method loc = new Loc(line, char)
+	let method loc = new Loc(lineAt, charAt)
 	let method finalGroup = lastFrom (this.groupStack)
 	let method lastExp = lastFrom (finalGroup.finalStatement.nodes)
 	let appendExp = function (node)
@@ -128,11 +139,13 @@ let makeAst = function(i)
 		handle = nullfn
 	let state = null
 	let method nextState = function (x)
-		state = nextState
+		state.leave()
+		state = x
+		state.enter()
 
 	let Scanning = inherit State
 		handle = function(ch)
-			if (not (char.isNonLineSpace))
+			if (not (char.isNonLineSpace ch))
 				nextState Symbol
 				state.handle ch
 
@@ -141,17 +154,19 @@ let makeAst = function(i)
 			appendExp
 				new SymbolExp
 		handle = function(ch)
-			if (char.isSpace)
+			if (char.isSpace ch)
 				nextState Scanning
 				state.handle ch
 			else
 				let e = lastExp
 				e.content = + (e.content) ch
 
+	state = Scanning
 	appendGroup (StatementKind.Outermost)
 
 	while (i.more)
 		let ch = i.next
+		state.handle ch
 
 	if (> 0 (errors.length))
 		print(errors.length, "errors", ln)
@@ -173,4 +188,4 @@ if cmdTarget
 if cmdAst
 	println (ast.toString)
 else
-	println "UNIMPLEMENTED"
+	println "EXECUTION CURRENTLY UNIMPLEMENTED"

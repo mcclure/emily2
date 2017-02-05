@@ -528,11 +528,18 @@ defaultScope.atoms['null'] = None
 defaultScope.atoms['nullfn'] = PythonFunctionValue(1, lambda x: None)
 defaultScope.atoms['object'] = rootObject
 defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
-defaultScope.atoms['+'] = PythonFunctionValue(2, lambda x,y: x + y)
-defaultScope.atoms['-'] = PythonFunctionValue(2, lambda x,y: x - y)
-defaultScope.atoms['*'] = PythonFunctionValue(2, lambda x,y: x * y)
-defaultScope.atoms['/'] = PythonFunctionValue(2, lambda x,y: x / y)
-defaultScope.atoms['%'] = PythonFunctionValue(2, lambda x,y: x % y)
+def makeBinop(f):
+	def wrapper(x, y):
+		try:
+			return f(x, y)
+		except TypeError:
+			raise InternalExecutionException(u"Tried to do arithmetic with bad types: %s vs %s" % (type(x), type(y)))
+	return PythonFunctionValue(2, wrapper)
+defaultScope.atoms['+'] = makeBinop(lambda x,y: x + y)
+defaultScope.atoms['-'] = makeBinop(lambda x,y: x - y)
+defaultScope.atoms['*'] = makeBinop(lambda x,y: x * y)
+defaultScope.atoms['/'] = makeBinop(lambda x,y: x / y)
+defaultScope.atoms['%'] = makeBinop(lambda x,y: x % y)
 
 # Boolean math
 
@@ -693,7 +700,7 @@ charObject = ObjectValue()
 defaultScope.atoms['char'] = charObject
 charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, reader.isNonLineSpace)
 charObject.atoms['isLineSpace'] = PythonFunctionValue(1, reader.isLineSpace)
-charObject.atoms['isSpace'] = PythonFunctionValue(1, lambda x: reader.isSpace(x) or reader.isNonLineSpace(x))
+charObject.atoms['isSpace'] = PythonFunctionValue(1, lambda x: reader.isLineSpace(x) or reader.isNonLineSpace(x))
 charObject.atoms['isQuote'] = PythonFunctionValue(1, reader.isQuote)
 charObject.atoms['isOpenParen'] = PythonFunctionValue(1, reader.isOpenParen)
 charObject.atoms['isCloseParen'] = PythonFunctionValue(1, reader.isCloseParen)
