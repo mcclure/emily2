@@ -63,7 +63,7 @@ for i in range(1,len(sys.argv)):
 		target = arg
 
 	if target or 'e' in options:
-		argv = sys.argv[i+1:]
+		argv = [util.utf8string(x) for x in sys.argv[i+1:]]
 		break
 
 if loopLoading:

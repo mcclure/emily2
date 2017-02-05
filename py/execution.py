@@ -45,7 +45,10 @@ def intKeysOnly(fields=False):
 def noSuchKey(key, beingSet=False):
 	raise LookupException(u"No such key: %s%s" % (key, " (trying to set)" if beingSet else ""))
 
-class PythonFunctionValue(object):
+class EmilyValue(object):
+	pass
+
+class PythonFunctionValue(EmilyValue):
 	def __init__(s, argCount, fn, startingArgs = []): # Takes ownership of startingArgs
 		s.argCount = argCount
 		s.fn = fn
@@ -60,7 +63,7 @@ class PythonFunctionValue(object):
 		return PythonFunctionValue(s.argCount, s.fn, newArgs)
 
 # TODO: Can any code be shared with PythonFunctionValue?
-class FunctionValue(object):
+class FunctionValue(EmilyValue):
 	def __init__(s, argNames, exe, scope, startingArgs = []): # Takes ownership of startingArgs
 		s.argNames = argNames
 		s.exe = exe
@@ -90,7 +93,7 @@ def isImpl(parent, child):
 				return True
 	return False
 
-class MatchFunctionValue(object):
+class MatchFunctionValue(EmilyValue):
 	def __init__(s, matches, scope):
 		s.matches = matches
 		s.scope = scope
@@ -108,7 +111,7 @@ class MatchFunctionValue(object):
 				return m.statement.eval(scope)
 		raise InternalExecutionException("No match clause was met")
 
-class SuperValue(object):
+class SuperValue(EmilyValue):
 	def __init__(s, parent, target):
 		s.parent = parent
 		s.target = target
@@ -119,7 +122,7 @@ class SuperValue(object):
 		return MethodPseudoValue.fetch(s.parent, key.value, s.target)
 
 # Pseudovalue since it can never escape
-class MethodPseudoValue(object):
+class MethodPseudoValue(EmilyValue):
 	def __init__(s, scope=None, owner=None, exe=None, pythonFunction=None):
 		s.scope = scope
 		s.owner = owner
@@ -128,6 +131,7 @@ class MethodPseudoValue(object):
 
 	def call(s, target):
 		if s.pythonFunction:
+
 			return s.pythonFunction.apply(target)
 		else:
 			scope = ObjectValue(s.scope)
@@ -143,7 +147,7 @@ class MethodPseudoValue(object):
 			return value.call(this)
 		return value
 
-class ObjectValue(object):
+class ObjectValue(EmilyValue):
 	def __init__(s, parent=None, fields=None):
 		s.atoms = {}
 		s.parent = parent
@@ -207,7 +211,7 @@ def arrayIteratorImpl(ary):
 	return x
 arrayPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorImpl))
 
-class ArrayValue(object):
+class ArrayValue(EmilyValue):
 	def __init__(s, values):
 		s.values = values
 
@@ -413,9 +417,21 @@ class ApplyExec(Executable):
 
 	def eval(s, scope):
 		try:
-			return s.f.eval(scope).apply(s.arg.eval(scope))
+			value = s.f.eval(scope)
+
+			# Screen for "weird" values
+			if isinstance(value, EmilyValue):
+				pass
+			elif type(value) == unicode:
+				value = stringPrototype
+			elif type(value) == float or type(value) == int:
+				value = numberPrototype
+			else:
+				raise InternalExecutionException(u"Don't know how to apply value of Python-type %s: %s\n\tThis error probably indicates a bug in the interpreter." % (type(value), unicode(value)))
+
+			return value.apply(s.arg.eval(scope))
 		except InternalExecutionException as e:
-			raise ExecutionException(s.loc, "Application", unicode(e))
+			raise ExecutionException(s.loc, u"Application", unicode(e))
 
 class MakeFuncExec(Executable):
 	def __init__(s, loc, args, body): # f for function
@@ -665,3 +681,11 @@ charObject.atoms['isOpenParen'] = PythonFunctionValue(1, reader.isOpenParen)
 charObject.atoms['isCloseParen'] = PythonFunctionValue(1, reader.isCloseParen)
 charObject.atoms['isParen'] = PythonFunctionValue(1, lambda x: reader.isOpenParen(x) or reader.isCloseParen(x))
 charObject.atoms['isDigit'] = PythonFunctionValue(1, reader.isDigit)
+
+# Numbers
+
+numberPrototype = ObjectValue()
+
+# Strings
+
+stringPrototype = ObjectValue()
