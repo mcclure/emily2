@@ -644,6 +644,14 @@ defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
 defaultScope.atoms['ln'] = "\n"
 defaultScope.atoms['argv'] = ArrayValue([])
 
+def failImpl(s):
+	result = u"Program signalled failure"
+	if (s is not None):
+		result += u": "
+		result += s
+	raise InternalExecutionException(result)
+defaultScope.atoms['fail'] = PythonFunctionValue(1, failImpl)
+
 fileObject = ObjectValue()
 defaultScope.atoms['file'] = fileObject
 def makeOutOpen(arg):
@@ -710,6 +718,7 @@ charObject.atoms['isDigit'] = PythonFunctionValue(1, reader.isDigit)
 # Numbers
 
 numberPrototype = ObjectValue()
+numberPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:unicode(x)))
 
 # Strings
 
@@ -723,3 +732,4 @@ def stringIteratorImpl(ary):
 	x.atoms[arrayIteratorIdx] = 0
 	return x
 stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
+stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))

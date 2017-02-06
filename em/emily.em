@@ -43,6 +43,11 @@ if (not cmdValid)
 let lastFrom = function(a)
 	a (- (a.length) 1)
 
+let Linked = inherit object
+	field value = null
+	field next = null # This looks like an iterator but is immutable. Is this bad
+	method more = (!= (this.next) null)
+
 # --- Core types ---
 
 let ProgressBase = inherit object
@@ -54,6 +59,8 @@ let ProgressBase = inherit object
 let Loc = inherit object
 	field line = 0
 	field char = 0
+
+	method toString = +( +( +("line ", this.line.toString ), " char " ), this.char.toString )
 
 let Node = inherit object
 	field loc = null
@@ -119,19 +126,19 @@ let StatementKind.Parenthesis = inherit StatementKind
 let makeAst = function(i)
 	let lineAt = 1
 	let charAt = 0
-	let groupStack = array()
+	let groupStack = null
 	let errors = array()
 
 	let method loc = new Loc(lineAt, charAt)
-	let method finalGroup = lastFrom (this.groupStack)
+	let method finalGroup = groupStack.value
 	let method lastExp = lastFrom (finalGroup.finalStatement.nodes)
 	let appendExp = function (node)
 		finalGroup.finalStatement.nodes.append node
 	let appendGroup = function (statementKind)
-		let group = new ExpGroup(== statementKind (StatementKind.Parenthesis))
+		let group = new ExpGroup(loc, == statementKind (StatementKind.Parenthesis))
 		if (!= statementKind (StatementKind.Outermost))
 			appendExp group
-		groupStack.append group
+		groupStack = new Linked(group, groupStack)
 
 	let State = inherit object
 		enter = nullfn
@@ -143,17 +150,33 @@ let makeAst = function(i)
 		state = x
 		state.enter()
 
-	let Scanning = inherit State
-		handle = function(ch)
+	let BasicState = inherit State
+		subHandle = nullfn
+		method handle = function(ch)
+			if (char.isOpenParen ch)
+				appendGroup (StatementKind.Parenthesis)
+				nextState Scanning
+			else
+				if (char.isCloseParen ch)
+					if (finalGroup.openedWithParenthesis)
+						groupStack = groupStack.next
+						nextState Scanning
+					else
+						fail "Close parenthesis mismatched"
+				else
+					this.subHandle ch
+
+	let Scanning = inherit BasicState
+		subHandle = function(ch)
 			if (not (char.isNonLineSpace ch))
 				nextState Symbol
 				state.handle ch
 
-	let Symbol = inherit State
+	let Symbol = inherit BasicState
 		enter = function(ch)
 			appendExp
 				new SymbolExp
-		handle = function(ch)
+		subHandle = function(ch)
 			if (char.isSpace ch)
 				nextState Scanning
 				state.handle ch
@@ -167,9 +190,18 @@ let makeAst = function(i)
 	while (i.more)
 		let ch = i.next
 		state.handle ch
+		charAt = + charAt 1
 
-	if (> 0 (errors.length))
-		print(errors.length, "errors", ln)
+	if (groupStack.more)
+		errors.append
+			new Error(loc, +( +("Parenthesis on ", groupStack.value.loc.toString), " never closed"))
+
+	if (< 0 (errors.length))
+		let i = errors.iter
+		println "Compilation failed:"
+		while (i.more)
+			let error = i.next
+			println ( +( +(error.loc.toString, ": "), error.msg ) )
 		exit 1
 	
 	finalGroup
