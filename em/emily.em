@@ -168,9 +168,12 @@ let makeAst = function(i)
 
 	let Scanning = inherit BasicState
 		subHandle = function(ch)
-			if (not (char.isNonLineSpace ch))
-				nextState Symbol
-				state.handle ch
+			if (char.isLineSpace ch)
+				1 # Do nothing
+			else
+				if (not (char.isNonLineSpace ch))
+					nextState Symbol
+					state.handle ch
 
 	let Symbol = inherit BasicState
 		enter = function(ch)

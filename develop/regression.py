@@ -55,10 +55,11 @@ help += "-v          # Print all output\n"
 help += "-i [path]   # Use custom emily script\n"
 help += "-p [path]   # Use custom Python\n"
 help += "--p3        # Use python3\n"
+help += "--meta      # Run through self-hosted interpreter\n"
 help += "--untested  # Check repo hygiene-- list tests in sample/test not tested"
 
 parser = optparse.OptionParser(usage=help)
-for a in ["a", "A", "v", "-p3", "-untested"]: # Single letter args, flags
+for a in ["a", "A", "v", "-p3", "-meta", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
 for a in ["f", "t", "r", "i", "p"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
@@ -115,6 +116,7 @@ if flag("untested"):
 
 stdpython = "python"
 stdscript = "emily.py"
+stdmeta = "./em/emily.em"
 
 if flag("p") and flag("p3"):
     parser.error("Can't specify both -p and --p3")
@@ -125,7 +127,7 @@ if flag("p"):
 elif flag("p3"):
     stdpython = "python3"
 
-stdcall = [stdpython, stdscript]
+stdcall = [stdpython, stdscript] + ([stdmeta] if flag("meta") else [])
 
 expectp = re.compile(r'# Expect(\s*failure)?(\:?)', re.I)
 linep = re.compile(r'# ?(.+)$', re.S)

@@ -2,7 +2,7 @@
 
 import sys
 from core import *
-from util import unicodeJoin, quotedString
+from util import unicodeJoin, quotedString, utfOpen
 import reader, parser
 
 # Values
@@ -698,8 +698,9 @@ def makeInfileObject(handle):
 	obj.atoms['close'] = closeWrapperValue
 	return obj
 
+# FIXME: What about binary mode?
 def makeInOpen(filename):
-	return makeInfileObject(open(filename, "r"))
+	return makeInfileObject(utfOpen(filename))
 fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
 
 # String garbage
