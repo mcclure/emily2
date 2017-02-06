@@ -43,10 +43,21 @@ if (not cmdValid)
 let lastFrom = function(a)
 	a (- (a.length) 1)
 
+# Linked list / stack object
 let Linked = inherit object
 	field value = null
 	field next = null # This looks like an iterator but is immutable. Is this bad
 	method more = (!= (this.next) null)
+
+let foldl = function(f, value, ary)
+	let i = ary.iter
+	while (i.more)
+		value = f(value, i.next)
+	value
+
+let join = function(joiner)
+	foldl function (x,y) ( +( +(x.toString, joiner), y.toString) ) ""
+let nullJoin = join ""
 
 # --- Core types ---
 
@@ -60,7 +71,11 @@ let Loc = inherit object
 	field line = 0
 	field char = 0
 
-	method toString = +( +( +("line ", this.line.toString ), " char " ), this.char.toString )
+	method toString = nullJoin array
+		"line "
+		this.line
+		" char "
+		this.char
 
 let Node = inherit object
 	field loc = null
@@ -156,24 +171,22 @@ let makeAst = function(i)
 			if (char.isOpenParen ch)
 				appendGroup (StatementKind.Parenthesis)
 				nextState Scanning
-			else
-				if (char.isCloseParen ch)
-					if (finalGroup.openedWithParenthesis)
-						groupStack = groupStack.next
-						nextState Scanning
-					else
-						fail "Close parenthesis mismatched"
+			elif (char.isCloseParen ch)
+				if (finalGroup.openedWithParenthesis)
+					groupStack = groupStack.next
+					nextState Scanning
 				else
-					this.subHandle ch
+					fail "Close parenthesis mismatched"
+			else
+				this.subHandle ch
 
 	let Scanning = inherit BasicState
 		subHandle = function(ch)
 			if (char.isLineSpace ch)
 				1 # Do nothing
-			else
-				if (not (char.isNonLineSpace ch))
-					nextState Symbol
-					state.handle ch
+			elif (not (char.isNonLineSpace ch))
+				nextState Symbol
+				state.handle ch
 
 	let Symbol = inherit BasicState
 		enter = function(ch)
@@ -197,14 +210,15 @@ let makeAst = function(i)
 
 	if (groupStack.more)
 		errors.append
-			new Error(loc, +( +("Parenthesis on ", groupStack.value.loc.toString), " never closed"))
+			new Error(loc, nullJoin array("Parenthesis on ", groupStack.value.loc, " never closed"))
 
 	if (< 0 (errors.length))
 		let i = errors.iter
 		println "Compilation failed:"
 		while (i.more)
 			let error = i.next
-			println ( +( +(error.loc.toString, ": "), error.msg ) )
+			println
+				nullJoin array (error.loc, ": ", error.msg)
 		exit 1
 	
 	finalGroup
