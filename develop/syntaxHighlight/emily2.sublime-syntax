@@ -15,7 +15,7 @@ contexts:
       push: string
 
     # Keywords
-    - match: (\b(let|method|field|do|while|if|else|function|func|match|array|new|inherit|macro)\b|=)
+    - match: (\b(let|method|field|do|while|if|elif|else|function|func|match|array|new|inherit|macro)\b|=)
       scope: keyword.control.emily2
 
     # Numbers

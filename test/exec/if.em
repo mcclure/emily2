@@ -18,3 +18,37 @@ println
 
 println
 	if y ("y true") else ("y false")
+
+# Expect:
+# w true
+# all false
+# w true
+# all false
+
+let z = 0
+let w = 1
+let v = 0
+
+println
+	if x ("x true") elif z ("z true") elif w ("w true") else ("all false")
+
+println
+	if x ("x true") elif z ("z true") elif v ("v true") else ("all false")
+
+if x
+	println "x true"
+elif z
+	println "z true"
+elif w
+	println "w true"
+else
+	println "all false"
+
+if x
+	println "x true"
+elif z
+	println "z true"
+elif v
+	println "v true"
+else
+	println "all false"

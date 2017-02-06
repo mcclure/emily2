@@ -282,26 +282,34 @@ class IfMacro(OneSymbolMacro):
 
 	def apply(s, m, left, node, right, tracker):
 		if not right:
-			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
+			return Error(node.loc, u"Emptiness after \"%s\"" % (node.content))
 		cond = right.pop(0)
 		if not right:
-			return Error(node.loc, u"Emptiness after \"%s (condition)\"" % (s.symbol()))
+			return Error(node.loc, u"Emptiness after \"%s (condition)\"" % (node.content))
 		seq = right.pop(0)
 		if type(seq) != reader.ExpGroup:
-			return Error(node.loc, u"Expected a (group) after \"%s (condition)\"" % (s.symbol()))
+			return Error(node.loc, u"Expected a (group) after \"%s (condition)\"" % (node.content))
+
+		cond = m.process([cond])
+		seq = m.makeSequence(seq.loc, seq.statements, not s.loop)
+
 		elseq = None
 		if not s.loop:
 			if not right:
 				right = tracker.steal(u"else")
-			if right and isSymbol(right[0], "else"):
-				right.pop(0) # Throw away else symbol
-				elseq = right.pop(0)
-				if type(elseq) != reader.ExpGroup:
-					return Error(node.loc, u"Expected a (group) after \"else\"")
-		cond = m.process([cond])
-		seq = m.makeSequence(seq.loc, seq.statements, not s.loop)
-		if elseq:
-			elseq = m.makeSequence(elseq.loc, elseq.statements, True)
+			if not right:
+				right = tracker.steal(u"elif")
+			if right:
+				if isSymbol(right[0], "else"):
+					right.pop(0) # Throw away else symbol
+					elseq = right.pop(0)
+					if type(elseq) != reader.ExpGroup:
+						return Error(node.loc, u"Expected a (group) after \"else\"")
+					elseq = m.makeSequence(elseq.loc, elseq.statements, True)
+				elif isSymbol(right[0], "elif"):
+					elifSymbol = right.pop(0)
+					_, elseq, right = s.apply(m, [], elifSymbol, right, tracker)
+
 		return (left, execution.IfExec(node.loc, s.loop, cond, seq, elseq), right)
 
 # function (args) (body) -- OR -- func (args) (body)
