@@ -49,14 +49,18 @@ let Linked = inherit object
 	field next = null # This looks like an iterator but is immutable. Is this bad
 	method more = (!= (this.next) null)
 
-let foldl = function(f, value, ary)
+let foldl = function(default, f, ary)
 	let i = ary.iter
-	while (i.more)
-		value = f(value, i.next)
-	value
+	if (not (i.more))
+		default
+	else
+		let value = i.next
+		while (i.more)
+			value = f(value, i.next)
+		value
 
 let join = function(joiner)
-	foldl function (x,y) ( +( +(x.toString, joiner), y.toString) ) ""
+	foldl "" function (x,y) ( +( +(x.toString, joiner), y.toString) )
 let nullJoin = join ""
 
 # --- Core types ---
@@ -93,15 +97,10 @@ let ExpGroup = inherit Node
 	field method statements = array( new Statement )
 
 	method finalStatement = lastFrom (this.statements)
-	method toString = do
-		let result = "("
-		let i = this.statements.iter
-		while (i.more)
-			if (> (result.length) 1)
-				result = + result ", "
-			result = + result (i.next.toString)
-		result = + result ")"
-		result
+	method toString = nullJoin array
+		"("
+		join(", ", this.statements)
+		")"
 
 let StringContentExp = inherit Node
 	field content = ""
