@@ -59,9 +59,17 @@ let foldl = function(default, f, ary)
 			value = f(value, i.next)
 		value
 
+# String ops
 let join = function(joiner)
 	foldl "" function (x,y) ( +( +(x.toString, joiner), y.toString) )
 let nullJoin = join ""
+let startsWith = function(x, y)
+	let idx = 0
+	let valid = 1
+	while (and valid (< idx (y.length)))
+		if (!= (x idx) (y idx))
+			valid = null
+	valid
 
 # --- Core types ---
 
@@ -154,20 +162,37 @@ let makeAst = function(i)
 			appendExp group
 		groupStack = new Linked(group, groupStack)
 
+	let error = function(str)
+		errors.append
+			new Error(loc, str)
+		finalGroup.finalStatement.dead = 1
+		nextState Scanning
+
 	let State = inherit object
 		enter = nullfn
 		leave = nullfn
 		handle = nullfn
 	let state = null
-	let method nextState = function (x)
+	let nextState = function (x)
 		state.leave()
 		state = x
 		state.enter()
 
+	let newline = function ()
+		lineAt = + lineAt 1
+		charAt = 0
+	let handleLineSpace = function(ch)
+		if (== ch "\r")
+			nextState Cr
+		else
+			nextState new Indent
+
 	let BasicState = inherit State
 		subHandle = nullfn
 		method handle = function(ch)
-			if (char.isOpenParen ch)
+			if (char.isLineSpace ch)
+				handleLineSpace ch
+			elif (char.isOpenParen ch)
 				appendGroup (StatementKind.Parenthesis)
 				nextState Scanning
 			elif (char.isCloseParen ch)
@@ -175,15 +200,13 @@ let makeAst = function(i)
 					groupStack = groupStack.next
 					nextState Scanning
 				else
-					fail "Close parenthesis mismatched"
+					error "Close parenthesis mismatched"
 			else
 				this.subHandle ch
 
 	let Scanning = inherit BasicState
 		subHandle = function(ch)
-			if (char.isLineSpace ch)
-				1 # Do nothing
-			elif (not (char.isNonLineSpace ch))
+			if (not (char.isNonLineSpace ch))
 				nextState Symbol
 				state.handle ch
 
@@ -199,7 +222,48 @@ let makeAst = function(i)
 				let e = lastExp
 				e.content = + (e.content) ch
 
-	state = Scanning
+	let Cr = inherit State
+		handle = function(ch)
+			nextState new Indent
+			if (!= ch "\n") # Eat LFs, handle everything else
+				state.handle ch
+
+	let Indent = inherit State
+		field current = ""
+		method handle = function(ch)
+			if (char.isLineSpace ch)
+				handleLineSpace ch
+			elif (char.isNonLineSpace ch)
+				this.current = + (this.current) ch
+			else # Non-whitespace content
+				if (== (finalGroup.indent) null) # First non-whitespace content of group
+					finalGroup.indent = this.current
+				elif (startsWith (this.current) (finalGroup.indent)) # Added indentation
+					appendGroup (StatementKind.Indent)
+				else # This is either dropped indentation, or an error
+					let done = null
+					let parenthesisIssue = null
+					let node = groupStack
+					while (and (not done) node)
+						if (== (node.value.indent) (this.current))
+							done = 1
+						elif (node.value.openedWithParenthesis)
+							parenthesisIssue = 1
+							done = 1
+						else
+							node = node.next
+
+					if (not done)
+						error "Indentation on this line doesn't match any previous one"
+					elif (parenthesisIssue)
+						error (+ "Indentation on this line doesn't match any since open parenthesis at " (finalGroup.loc.toString))
+					else
+						groupStack = node
+
+				nextState Scanning
+				state.handle ch
+
+	state = new Indent
 	appendGroup (StatementKind.Outermost)
 
 	while (i.more)
@@ -207,9 +271,11 @@ let makeAst = function(i)
 		state.handle ch
 		charAt = + charAt 1
 
-	if (groupStack.more)
-		errors.append
-			new Error(loc, nullJoin array("Parenthesis on ", groupStack.value.loc, " never closed"))
+	while (groupStack.more)
+		if (finalGroup.openedWithParenthesis)
+			errors.append
+				new Error(loc, nullJoin array("Parenthesis on ", groupStack.value.loc, " never closed"))
+		groupStack = groupStack.next
 
 	if (< 0 (errors.length))
 		let i = errors.iter

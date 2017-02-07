@@ -75,7 +75,7 @@ class NumberExp(Node):
 class Statement(Printable): # Not a node, only a helper for ExpGroup
 	def __init__(s):
 		s.nodes = []
-		s.dead = False
+		s.dead = False # Wait, this isn't even used anywhere is it?
 
 	def finalNode(s):
 		return s.nodes[-1]
