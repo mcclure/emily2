@@ -442,6 +442,8 @@ class ApplyExec(Executable):
 				wasString = True
 			elif type(value) == float or type(value) == int:
 				prototype = numberPrototype
+			elif value is None:
+				prototype = nullPrototype
 			else:
 				raise InternalExecutionException(u"Don't know how to apply value of Python-type %s: %s\n\tThis error probably indicates a bug in the interpreter." % (type(value), unicode(value)))
 
@@ -734,3 +736,8 @@ def stringIteratorImpl(ary):
 	return x
 stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
 stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
+
+# FIXME: Null has a prototype?
+
+nullPrototype = ObjectValue()
+nullPrototype.atoms['toString'] = "[null]"

@@ -65,10 +65,11 @@ let join = function(joiner)
 let nullJoin = join ""
 let startsWith = function(x, y)
 	let idx = 0
-	let valid = 1
-	while (and valid (< idx (y.length)))
+	let valid = (<= (y.length) (x.length)) # Don't bother if x is shorter
+	while (and valid (< idx (y.length)))   # Iterate until difference found
 		if (!= (x idx) (y idx))
 			valid = null
+		idx = + idx 1
 	valid
 
 # --- Core types ---
@@ -161,6 +162,8 @@ let makeAst = function(i)
 		if (!= statementKind (StatementKind.Outermost))
 			appendExp group
 		groupStack = new Linked(group, groupStack)
+	let appendStatement = function ()
+		finalGroup.statements.append (new Statement)
 
 	let error = function(str)
 		errors.append
@@ -201,6 +204,11 @@ let makeAst = function(i)
 					nextState Scanning
 				else
 					error "Close parenthesis mismatched"
+			elif (== ch ",")
+				appendStatement()
+				nextState Scanning
+			elif (== ch "#")
+				nextState Comment
 			else
 				this.subHandle ch
 
@@ -235,11 +243,19 @@ let makeAst = function(i)
 				handleLineSpace ch
 			elif (char.isNonLineSpace ch)
 				this.current = + (this.current) ch
+			elif (== ch ",")
+				error "Comma at start of line not understood"
+				nextState Scanning
+			elif (== ch "#")
+				nextState Comment
 			else # Non-whitespace content
 				if (== (finalGroup.indent) null) # First non-whitespace content of group
 					finalGroup.indent = this.current
+				elif (== (this.current) (finalGroup.indent))
+					appendStatement()
 				elif (startsWith (this.current) (finalGroup.indent)) # Added indentation
 					appendGroup (StatementKind.Indent)
+					finalGroup.indent = this.current
 				else # This is either dropped indentation, or an error
 					let done = null
 					let parenthesisIssue = null
@@ -259,9 +275,15 @@ let makeAst = function(i)
 						error (+ "Indentation on this line doesn't match any since open parenthesis at " (finalGroup.loc.toString))
 					else
 						groupStack = node
+						appendStatement()
 
 				nextState Scanning
 				state.handle ch
+
+	let Comment = inherit State
+		handle = function(ch)
+			if (char.isLineSpace ch)
+				handleLineSpace ch
 
 	state = new Indent
 	appendGroup (StatementKind.Outermost)
