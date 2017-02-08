@@ -12,7 +12,7 @@ x.close
 
 # Write all these things to a file, then read them back and confirm they're the same
 
-let print1 = "one two\n"
+let print1 = "one two ⚧\n"
 let print2 = "three four"
 let print3 = "five"
 let print4 = "six"

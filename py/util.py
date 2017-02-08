@@ -25,9 +25,14 @@ def fileChars(f):
 # String to unicode
 def utf8string(s):
     if py3:
-        return path
+        return s
     return codecs.decode(s, 'utf-8')
-    # TODO: py3
+
+# Unicode to bytes
+def streamable(s):
+    if py3:
+        return s
+    return codecs.encode(s, 'utf-8')
 
 def unicodeJoin(joiner, ary):
     return joiner.join(unicode(v) for v in ary)

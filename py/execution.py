@@ -2,7 +2,7 @@
 
 import sys
 from core import *
-from util import unicodeJoin, quotedString, utfOpen
+from util import unicodeJoin, quotedString, utfOpen, streamable
 import reader, parser
 
 # Values
@@ -581,7 +581,7 @@ infileObjectPrototype = ObjectValue()
 outfileObjectPrototype = ObjectValue()
 
 def printable(x):
-	return unicode(x) if x is not None else "null"
+	return streamable( unicode(x) if x is not None else "null" )
 
 def setLooper(into, key, fn):
 	looperValue = None
@@ -740,4 +740,4 @@ stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunct
 # FIXME: Null has a prototype?
 
 nullPrototype = ObjectValue()
-nullPrototype.atoms['toString'] = "[null]"
+nullPrototype.atoms['toString'] = "null"

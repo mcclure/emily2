@@ -22,3 +22,7 @@ let deformedStdout = inherit stdout
 
 deformedStdout.print 1.0 2.0 3.0
 stdout.print 100.0 ln
+
+# Test unicode
+# Expect: ⚧
+print "⚧"
