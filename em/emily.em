@@ -199,11 +199,18 @@ let makeAst = function(i)
 				appendGroup (StatementKind.Parenthesis)
 				nextState Scanning
 			elif (char.isCloseParen ch)
-				if (finalGroup.openedWithParenthesis)
-					groupStack = groupStack.next
-					nextState Scanning
-				else
+				let done = null
+				let node = groupStack
+				while (and (not done) node)
+					if (node.value.openedWithParenthesis)
+						done = 1
+					node = node.next
+
+				if (not done)
 					error "Close parenthesis mismatched"
+				else
+					groupStack = node
+					nextState Scanning
 			elif (== ch ",")
 				appendStatement()
 				nextState Scanning
@@ -249,7 +256,9 @@ let makeAst = function(i)
 			elif (== ch "#")
 				nextState Comment
 			else # Non-whitespace content
-				if (== (finalGroup.indent) null) # First non-whitespace content of group
+				if (char.isCloseParen ch)
+					1	# Do nothing-- just switch to scan
+				elif (== (finalGroup.indent) null) # First non-whitespace content of group
 					finalGroup.indent = this.current
 				elif (== (this.current) (finalGroup.indent))
 					appendStatement()
