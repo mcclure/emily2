@@ -260,6 +260,10 @@ let makeAst = function(i)
 					1	# Do nothing-- just switch to scan
 				elif (== (finalGroup.indent) null) # First non-whitespace content of group
 					finalGroup.indent = this.current
+
+					if (> (finalGroup.finalStatement.nodes.length) 0)
+						appendStatement()
+						error "Indentation after ( is ambiguous; please add a , at the end of the previous line."
 				elif (== (this.current) (finalGroup.indent))
 					appendStatement()
 				elif (startsWith (this.current) (finalGroup.indent)) # Added indentation
@@ -310,10 +314,10 @@ let makeAst = function(i)
 
 	if (< 0 (errors.length))
 		let i = errors.iter
-		println "Compilation failed:"
+		stderr.println "Compilation failed:"
 		while (i.more)
 			let error = i.next
-			println
+			stderr.println
 				nullJoin array (error.loc, ": ", error.msg)
 		exit 1
 	
