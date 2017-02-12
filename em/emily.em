@@ -1,10 +1,13 @@
 # Self-hosting interpreter for e2
 
-let cmdAst = null
-let cmdAst2 = null
+let false = null
+let true = 1
+
+let cmdAst = false
+let cmdAst2 = false
 let cmdExecute = null
 let cmdTarget = null
-let cmdValid = null
+let cmdValid = false
 
 let scriptArgv = array()
 
@@ -16,26 +19,28 @@ while (i.more)
 
 	with arg match
 		"--ast" =
-			cmdAst = 1
+			cmdAst = true
 		"--ast2" =
-			cmdAst2 = 1
+			cmdAst2 = true
 		"-e" = do
 			if (not (i.more))
 				# TODO Write on stderr not stdout
-				println "Missing argument for -e"
+				stderr.println "Missing argument for -e"
 				exit 2
 			cmdExecute = i.next
 		_ = do
-			# TODO: Throw if starts with -
+			if (== "-" (arg 0))
+				stderr.print "Unrecognized argument" arg ln
+				exit 2
 			cmdTarget = arg
 
 	if (or(cmdExecute, cmdTarget))
 		while (i.more)
 			scriptArgv.append(i.next)
-		cmdValid = 1
+		cmdValid = true
 
 if (not cmdValid)
-	println "Must supply either file name or -e"
+	stderr.println "Must supply either file name or -e"
 	exit 2
 
 # --- Util ---
@@ -48,6 +53,31 @@ let Linked = inherit object
 	field value = null
 	field next = null # This looks like an iterator but is immutable. Is this bad
 	method more = (!= (this.next) null)
+
+let cmp = function (x, y)
+	if (< x y)
+		-1
+	elif (> x y)
+		1
+	else
+		0
+
+let insertLinked = function(cmp, list, value)
+	let worse = function(node)
+		or (not list) (> 0 (cmp value (node.value)))
+	insert = new Linked(value)
+	if (worse list)
+		insert.next = list
+		insert
+	else
+		let node = list
+		let done = false
+		while (and (not done) node)
+			if (worse (node.next))
+				insert.next = node.next
+				node.next = insert
+				done = true
+		list
 
 let foldl = function(default, f, ary)
 	let i = ary.iter
@@ -68,7 +98,7 @@ let startsWith = function(x, y)
 	let valid = (<= (y.length) (x.length)) # Don't bother if x is shorter
 	while (and valid (< idx (y.length)))   # Iterate until difference found
 		if (!= (x idx) (y idx))
-			valid = null
+			valid = false
 		idx = + idx 1
 	valid
 
@@ -101,7 +131,7 @@ let Error = inherit object
 # --- Reader ---
 
 let ExpGroup = inherit Node
-	field openedWithParenthesis = null
+	field openedWithParenthesis = false
 	field indent = null
 	field method statements = array( new Statement )
 
@@ -115,7 +145,7 @@ let StringContentExp = inherit Node
 	field content = ""
 
 let SymbolExp = inherit StringContentExp
-	field isAtom = null
+	field isAtom = false
 
 	method toString = +
 		if (this.isAtom) (".") else ("")
@@ -130,7 +160,7 @@ let NumberExp = inherit Node
 
 let Statement = inherit object
 	field method nodes = array()
-	field dead = null
+	field dead = false
 
 	method toString = do
 		let result = ""
@@ -168,7 +198,7 @@ let makeAst = function(i)
 	let error = function(str)
 		errors.append
 			new Error(loc, str)
-		finalGroup.finalStatement.dead = 1
+		finalGroup.finalStatement.dead = true
 		nextState Scanning
 
 	let State = inherit object
@@ -199,11 +229,11 @@ let makeAst = function(i)
 				appendGroup (StatementKind.Parenthesis)
 				nextState Scanning
 			elif (char.isCloseParen ch)
-				let done = null
+				let done = false
 				let node = groupStack
 				while (and (not done) node)
 					if (node.value.openedWithParenthesis)
-						done = 1
+						done = true
 					node = node.next
 
 				if (not done)
@@ -270,15 +300,15 @@ let makeAst = function(i)
 					appendGroup (StatementKind.Indent)
 					finalGroup.indent = this.current
 				else # This is either dropped indentation, or an error
-					let done = null
-					let parenthesisIssue = null
+					let done = false
+					let parenthesisIssue = false
 					let node = groupStack
 					while (and (not done) node)
 						if (== (node.value.indent) (this.current))
-							done = 1
+							done = true
 						elif (node.value.openedWithParenthesis)
-							parenthesisIssue = 1
-							done = 1
+							parenthesisIssue = true
+							done = true
 						else
 							node = node.next
 
@@ -323,6 +353,27 @@ let makeAst = function(i)
 	
 	finalGroup
 
+# --- Parser ---
+
+let Macro = inherit object
+	progress = ProgressBase.parsed
+
+let insertMacro = insertLinked function(x,y)
+	cmp (x.progress) (y.progress)
+
+let Parser = inherit object
+	field macros = null # Linked[Macro]
+	field errors = array()
+
+	method makeSequence = function(loc, statements, shouldReturn)
+		"MACROS CURRENTLY UNIMPLEMENTED"
+
+let exeFromAst = function (ast)
+	let parser = new Parser
+	parser.makeSequence(ast.loc, ast.statements, false)
+
+# --- Run ---
+
 let codeIter = do
 	if cmdTarget
 		file.in cmdTarget
@@ -337,4 +388,9 @@ if cmdTarget
 if cmdAst
 	println (ast.toString)
 else
-	println "EXECUTION CURRENTLY UNIMPLEMENTED"
+	let exe = exeFromAst ast
+
+	if cmdAst2
+		println (exe.toString)
+	else
+		println "EXECUTION CURRENTLY UNIMPLEMENTED"

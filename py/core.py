@@ -4,8 +4,8 @@
 
 # Progress comes in several phases:
 class ProgressBase:
-	Parsed = 1000      # Parse tree structure
-	Macroed = 2000     # "AST" structure
+	Reader = 1000      # Expression tree structure
+	Parser = 2000     # "AST" structure
 	Executable = 3000  # Execution tree structure
 
 class EmilyException(Exception):
@@ -16,8 +16,8 @@ class Printable(object):
 		return unicode(s).encode('utf-8')
 
 class Node(Printable):
-	# Currently the parser handles ., comma and () itself so lowest possible is 1000
-	def __init__(s, loc, progress = ProgressBase.Parsed):
+	# Currently the reader handles ., comma and () itself so lowest possible is 1000
+	def __init__(s, loc, progress = ProgressBase.Reader):
 		s.loc = loc
 		s.progress = progress
 

@@ -197,7 +197,7 @@ class UserMacroList(execution.Executable):
 
 class MacroMacro(OneSymbolMacro):
 	def __init__(s):
-		super(MacroMacro, s).__init__(progress=ProgressBase.Macroed + 10)
+		super(MacroMacro, s).__init__(progress=ProgressBase.Parser + 10)
 
 	def symbol(s):
 		return u"macro"
@@ -216,7 +216,7 @@ class MacroMacro(OneSymbolMacro):
 # = sign
 class SetMacro(OneSymbolMacro):
 	def __init__(s):
-		super(SetMacro, s).__init__(progress = ProgressBase.Macroed + 100)
+		super(SetMacro, s).__init__(progress = ProgressBase.Parser + 100)
 
 	def symbol(s):
 		return u"="
@@ -263,7 +263,7 @@ class SeqMacro(OneSymbolMacro):
 # do (statements)
 class DoMacro(SeqMacro):
 	def __init__(s):
-		super(DoMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+		super(DoMacro, s).__init__(progress = ProgressBase.Parser + 400)
 
 	def symbol(s):
 		return u"do"
@@ -274,7 +274,7 @@ class DoMacro(SeqMacro):
 # if (cond) (ifBlock) (elseBlock?) -- OR -- while (cond) (whileBlock)
 class IfMacro(OneSymbolMacro):
 	def __init__(s, loop):
-		super(IfMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+		super(IfMacro, s).__init__(progress = ProgressBase.Parser + 400)
 		s.loop = loop
 
 	def symbol(s):
@@ -315,7 +315,7 @@ class IfMacro(OneSymbolMacro):
 # function (args) (body) -- OR -- func (args) (body)
 class FunctionMacro(Macro):
 	def __init__(s):
-		super(FunctionMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+		super(FunctionMacro, s).__init__(progress = ProgressBase.Parser + 400)
 
 	def match(s, left, node, right):
 		return isSymbol(node, u"function") or isSymbol(node, u"func")
@@ -368,7 +368,7 @@ class MatchCase(object):
 
 class MatchMacro(OneSymbolMacro):
 	def __init__(s):
-		super(MatchMacro, s).__init__(progress = ProgressBase.Macroed + 400)
+		super(MatchMacro, s).__init__(progress = ProgressBase.Parser + 400)
 
 	def symbol(s):
 		return u"match"
@@ -435,7 +435,7 @@ class MatchMacro(OneSymbolMacro):
 # array (contents)
 class ArrayMacro(SeqMacro):
 	def __init__(s):
-		super(ArrayMacro, s).__init__(progress = ProgressBase.Macroed + 500)
+		super(ArrayMacro, s).__init__(progress = ProgressBase.Parser + 500)
 
 	def symbol(s):
 		return u"array"
@@ -446,7 +446,7 @@ class ArrayMacro(SeqMacro):
 # array (contents)
 class ObjectMacro(OneSymbolMacro):
 	def __init__(s, isInstance):
-		super(ObjectMacro, s).__init__(progress = ProgressBase.Macroed + 500)
+		super(ObjectMacro, s).__init__(progress = ProgressBase.Parser + 500)
 		s.isInstance = isInstance
 
 	def symbol(s):
@@ -487,7 +487,7 @@ class ObjectMacro(OneSymbolMacro):
 # Final pass: Turn everything not swallowed by a macro into a value
 class ValueMacro(Macro):
 	def __init__(s):
-		super(ValueMacro, s).__init__(progress = ProgressBase.Macroed + 900)
+		super(ValueMacro, s).__init__(progress = ProgressBase.Parser + 900)
 
 	def match(s, left, node, right):
 		c = type(node)

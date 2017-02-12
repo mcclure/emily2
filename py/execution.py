@@ -569,7 +569,7 @@ def makeSplitMacro(progress, symbol):
 		raise Exception("Macro progress must be between 0 and 999 inclusive")
 	if type(symbol) != unicode:
 		raise Exception("Macro symbol is not a symbol")
-	return parser.SplitMacro(ProgressBase.Macroed + progress, symbol)
+	return parser.SplitMacro(ProgressBase.Parser + progress, symbol)
 defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
 
 # IO : Output
