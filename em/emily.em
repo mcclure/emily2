@@ -390,7 +390,7 @@ let insertMacro = insertLinked function(x,y)
 	cmp (x.progress) (y.progress)
 
 let isSymbol = function(node, goal)
-	match node
+	with node match
 		SymbolExp = and (not node.isAtom) (== (node.content) goal)
 		_ = false
 
@@ -404,7 +404,7 @@ let SequenceTracker = inherit object
 		this.idx = + (this.idx) 1
 		result
 
-	method steal = function(symbol):
+	method steal = function(symbol)
 		if (this.more)
 			let nodes = this.statements(this.idx).nodes
 			if (and nodes (isSymbol (nodes 0) symbol))
@@ -453,7 +453,7 @@ let Parser = inherit object
 			if (and (is SetExec exe) (exe.isLet))
 				hasLets = true
 
-		new SequenceExec(this.loc, shouldReturn, hasLets, execs)
+		new SequenceExec(loc, shouldReturn, hasLets, execs)
 
 	method loadAll = function(macros)
 		let i = macros.iter
@@ -492,7 +492,7 @@ let Parser = inherit object
 				else
 					# FIXME: Need to bring in "macro levels" concept from parser.py
 					# So that same-priority keys get processed in a single sweep
-					if (m.match(left, at, right))
+					if (m.matches(left, at, right))
 						let result = m.apply(left, at, right, tracker)
 
 						# Unpack
@@ -592,11 +592,11 @@ let SequenceExec = inherit Executable
 let UserMacroList = inherit Executable
 	field contents = null
 
-let NullLiteralExec =  = inherit Executable
+let NullLiteralExec = inherit Executable
 
 let ApplyExec = inherit Executable
-	field fn
-	field arg
+	field fn = null
+	field arg = null
 
 let Unit = NullLiteralExec # Just an alias
 

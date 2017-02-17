@@ -238,7 +238,7 @@ class SetMacro(OneSymbolMacro):
 		if left:
 			left = left[idx:]
 		if len(left) == 0:
-			return Error(node.loc, "Missing name")
+			return Error(node.loc, "Missing name in =")
 		key = left[-1]
 		if len(left) > 1:
 			target = m.process(left[:-1])
