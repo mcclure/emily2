@@ -13,6 +13,7 @@ parse/fail/parenDedent.em
 parse/fail/rparen.em
 parse/fail/startingComma.em
 
+macro/null.em
 macro/value.em
 macro/set.em
 macro/steal.em

@@ -203,6 +203,7 @@ arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFu
 arrayPrototype = ObjectValue()
 arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
 arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, lambda x,y:x.values.append(y)))
+arrayPrototype.atoms['pop'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x.values.pop()))
 
 def arrayIteratorImpl(ary):
 	x = ObjectValue(arrayIteratorPrototype)
@@ -238,9 +239,8 @@ class ArrayValue(EmilyValue):
 # Executable nodes
 
 class Executable(Node):
-	def __init__(s, loc, immutable = False): # , line, char
+	def __init__(s, loc): # , line, char
 		super(Executable, s).__init__(loc)
-		s.immutable = immutable
 		s.progress = ProgressBase.Executable
 
 class InvalidExec(Executable):

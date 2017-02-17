@@ -107,7 +107,7 @@ class Parser(object):
 			return s.errorAt(at.loc, "Macro malfunctioned and produced an empty list")
 		if type(nodes[0]) == reader.ExpGroup:
 			if not nodes[0].nonempty():
-				result = s.makeUnit(nodes[0])
+				result = s.makeUnit(nodes.pop(0))
 			elif len(nodes[0].statements) > 1:
 				return s.errorAt(nodes[0].loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
 			else:
