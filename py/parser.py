@@ -375,10 +375,10 @@ class MatchMacro(OneSymbolMacro):
 
 	def apply(s, m, left, node, right, _):
 		if not right:
-			return Error(node.loc, u"Emptiness after \"%s\"" % (name))
+			return Error(node.loc, u"Emptiness after \"match\"")
 		lines = right.pop(0)
 		if type(lines) != reader.ExpGroup:
-			return Error(node.loc, u"Expected a (group) after \"%s\"" % (name))
+			return Error(node.loc, u"Expected a (group) after \"match\"")
 		result = []
 		for stmIdx in range(len(lines.statements) if lines.statements else 0):
 			stm = lines.statements[stmIdx]
@@ -401,29 +401,29 @@ class MatchMacro(OneSymbolMacro):
 			if not eqRight:
 				return Error(node.loc, u"On match line #%d, right of = is blank" % (stmIdx+1))
 			target = eqLeft.pop(0)
-			unpacks = None
+			unpacksExp = None
+			unpacks = []
 			if eqLeft:
-				unpacks = eqLeft[0]
+				unpacksExp = eqLeft[0]
 				foundUnpack = False
-				if type(unpacks) == reader.SymbolExp:
-					unpacks = [execution.AtomLiteralExec(unpacks.loc, unpacks.content)]
+				if type(unpacksExp) == reader.SymbolExp:
+					unpacks = [execution.AtomLiteralExec(unpacksExp.loc, unpacksExp.content)]
 					foundUnpack = True
-				elif type(unpacks) == reader.ExpGroup:
-					unpacks = []
-					for statement in unpacks.statements:
+				elif type(unpacksExp) == reader.ExpGroup:
+					for statement in unpacksExp.statements:
 						if not statement.nodes or type(statement.nodes[0]) != reader.SymbolExp:
 							foundUnpack = False
 							break
-						unpacks.append(AtomLiteralExec(statement.nodes[0].loc, statement.nodes[0].content))
+						unpacks.append(execution.AtomLiteralExec(statement.nodes[0].loc, statement.nodes[0].content))
 						foundUnpack = True
 				if not foundUnpack:
 					return Error(node.loc, u"On match line #%d, variable unpack list on right of = is garbled" % (stmIdx+1))
 			if isSymbol(target, '_'):
-				if unpacks:
+				if unpacksExp:
 					return Error(node.loc, u"On match line #%d, variable unpack list used with _" % (stmIdx+1))
 				target = None
 			elif isSymbol(target, 'array'):
-				if not unpacks:
+				if not unpacksExp:
 					return Error(node.loc, u"On match line #%d, \"array\" used but no unpack list found" % (stmIdx+1))
 				target = None
 			if target:

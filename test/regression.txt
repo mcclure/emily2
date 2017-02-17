@@ -47,6 +47,8 @@ exec/fail/objectSet.em
 exec/fail/objectSetType.em
 exec/fail/arraySet.em
 exec/fail/arraySetType.em
+exec/fail/matchUnpack.em
+exec/fail/matchUnpack.2.em
 
 lib/argv.em
 lib/argv.2.em

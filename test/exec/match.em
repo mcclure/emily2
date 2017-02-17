@@ -17,6 +17,32 @@ with v match
 			x
 			ln
 
+# Complex unpack
+# Expect:
+# 4.0 5.0 6.0
+# 4.0
+# 4.0 5.0 6.0
+
+let Vector3 = inherit object
+	field x = null
+	field y = null
+	field z = null
+
+let p = new Vector3( 4, 5, 6 )
+
+with p match # Unpack vector
+	Some x = println "?"
+	Vector3(a, b, c) = print a b c ln
+
+with p match # Unpack vector, do not use all fields
+	Some x = println "??"
+	Vector3(a) = print a ln
+
+with p match # Unpack untyped
+	Some x = println "???"
+	array(a,b,c) = print a b c ln
+	Vector3(a,b,c) = print "????" # First match not best match
+
 # Closure
 # Expect:
 # VALUE IS: 3.0
