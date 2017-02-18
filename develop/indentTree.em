@@ -95,6 +95,7 @@ let printIndent = function (ary, indent)
 				stdout.write content
 
 printIndent (root.value, "")
+print ln
 
 if (failed)
 	stderr.write

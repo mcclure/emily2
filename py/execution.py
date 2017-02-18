@@ -350,7 +350,7 @@ class MakeMatchExec(Executable):
 	def __unicode__(s):
 		result = u"[Match"
 		for match in s.matches:
-			result += " [Case %s [%s] %s]" % (unicode(this.targetExe), unicodeJoin(", ", this.unpacks), unicode(this.statement))
+			result += " [Case %s [%s] %s]" % (unicode(match.targetExe), unicodeJoin(", ", match.unpacks), unicode(match.statement))
 		result += "]"
 		return result
 

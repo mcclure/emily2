@@ -295,9 +295,9 @@ class IfMacro(OneSymbolMacro):
 
 		elseq = None
 		if not s.loop:
-			if not right:
+			if not right and tracker:
 				right = tracker.steal(u"else")
-			if not right:
+			if not right and tracker:
 				right = tracker.steal(u"elif")
 			if right:
 				if isSymbol(right[0], "else"):
