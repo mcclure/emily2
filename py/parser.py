@@ -29,14 +29,30 @@ class SequenceTracker(object):
 	def __init__(s, statements):
 		s.statements = statements
 		s.idx = 0
+		s.argIdx = 0
 
 	def steal(s, symbol):
-		if s.idx < len(s.statements):
+		if s.more():
 			nodes = s.statements[s.idx].nodes
 			if nodes and isSymbol(nodes[0], symbol):
 				s.idx += 1
 				return nodes
 		return None
+
+	def __iter__(s):
+		return s
+
+	def more(s):
+		return s.idx < len(s.statements)
+
+	def next(s):
+		if s.more():
+			statement = s.statements[s.idx]
+			s.idx += 1
+			s.argIdx += 1
+			return statement
+		else:
+			raise StopIteration()   	
 
 class Parser(object):
 	def __init__(s, clone = None):
@@ -124,14 +140,10 @@ class Parser(object):
 				if not arg.nonempty():
 					result = execution.ApplyExec(result.loc, result, s.makeUnit(arg))
 				else:
-					argIdx = 0
 					tracker = SequenceTracker(arg.statements)
-					while tracker.idx < len(tracker.statements):
-						statement = tracker.statements[tracker.idx]
-						tracker.idx += 1
-						argIdx += 1
+					for statement in tracker:
 						if not statement.nodes:
-							return s.errorAt(arg.loc, "Argument #%s to function is blank" % (idx))
+							return s.errorAt(arg.loc, "Argument #%s to function is blank" % (tracker.argIdx))
 						result = execution.ApplyExec(result.loc, result, s.process(statement.nodes, tracker))
 			else:
 				completenessError = s.checkComplete(arg)
@@ -149,10 +161,7 @@ class Parser(object):
 		execs = []
 		m = None
 		tracker = SequenceTracker(statements)
-		while tracker.idx < len(tracker.statements):
-			stm = tracker.statements[tracker.idx]
-			tracker.idx += 1
-
+		for stm in tracker:
 			exe = (m or s).process(stm.nodes, tracker)
 			if type(exe) == UserMacroList: # Apply these macros to all following lines
 				if not m:
@@ -169,7 +178,8 @@ class Parser(object):
 		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
 
 	def makeArray(s, seq):
-		return [s.process(stm.nodes) for stm in seq.statements] if seq.nonempty() else []
+		tracker = SequenceTracker(seq.statements)
+		return [s.process(stm.nodes, tracker) for stm in tracker] if seq.nonempty() else []
 
 # Standard macros-- "make values"
 
@@ -221,7 +231,7 @@ class SetMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"="
 
-	def apply(s, m, left, node, right, _):
+	def apply(s, m, left, node, right, tracker):
 		isLet = False
 		isMethod = False
 		isField = False
@@ -247,7 +257,7 @@ class SetMacro(OneSymbolMacro):
 			if type(key) != reader.SymbolExp or key.isAtom:
 				return Error(key.loc, "Assigned name must be alphanumeric")
 			key = execution.AtomLiteralExec(key.loc, key.content)
-		value = m.process(right)
+		value = m.process(right, tracker)
 		return ([], execution.SetExec(node.loc, isLet, isMethod, isField, target, key, value), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
@@ -350,13 +360,13 @@ class SplitMacro(OneSymbolMacro):
 	def symbol(s):
 		return s.symbolCache
 
-	def apply(s, m, left, node, right, _):
+	def apply(s, m, left, node, right, tracker):
 		return ([],
 			execution.ApplyExec(node.loc,
 				execution.ApplyExec(node.loc,
 						execution.VarExec(node.loc, s.symbolCache),
 						m.process(left)),
-				m.process(right)),
+				m.process(right, tracker)),
 			[])
 
 # match (matchbody)
@@ -373,7 +383,7 @@ class MatchMacro(OneSymbolMacro):
 	def symbol(s):
 		return u"match"
 
-	def apply(s, m, left, node, right, _):
+	def apply(s, m, left, node, right, tracker):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"match\"")
 		lines = right.pop(0)
@@ -428,7 +438,7 @@ class MatchMacro(OneSymbolMacro):
 				target = None
 			if target:
 				target = m.process([target])
-			tempStatement = m.process(eqRight)
+			tempStatement = m.process(eqRight, tracker)
 			result.append( MatchCase(target, unpacks, tempStatement) )
 		return (left, execution.MakeMatchExec(node.loc, result), right)
 

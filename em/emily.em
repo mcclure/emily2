@@ -439,7 +439,7 @@ let Parser = inherit object
 		while (tracker.more)
 			let statement = tracker.next
 
-			let exe = parser.process(statement.nodes, tracker)
+			let exe = parser.process(loc, statement.nodes, tracker)
 			if (is UserMacroList exe)
 				if (not customMacros)   # TODO: Only dupe after descending levels
 					parser = cloneParser(parser)
