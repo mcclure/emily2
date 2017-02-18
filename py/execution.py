@@ -3,6 +3,7 @@
 import sys
 from core import *
 from util import unicodeJoin, quotedString, utfOpen, streamable
+import codecs
 import reader, parser
 
 # Values
@@ -248,7 +249,7 @@ class InvalidExec(Executable):
 		super(InvalidExec, s).__init__(loc)
 		
 	def __unicode__(s):
-		return u"[Invalid node]" % (unicodeJoin(u" ", s.execs))
+		return u"[Invalid node]"
 
 	def eval(s, scope):
 		raise ExecutionException(s.loc, "Invalid expression", "Tried to execute invalid program")
@@ -704,6 +705,9 @@ def makeInfileObject(handle):
 def makeInOpen(filename):
 	return makeInfileObject(utfOpen(filename))
 fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
+
+stdinObject = makeInfileObject( codecs.getreader('utf-8')(sys.stdin) )
+defaultScope.atoms['stdin'] = stdinObject
 
 # String garbage
 

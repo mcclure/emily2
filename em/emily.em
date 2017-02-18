@@ -583,20 +583,45 @@ let Executable = inherit Node
 # TODO: toString, eval
 
 let InvalidExec = inherit Executable
+	toString = "[Invalid node]"
 
 let SequenceExec = inherit Executable
 	field shouldReturn = false
 	field hasScope = false
 	field method execs = array()
 
+	method toString = do
+		let tags = array()
+		if (this.hasScope)
+			tags.append "Scoped"
+		if (this.shouldReturn)
+			tags.append "Returning"
+		nullJoin array
+			"[Sequence"
+			if (tags.length)
+				nullJoin("(", join "," tags, ")")
+			else
+				""
+			join " " (this.execs)
+
 let UserMacroList = inherit Executable
 	field contents = null
 
+	toString = "[Misplaced macro node]"
+
 let NullLiteralExec = inherit Executable
+	toString = "[NullLiteral]"
 
 let ApplyExec = inherit Executable
 	field fn = null
 	field arg = null
+
+	method toString = nullJoin
+		"[Apply "
+		fn
+		" "
+		arg
+		"]"
 
 let Unit = NullLiteralExec # Just an alias
 
