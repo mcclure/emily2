@@ -179,7 +179,9 @@ let ExpGroup = inherit Node
 		"("
 		join(", ", this.statements)
 		")"
-	method nonempty = > (this.statements.length) 0
+	method empty = or
+		not (this.statements.length)
+		not (this.statements(0).nodes.length)
 
 let StringContentExp = inherit Node
 	field content = ""
@@ -571,25 +573,29 @@ let Parser = inherit object
 			# One by one move the items out of right into left and macro-filter along the way
 			while (and (right.length) (not foundError))
 				let at = popLeft right
-				if (> (at.progress) (m.progress))
-					left.append at
+
+				# FIXME: Need to bring in "macro levels" concept from parser.py
+				# So that same-priority keys get processed in a single sweep
+				if (
+						and 
+							<= (at.progress) (m.progress)
+							m.matches(left, at, right)
+					)
+					let result = m.apply(left, at, right, tracker)
+
+					# Unpack
+					with result match
+						Error =
+							foundError = result
+						ProcessResult(_left, _at, _right) = do
+							left = _left
+							at = _at
+							right = _right
+
+					if (at)
+						left.append at
 				else
-					# FIXME: Need to bring in "macro levels" concept from parser.py
-					# So that same-priority keys get processed in a single sweep
-					if (m.matches(left, at, right))
-						let result = m.apply(left, at, right, tracker)
-
-						# Unpack
-						with result match
-							Error =
-								foundError = result
-							ProcessResult(_left, _at, _right) = do
-								left = _left
-								at = _at
-								right = _right
-
-						if (at)
-							left.append at
+					left.append at
 
 				nodes = left
 
@@ -609,13 +615,13 @@ let Parser = inherit object
 			# The "result" value starts as the zeroth item in the list
 			if (is ExpGroup (nodes 0))
 				let firstNode = popLeft nodes
-				with (firstNode.statements.length) match
-					0 = # ()
-						result = new Unit (firstNode.loc)
-					1 = # (arg)
-						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
-					_ = # (arg1, arg2, ...)
-						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+				if (firstNode.empty)                   # ()
+					result = new Unit (firstNode.loc)
+				elif (> firstNode.statements.length 1) # (arg)
+					result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
+				else                                   # (arg1, arg2, ...)
+					resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+	
 			else
 				result = popLeft(nodes)
 				resultError = this.checkComplete result # First write so this is safe
@@ -623,8 +629,9 @@ let Parser = inherit object
 			# For each item in the list, apply result = result(b)
 			while (and (not resultError) (nodes.length))
 				let arg = popLeft(nodes)
+
 				if (is ExpGroup arg)
-					if (not (arg.nonempty)) # ()
+					if (arg.empty) # ()
 						result = new ApplyExec(arg.loc, result, new Unit(arg.loc))
 					else                    # (arg1, arg2, ...)
 						let argIdx = 0 # Used by error message
@@ -635,7 +642,7 @@ let Parser = inherit object
 							if (not (statement.nodes.length))
 								resultError = this.error
 									arg.loc
-									nullJoin
+									nullJoin array
 										"Argument #"
 										argIdx
 										" to function is blank"
