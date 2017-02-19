@@ -53,6 +53,7 @@ let popLeft = function(a)
 	let idx = 0
 	while (< idx (- (a.length) 1))
 		a idx = a (+ idx 1)
+		idx = + idx 1
 	a.pop
 	left
 
@@ -108,6 +109,16 @@ let foldl = function(default, f, ary)
 		while (i.more)
 			value = f(value, i.next)
 		value
+
+let checkErrors = function(errors)
+	if (< 0 (errors.length))
+		let i = errors.iter
+		stderr.println "Compilation failed:"
+		while (i.more)
+			let error = i.next
+			stderr.println
+				nullJoin array (error.loc, ": ", error.msg)
+		exit 1
 
 # String ops
 let join = function(joiner)
@@ -368,14 +379,7 @@ let makeAst = function(i)
 				new Error(loc, nullJoin array("Parenthesis on ", groupStack.value.loc, " never closed"))
 		groupStack = groupStack.next
 
-	if (< 0 (errors.length))
-		let i = errors.iter
-		stderr.println "Compilation failed:"
-		while (i.more)
-			let error = i.next
-			stderr.println
-				nullJoin array (error.loc, ": ", error.msg)
-		exit 1
+	checkErrors errors
 	
 	finalGroup
 
@@ -545,9 +549,8 @@ let Parser = inherit object
 					else                    # (arg1, arg2, ...)
 						let argIdx = 0 # Used by error message
 						let tracker = new SequenceTracker(arg.statements)
-						while (< (tracker.idx) (tracker.statements))
-							let statement = tracker.statements (tracker.idx)
-							tracker.idx = + (tracker.idx) 1
+						while (tracker.more)
+							let statement = tracker.next
 							argIdx = + argIdx 1
 							if (not (statement.nodes.length))
 								resultError = this.error
@@ -573,7 +576,11 @@ let cloneParser = function(parser)
 
 let exeFromAst = function(ast)
 	let parser = new Parser
-	parser.makeSequence(ast.loc, ast.statements, false)
+	let result = parser.makeSequence(ast.loc, ast.statements, false)
+
+	checkErrors(parser.errors)
+
+	result
 
 # --- Execution ---
 
@@ -603,6 +610,7 @@ let SequenceExec = inherit Executable
 			else
 				""
 			join " " (this.execs)
+			"]"
 
 let UserMacroList = inherit Executable
 	field contents = null

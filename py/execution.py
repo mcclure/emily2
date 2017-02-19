@@ -370,7 +370,9 @@ class VarExec(Executable):
 		try:
 			return scope.lookup(s.symbol)
 		except InternalExecutionException as e:
-			raise ExecutionException(s.loc, "Variable read", unicode(e))
+			raise ExecutionException(s.loc, u"Variable read", unicode(e))
+		except KeyboardInterrupt:
+			raise ExecutionException(s.loc, u"Variable read", u"Ctrl-C")
 
 class SetExec(Executable):
 	def __init__(s, loc, isLet, isMethod, isField, target, index, valueClause): # TODO: indexClauses
@@ -406,7 +408,9 @@ class SetExec(Executable):
 		try:
 			target.assign(s.isLet, index, value)
 		except InternalExecutionException as e:
-			raise ExecutionException(s.loc, "Assignment", unicode(e))
+			raise ExecutionException(s.loc, u"Assignment", unicode(e))
+		except KeyboardInterrupt:
+			raise ExecutionException(s.loc, u"Assignment", u"Ctrl-C")
 
 		return None
 
@@ -453,6 +457,8 @@ class ApplyExec(Executable):
 			return MethodPseudoValue.fetch(prototype, arg.value, value)			
 		except InternalExecutionException as e:
 			raise ExecutionException(s.loc, u"Application", unicode(e))
+		except KeyboardInterrupt:
+			raise ExecutionException(s.loc, u"Application", u"Ctrl-C")
 
 class MakeFuncExec(Executable):
 	def __init__(s, loc, args, body): # f for function
