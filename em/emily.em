@@ -85,8 +85,11 @@ let cmp = function (x, y)
 
 let insertLinked = function(cmp, list, value)
 	let worse = function(node)
-		or (not list) (> 0 (cmp value (node.value)))
-	insert = new Linked(value)
+		if (not node)
+			true
+		else
+			> 0 (cmp value (node.value))
+	let insert = new Linked(value)
 	if (worse list)
 		insert.next = list
 		insert
@@ -421,6 +424,40 @@ let SequenceTracker = inherit object
 
 # Macro classes
 
+let ValueMacro = inherit Macro
+	progress = + (ProgressBase.parser) 900
+
+	method matches = function(left, node, right)
+		with node match
+			QuoteExp = true
+			NumberExp = true
+			SymbolExp = true
+			_ = false
+
+	method apply = function(left, node, right, _)
+		node = with node match
+			QuoteExp(loc, content) = new StringLiteralExec(loc, content)
+			NumberExp(loc, integer, dot, decimal) = do
+				let value = integer
+				if (dot)
+					value = + value "."
+				if (decimal)
+					value = + value decimal
+				new NumberLiteralExec(loc, value.toNumber)
+			SymbolExp(loc, content, isAtom) = do
+				if (isAtom)
+					new AtomLiteralExec(loc, content)
+				else
+					new VarExec(loc, content)
+			_ = new Error(node.loc, "Internal error: AST node of indecipherable type found at end of macro processing")
+
+		if (is Error node)
+			node
+		else
+			new ProcessResult(left, node, right)
+
+let standardMacros = array
+	ValueMacro
 
 # Parser
 
@@ -491,7 +528,7 @@ let Parser = inherit object
 			# One by one move the items out of right into left and macro-filter along the way
 			while (and (right.length) (not foundError))
 				let at = popLeft right
-				if (> (at.progress) (level.progress))
+				if (> (at.progress) (m.progress))
 					left.append at
 				else
 					# FIXME: Need to bring in "macro levels" concept from parser.py
@@ -576,6 +613,7 @@ let cloneParser = function(parser)
 
 let exeFromAst = function(ast)
 	let parser = new Parser
+	parser.loadAll standardMacros
 	let result = parser.makeSequence(ast.loc, ast.statements, false)
 
 	checkErrors(parser.errors)
@@ -604,7 +642,7 @@ let SequenceExec = inherit Executable
 		if (this.shouldReturn)
 			tags.append "Returning"
 		nullJoin array
-			"[Sequence"
+			"[Sequence "
 			if (tags.length)
 				nullJoin("(", join "," tags, ")")
 			else
@@ -617,18 +655,36 @@ let UserMacroList = inherit Executable
 
 	toString = "[Misplaced macro node]"
 
+let LiteralExec = inherit Executable
+	field value = null
+
+let StringLiteralExec = inherit LiteralExec
+	method toString = nullJoin("[StringLiteral ", quotedString(this.value), "]")
+
+let NumberLiteralExec = inherit LiteralExec
+	method toString = nullJoin("[NumberLiteral ", this.value, "]")
+
+let AtomLiteralExec = inherit LiteralExec
+	method toString = nullJoin("[AtomLiteral ", this.value, "]")
+
+# Does not inherit LiteralExec because it holds no value
 let NullLiteralExec = inherit Executable
 	toString = "[NullLiteral]"
+
+let VarExec = inherit Executable
+	field symbol = null
+
+	method toString = nullJoin array("[Var ", this.symbol, "]")
 
 let ApplyExec = inherit Executable
 	field fn = null
 	field arg = null
 
-	method toString = nullJoin
+	method toString = nullJoin array
 		"[Apply "
-		fn
+		this.fn
 		" "
-		arg
+		this.arg
 		"]"
 
 let Unit = NullLiteralExec # Just an alias

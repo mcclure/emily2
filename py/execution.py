@@ -358,9 +358,8 @@ class MakeMatchExec(Executable):
 		return MatchFunctionValue(s.matches, scope)
 
 class VarExec(Executable):
-	def __init__(s, loc, symbol, source=None):
+	def __init__(s, loc, symbol):
 		super(VarExec, s).__init__(loc)
-		s.source = source
 		s.symbol = symbol
 
 	def __unicode__(s):
@@ -732,6 +731,7 @@ charObject.atoms['isDigit'] = PythonFunctionValue(1, reader.isDigit)
 
 numberPrototype = ObjectValue()
 numberPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:unicode(x)))
+numberPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
 
 # Strings
 
@@ -746,6 +746,7 @@ def stringIteratorImpl(ary):
 	return x
 stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
 stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
+stringPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(x)))
 
 # FIXME: Null has a prototype?
 
