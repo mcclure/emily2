@@ -1,4 +1,5 @@
 # De-indent attempts to cross parenthesis boundary
+# Arg: --ast
 # Expect failure
 
 One two

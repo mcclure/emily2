@@ -7,6 +7,9 @@ parse/literals.em
 # a=3 is treated as one token
 parse/tokenize.em
 
+# . at end of program (or before comma) is allowed
+parse/fail/dotStray.em
+
 # regression.py doesn't load these correctly
 parse/unicode/utf16le.em
 parse/unicode/utf16be.em

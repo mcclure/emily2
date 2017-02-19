@@ -198,6 +198,10 @@ let NumberExp = inherit Node
 	field dot = null
 	field decimal = null
 
+	method appendDot = function()
+		this.dot = true
+		this.decimal = ""
+
 let Statement = inherit object
 	field method nodes = array()
 	field dead = false
@@ -260,6 +264,8 @@ let makeAst = function(i)
 		else
 			nextState new Indent
 
+	# States-- see big diagram comment in reader.py
+
 	let BasicState = inherit State
 		subHandle = nullfn
 		method handle = function(ch)
@@ -291,21 +297,14 @@ let makeAst = function(i)
 
 	let Scanning = inherit BasicState
 		subHandle = function(ch)
-			if (not (char.isNonLineSpace ch))
+			if (char.isDigit ch)
+				nextState Number
+				state.handle ch
+			elif (== ch ".")
+				nextState Dot
+			elif (not (char.isNonLineSpace ch))
 				nextState Symbol
 				state.handle ch
-
-	let Symbol = inherit BasicState
-		enter = function(ch)
-			appendExp
-				new SymbolExp
-		subHandle = function(ch)
-			if (char.isSpace ch)
-				nextState Scanning
-				state.handle ch
-			else
-				let e = lastExp
-				e.content = + (e.content) ch
 
 	let Cr = inherit State
 		handle = function(ch)
@@ -367,6 +366,50 @@ let makeAst = function(i)
 		handle = function(ch)
 			if (char.isLineSpace ch)
 				handleLineSpace ch
+
+	let Number = inherit BasicState
+		enter = function(ch)
+			appendExp
+				new NumberExp
+		subHandle = function(ch)
+			let e = lastExp
+			if (char.isSpace ch)
+				nextState Scanning
+				state.handle ch
+			elif (char.isDigit)
+				if (e.dot)
+					e.decimal = + (e.decimal) ch
+				else
+					e.integer = + (e.integer) ch
+			elif (and (not (e.dot)) (== ch "."))
+				e.appendDot()
+			else
+				nextState Scanning
+				state.handle ch
+
+	let Symbol = inherit BasicState
+		enter = function(ch)
+			appendExp
+				new SymbolExp
+		subHandle = function(ch)
+			if (char.isSpace ch)
+				nextState Scanning
+				state.handle ch
+			elif (== ch ".")
+				nextState Dot
+			else
+				let e = lastExp
+				e.content = + (e.content) ch
+
+	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch
+		subHandle = function(ch)
+			if (not (char.isNonLineSpace))
+				if (char.isDigit)
+					nextState Number
+					lastExp.appendDot()
+				else
+					nextState Symbol
+					lastExp.isAtom = true
 
 	state = new Indent
 	appendGroup (StatementKind.Outermost)
@@ -659,13 +702,13 @@ let LiteralExec = inherit Executable
 	field value = null
 
 let StringLiteralExec = inherit LiteralExec
-	method toString = nullJoin("[StringLiteral ", quotedString(this.value), "]")
+	method toString = nullJoin array("[StringLiteral ", quotedString(this.value), "]")
 
 let NumberLiteralExec = inherit LiteralExec
-	method toString = nullJoin("[NumberLiteral ", this.value, "]")
+	method toString = nullJoin array("[NumberLiteral ", this.value, "]")
 
 let AtomLiteralExec = inherit LiteralExec
-	method toString = nullJoin("[AtomLiteral ", this.value, "]")
+	method toString = nullJoin array("[AtomLiteral ", this.value, "]")
 
 # Does not inherit LiteralExec because it holds no value
 let NullLiteralExec = inherit Executable
