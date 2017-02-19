@@ -136,6 +136,20 @@ let startsWith = function(x, y)
 		idx = + idx 1
 	valid
 
+let quotedString = function(s)
+	let result = "\""
+	let i = s.iter
+	while (i.more)
+		result = + result do
+			let ch = i.next
+			with (ch) match
+				"\n" = "\\n"
+				"\r" = "\\r"
+				"\"" = "\\\""
+				_ = ch
+	result = + result "\""
+	result
+
 # --- Core types ---
 
 # TODO: Important question to consider:
@@ -194,6 +208,7 @@ let SymbolExp = inherit StringContentExp
 		this.content
 
 let QuoteExp = inherit StringContentExp
+	method toString = quotedString (this.content)
 
 let NumberExp = inherit Node
 	field integer = ""
@@ -203,6 +218,11 @@ let NumberExp = inherit Node
 	method appendDot = function()
 		this.dot = true
 		this.decimal = ""
+
+	method toString = nullJoin array
+		this.integer
+		if (this.dot) (".") else ("")
+		if (this.decimal) (this.decimal) else ("")
 
 let Statement = inherit object
 	field method nodes = array()
@@ -241,9 +261,12 @@ let makeAst = function(i)
 	let appendStatement = function ()
 		finalGroup.statements.append (new Statement)
 
-	let error = function(str)
+	let recoverableError = function(str)
 		errors.append
 			new Error(loc, str)
+
+	let error = function(str)
+		recoverableError str
 		finalGroup.finalStatement.dead = true
 		nextState Scanning
 
@@ -294,6 +317,8 @@ let makeAst = function(i)
 				nextState Scanning
 			elif (== ch "#")
 				nextState Comment
+			elif (== ch "\"")
+				nextState new Quote
 			else
 				this.subHandle ch
 
@@ -403,15 +428,50 @@ let makeAst = function(i)
 				let e = lastExp
 				e.content = + (e.content) ch
 
-	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch
+	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
-			if (not (char.isNonLineSpace))
-				if (char.isDigit)
+			if (not (char.isNonLineSpace ch))
+				if (char.isDigit ch)
 					nextState Number
 					lastExp.appendDot()
 				else
 					nextState Symbol
 					lastExp.isAtom = true
+				state.handle ch
+
+	let Quote = inherit State
+		field backslash = false
+
+		enter = function(ch)
+			appendExp
+				new QuoteExp
+		method handle = function(ch)
+			let trueCh = ch
+
+			if (this.backslash)
+				trueCh = with ch match
+					"\\" = "\\"
+					"n" = "\n"
+					"r" = "\r"
+					"t" = "\t"
+					_ = if (char.isQuote ch) (ch) else (null)
+				this.backslash = false
+
+				if (not trueCh)
+					recoverableError
+						nullJoin array
+							"Unrecognized backslash sequence \\\""
+							ch
+							"\""
+			elif (== ch "\\")
+				this.backslash = true
+				trueCh = null
+			elif (char.isQuote ch)
+				nextState Scanning
+				trueCh = null
+			
+			if (trueCh)
+				lastExp.content = + (lastExp.content) trueCh
 
 	state = new Indent
 	appendGroup (StatementKind.Outermost)
@@ -560,103 +620,103 @@ let Parser = inherit object
 	method process = function(loc, nodes, tracker)
 		# Callers must define the semantics of empty lists themselves.
 		if (== (nodes.length) 0)
-			error(loc, "Internal error: Parser attempted to evaluate an empty statement. This is a bug in the interpreter.")
-		
-		# First, apply all macros to the statement.
-		let macroNode = this.macros
-		let foundError = null
-		while (and macroNode (not foundError))
-			let m = macroNode.value
-			let left = array()
-			let right = nodes
-
-			# One by one move the items out of right into left and macro-filter along the way
-			while (and (right.length) (not foundError))
-				let at = popLeft right
-
-				# FIXME: Need to bring in "macro levels" concept from parser.py
-				# So that same-priority keys get processed in a single sweep
-				if (
-						and 
-							<= (at.progress) (m.progress)
-							m.matches(left, at, right)
-					)
-					let result = m.apply(left, at, right, tracker)
-
-					# Unpack
-					with result match
-						Error =
-							foundError = result
-						ProcessResult(_left, _at, _right) = do
-							left = _left
-							at = _at
-							right = _right
-
-					if (at)
-						left.append at
-				else
-					left.append at
-
-				nodes = left
-
-			macroNode = macroNode.next
-
-		if (foundError)
-			foundError
-		elif (not (nodes.length))
-			# TODO: Try to figure out which macro? parser.py assumes "at" is the culprit...
-			this.error(loc, "Macro malfunctioned and produced an empty list")
+			this.error(loc, "Internal error: Parser attempted to evaluate an empty statement. This is a bug in the interpreter.")
 		else
-			# We now have a list of progress=Macroed symbols. Treat the list as curried applications.
-			# We need to pack the list of values down into one application tree & sanitize with "checkComplete"
-			let result = null       # Current "leftmost value"
-			let resultError = null  # Short-circuit if a problem occurs
+			# First, apply all macros to the statement.
+			let macroNode = this.macros
+			let foundError = null
+			while (and macroNode (not foundError))
+				let m = macroNode.value
+				let left = array()
+				let right = nodes
 
-			# The "result" value starts as the zeroth item in the list
-			if (is ExpGroup (nodes 0))
-				let firstNode = popLeft nodes
-				if (firstNode.empty)                   # ()
-					result = new Unit (firstNode.loc)
-				elif (> firstNode.statements.length 1) # (arg)
-					result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
-				else                                   # (arg1, arg2, ...)
-					resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
-	
+				# One by one move the items out of right into left and macro-filter along the way
+				while (and (right.length) (not foundError))
+					let at = popLeft right
+
+					# FIXME: Need to bring in "macro levels" concept from parser.py
+					# So that same-priority keys get processed in a single sweep
+					if (
+							and 
+								<= (at.progress) (m.progress)
+								m.matches(left, at, right)
+						)
+						let result = m.apply(left, at, right, tracker)
+
+						# Unpack
+						with result match
+							Error =
+								foundError = result
+							ProcessResult(_left, _at, _right) = do
+								left = _left
+								at = _at
+								right = _right
+
+						if (at)
+							left.append at
+					else
+						left.append at
+
+					nodes = left
+
+				macroNode = macroNode.next
+
+			if (foundError)
+				foundError
+			elif (not (nodes.length))
+				# TODO: Try to figure out which macro? parser.py assumes "at" is the culprit...
+				this.error(loc, "Macro malfunctioned and produced an empty list")
 			else
-				result = popLeft(nodes)
-				resultError = this.checkComplete result # First write so this is safe
+				# We now have a list of progress=Macroed symbols. Treat the list as curried applications.
+				# We need to pack the list of values down into one application tree & sanitize with "checkComplete"
+				let result = null       # Current "leftmost value"
+				let resultError = null  # Short-circuit if a problem occurs
 
-			# For each item in the list, apply result = result(b)
-			while (and (not resultError) (nodes.length))
-				let arg = popLeft(nodes)
-
-				if (is ExpGroup arg)
-					if (arg.empty) # ()
-						result = new ApplyExec(arg.loc, result, new Unit(arg.loc))
-					else                    # (arg1, arg2, ...)
-						let argIdx = 0 # Used by error message
-						let tracker = new SequenceTracker(arg.statements)
-						while (tracker.more)
-							let statement = tracker.next
-							argIdx = + argIdx 1
-							if (not (statement.nodes.length))
-								resultError = this.error
-									arg.loc
-									nullJoin array
-										"Argument #"
-										argIdx
-										" to function is blank"
-							else
-								result = new ApplyExec(arg.loc, result, this.process(arg, statement.nodes, tracker))
+				# The "result" value starts as the zeroth item in the list
+				if (is ExpGroup (nodes 0))
+					let firstNode = popLeft nodes
+					if (firstNode.empty)                   # ()
+						result = new Unit (firstNode.loc)
+					elif (> firstNode.statements.length 1) # (arg)
+						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
+					else                                   # (arg1, arg2, ...)
+						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+		
 				else
-					resultError = this.checkComplete arg
-					if (not resultError)
-						result = new ApplyExec(arg.loc, result, arg)
+					result = popLeft(nodes)
+					resultError = this.checkComplete result # First write so this is safe
 
-			if resultError
-				resultError
-			else
-				result
+				# For each item in the list, apply result = result(b)
+				while (and (not resultError) (nodes.length))
+					let arg = popLeft(nodes)
+
+					if (is ExpGroup arg)
+						if (arg.empty) # ()
+							result = new ApplyExec(arg.loc, result, new Unit(arg.loc))
+						else                    # (arg1, arg2, ...)
+							let argIdx = 0 # Used by error message
+							let tracker = new SequenceTracker(arg.statements)
+							while (tracker.more)
+								let statement = tracker.next
+								argIdx = + argIdx 1
+								if (not (statement.nodes.length))
+									resultError = this.error
+										arg.loc
+										nullJoin array
+											"Argument #"
+											argIdx
+											" to function is blank"
+								else
+									result = new ApplyExec(arg.loc, result, this.process(arg, statement.nodes, tracker))
+					else
+						resultError = this.checkComplete arg
+						if (not resultError)
+							result = new ApplyExec(arg.loc, result, arg)
+
+				if resultError
+					resultError
+				else
+					result
 
 let cloneParser = function(parser)
 	new Parser(cloneLinked (parser.macros), parser.errors)
