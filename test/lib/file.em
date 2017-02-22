@@ -1,6 +1,6 @@
 # File I/O
 
-# Expect: 1
+# Expect: 1.0
 
 let path = "/tmp/file.em.test.txt"
 

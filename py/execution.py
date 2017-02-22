@@ -552,7 +552,7 @@ defaultScope.atoms['%'] = makeBinop(lambda x,y: x % y)
 # Boolean math
 
 def toBool(x):
-	return 1 if x else None
+	return 1.0 if x else None
 defaultScope.atoms['bool'] = PythonFunctionValue(1, toBool)
 defaultScope.atoms['number'] = PythonFunctionValue(1, lambda x: float(x))
 defaultScope.atoms['string'] = PythonFunctionValue(1, lambda x: str(x))
@@ -577,6 +577,42 @@ def makeSplitMacro(progress, symbol):
 		raise Exception("Macro symbol is not a symbol")
 	return parser.SplitMacro(ProgressBase.Parser + progress, symbol)
 defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
+
+# Dict
+
+dictObjectData = object()
+dictObjectPrototype = ObjectValue()
+
+def dictGet(obj, key):
+	d = obj.atoms.get(dictObjectData)
+	if d and key in d:
+		return d[key]
+	else:
+		raise InternalExecutionException("No such key")
+dictObjectPrototype.atoms['get'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, dictGet))
+
+def dictSet(obj, key, value):
+	d = obj.atoms.get(dictObjectData)
+	if not d:
+		d = dict()
+		obj.atoms[dictObjectData] = d
+	d[key] = value
+dictObjectPrototype.atoms['set'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(3, dictSet))
+
+def dictHas(obj, key):
+	d = obj.atoms.get(dictObjectData)
+	return toBool(d and key in d)
+dictObjectPrototype.atoms['has'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, dictHas))
+
+def dictDel(obj, key):
+	d = obj.atoms.get(dictObjectData)
+	if d and key in d:
+		del d[key]
+	else:
+		raise InternalExecutionException("No such key")
+dictObjectPrototype.atoms['del'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, dictDel))
+
+defaultScope.atoms['Dict'] = dictObjectPrototype
 
 # IO : Output
 
@@ -668,6 +704,7 @@ def makeOutOpen(arg):
 	return PythonFunctionValue(1, outOpen)
 fileObject.atoms['out'] = makeOutOpen("w")
 fileObject.atoms['append'] = makeOutOpen("a")
+
 # IO: Input
 
 def fileNextCached(obj): # If None: not known. If '': at eof. 

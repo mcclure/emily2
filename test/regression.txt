@@ -56,3 +56,4 @@ lib/iter.em
 lib/stdout.em
 lib/file.em
 lib/string.em
+lib/dict.em

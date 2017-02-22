@@ -732,18 +732,34 @@ let exeFromAst = function(ast)
 
 # --- Execution ---
 
+# Execution tree
+
 let Executable = inherit Node
 	progress = ProgressBase.executable
 
-# TODO: toString, eval
+	method fail = function (msg)
+		fail
+			nullJoin array
+				"Execution failed at "
+				this.loc
+				":\n\t"
+				msg
+
+# TODO: eval
 
 let InvalidExec = inherit Executable
 	toString = "[Invalid node]"
+
+	eval = function (scope)
+		this.fail "Tried to execute invalid program"
 
 let SequenceExec = inherit Executable
 	field shouldReturn = false
 	field hasScope = false
 	field method execs = array()
+
+	method eval = function (scope)
+		fail "TODO: Sequence exec"
 
 	method toString = do
 		let tags = array()
@@ -771,20 +787,35 @@ let LiteralExec = inherit Executable
 let StringLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[StringLiteral ", quotedString(this.value), "]")
 
+	method eval = function (scope)
+		new StringValue(this.value)
+
 let NumberLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[NumberLiteral ", this.value, "]")
 
+	method eval = function (scope)
+		new NumberValue(this.value)
+
 let AtomLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[AtomLiteral ", this.value, "]")
+
+	method eval = function (scope)
+		this
 
 # Does not inherit LiteralExec because it holds no value
 let NullLiteralExec = inherit Executable
 	toString = "[NullLiteral]"
 
+	method eval = function (scope)
+		NullValue
+
 let VarExec = inherit Executable
 	field symbol = null
 
 	method toString = nullJoin array("[Var ", this.symbol, "]")
+
+	method eval = function (scope)
+		scope.lookup (this.symbol)
 
 let ApplyExec = inherit Executable
 	field fn = null
@@ -797,7 +828,63 @@ let ApplyExec = inherit Executable
 		this.arg
 		"]"
 
+	method eval = function (scope)
+		this.fn.apply (this.arg)
+
 let Unit = NullLiteralExec # Just an alias
+
+# Values
+
+let Value = inherit object
+	apply = function(value)
+		fail "Apply for this object unimplemented"
+
+let ObjectValue = inherit Value
+	field parent = null
+	field fields = null
+	field method atoms = new Dict
+
+	method apply = function(value)
+		with value match
+			AtomLiteralExec = this.atoms.get (value.value)
+			_ = fail "Object has atom keys only"
+
+let ArrayValue = inherit Value
+	field method value = array()
+
+let NullValue = inherit Value
+
+let LiteralValue = inherit Value
+	field value = null
+
+let LiteralFunctionValue = inherit LiteralValue
+	method apply = function(value)
+		this.value value
+
+let StringValue = inherit LiteralValue
+
+let NumberValue = inherit LiteralValue
+
+let wrapBinaryNumber = function(f)
+	new LiteralFunctionValue
+		function(x,y)
+			new NumberValue(f (x.value) (y.value))
+
+let wrapPrintRepeat = function(f)
+	let repeat = new LiteralFunctionValue
+		function (x)
+			f
+				with x match
+					StringValue v = v
+					NumberValue v = v
+					NullValue v = "null"
+					_ = "[Unprintable]"
+			repeat
+
+let defaultScope = new ObjectValue
+defaultScope.atoms.set "+" (wrapBinaryNumber +)
+defaultScope.atoms.set "print"   (wrapPrintRepeat print)
+defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
 # --- Run ---
 
@@ -820,4 +907,7 @@ else
 	if cmdAst2
 		println (exe.toString)
 	else
-		println "EXECUTION CURRENTLY UNIMPLEMENTED"
+		let scope = new ObjectValue(defaultScope)
+		scope.atoms.set "argv" (new ArrayValue(scriptArgv))
+		
+		exe.eval(scope)
