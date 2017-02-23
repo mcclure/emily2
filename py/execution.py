@@ -510,6 +510,8 @@ class MakeObjectExec(Executable):
 			for field in infields:
 				result.assign(True, field, base.apply(field))
 		valueProgress = 0
+		if (len(s.values) if s.values else 0) > (len(infields) if infields else 0):
+			raise InternalExecutionException("Tried to specify more values in \"new\" than this object has fields")
 		for exe in s.values:
 			value = exe.eval(scope)
 			result.atoms[ infields[valueProgress].value ] = value
@@ -518,7 +520,7 @@ class MakeObjectExec(Executable):
 			key = exe.index.eval(scope) # do this early for field handling
 			if exe.isField:
 				if type(key) != AtomLiteralExec:
-					raise "Objects have atom keys only"
+					raise InternalExecutionException("Objects have atom keys only")
 				if not result.fields:
 					result.fields = list(infields) if infields else []
 				result.fields.append(key)

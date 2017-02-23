@@ -759,7 +759,16 @@ let SequenceExec = inherit Executable
 	field method execs = array()
 
 	method eval = function (scope)
-		fail "TODO: Sequence exec"
+		if (this.hasScope)
+			scope = new ObjectValue(scope)
+		let i = this.execs.iter
+		let result = null
+		while (i.more)
+			result = i.next.eval(scope)
+		if (this.shouldReturn)
+			result
+		else
+			null
 
 	method toString = do
 		let tags = array()
@@ -829,7 +838,7 @@ let ApplyExec = inherit Executable
 		"]"
 
 	method eval = function (scope)
-		this.fn.apply (this.arg)
+		this.fn.eval(scope).apply (this.arg.eval(scope))
 
 let Unit = NullLiteralExec # Just an alias
 
@@ -844,9 +853,25 @@ let ObjectValue = inherit Value
 	field fields = null
 	field method atoms = new Dict
 
+	# "True" lookup function: Doesn't think about methods, keys are strings
+	method innerLookup = function(key)
+		if (this.atoms.has key)
+			this.atoms.get key
+		elif (this.parent)
+			this.parent.innerLookup key
+		else
+			fail
+				nullJoin array
+					"Key not found: "
+					key
+
+	# "External" lookup function: Keys are known strings
+	method lookup = function (key)
+		this.innerLookup key # TODO: Method filter
+
 	method apply = function(value)
 		with value match
-			AtomLiteralExec = this.atoms.get (value.value)
+			AtomLiteralExec = this.lookup (value.value)
 			_ = fail "Object has atom keys only"
 
 let ArrayValue = inherit Value
@@ -857,9 +882,25 @@ let NullValue = inherit Value
 let LiteralValue = inherit Value
 	field value = null
 
+let copyArgsWithAppend = function (ary, value)
+	if (ary)
+		let result = array()
+		let i = ary.iter
+		while (i.more)
+			result.append(i.next)
+		result.append value
+		result
+	else
+		array(value)
+
 let LiteralFunctionValue = inherit LiteralValue
+	field count = 0
 	method apply = function(value)
-		this.value value
+		let result = this.value value # Just killed tail recursion
+		if (< (this.count) 2)
+			result
+		else
+			new LiteralFunctionValue(result, - (this.count) 1)
 
 let StringValue = inherit LiteralValue
 
@@ -869,6 +910,7 @@ let wrapBinaryNumber = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			new NumberValue(f (x.value) (y.value))
+		2
 
 let wrapPrintRepeat = function(f)
 	let repeat = new LiteralFunctionValue
@@ -880,6 +922,7 @@ let wrapPrintRepeat = function(f)
 					NullValue v = "null"
 					_ = "[Unprintable]"
 			repeat
+	repeat
 
 let defaultScope = new ObjectValue
 defaultScope.atoms.set "+" (wrapBinaryNumber +)
