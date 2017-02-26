@@ -925,6 +925,23 @@ let SetExec = inherit Executable
 		this.valueClause
 		"]"
 
+	method setEval = function (scope, target, index)
+		let value = if (this.isMethod)
+			fail "Not implemented yet"
+		else
+			this.valueClause.eval scope
+
+		target.assign(this.isLet, index, value)
+
+	method eval = function (scope)
+		this.setEval
+			scope
+			if (this.targetClause)
+				this.targetClause.eval scope
+			else
+				scope
+			this.indexClause.eval scope
+
 let Unit = NullLiteralExec # Just an alias
 
 # Values
@@ -953,6 +970,24 @@ let ObjectValue = inherit Value
 	# "External" lookup function: Keys are known strings
 	method lookup = function (key)
 		this.innerLookup key # TODO: Method filter
+
+	# "True" assign function: keys are strings, key must exist
+	method innerAssign = function (key, value)
+		if (this.atoms.has key)
+			this.atoms.set key value
+		elif (this.parent)
+			this.parent.innerAssign key value
+		else
+			fail (+ "Tried to assign nonexistent key " key)
+
+	# "External" assign function: key has no known type
+	method assign = function (isLet, index, value)
+		# TODO: Sanitize for atom here
+		let key = index.value
+		if (isLet)
+			this.atoms.set key value
+		else
+			this.innerAssign(key, value)
 
 	method apply = function(value)
 		with value match

@@ -691,7 +691,7 @@ defaultScope.atoms['ln'] = "\n"
 defaultScope.atoms['argv'] = ArrayValue([])
 
 def failImpl(s):
-	result = u"Program signalled failure"
+	result = u"Program signaled failure"
 	if (s is not None):
 		result += u": "
 		result += s
