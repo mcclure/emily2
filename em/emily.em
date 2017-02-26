@@ -102,6 +102,7 @@ let insertLinked = function(cmp, list, value)
 				insert.next = node.next
 				node.next = insert
 				done = true
+			node = node.next
 		list
 
 let foldl = function(default, f, ary)
@@ -541,10 +542,31 @@ let SequenceTracker = inherit object
 
 # Macro classes
 
+# Abstract macro: Matches on a single known symbol
 let OneSymbolMacro = inherit Macro
 	method matches = function(left, node, right)
 		isSymbol(node, this.symbol)
 
+# Abstract macro: Expects KNOWNSYMBOL (GROUP)
+let SeqMacro = inherit OneSymbolMacro
+	method apply = function(parser, left, node, right, _)
+		let failMsg = function(a) (parser.error(node.loc, nullJoin a))
+		if (not (right.length))
+			failMsg array
+				"Emptiness after \""
+				this.symbol
+				"\""
+		else
+			let seq = right.pop
+			if (not (is ExpGroup seq))
+				failMsg array
+					"Expected a (group) after \""
+					this.symbol
+					"\""
+			else
+				new ProcessResult(left, this.construct(parser, seq), right)
+
+# a = b
 let SetMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 100
 	symbol = "="
@@ -585,6 +607,14 @@ let SetMacro = inherit OneSymbolMacro
 
 				new ProcessResult(null, exec, null)				
 
+# do (statements)
+let DoMacro = inherit SeqMacro
+	progress = + (ProgressBase.parser) 400
+	symbol = "do"
+
+	method construct = function(parser, seq)
+		parser.makeSequence(seq.loc, seq.statements, true)
+
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
 
@@ -619,6 +649,7 @@ let ValueMacro = inherit Macro
 
 let standardMacros = array
 	SetMacro
+	DoMacro
 	ValueMacro
 
 # Parser
@@ -809,8 +840,6 @@ let Executable = inherit Node
 				this.loc
 				":\n\t"
 				msg
-
-# TODO: eval
 
 let InvalidExec = inherit Executable
 	toString = "[Invalid node]"
