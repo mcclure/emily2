@@ -654,7 +654,7 @@ let Parser = inherit object
 		let i = execs.iter
 		while (and (not hasLets) (i.more))
 			let exe = i.next
-			if (and (is SetExec exe) (exe.isLet))
+			if ( if (is SetExec exe) (exe.isLet) ) # SHORT CIRCUITING "AND" NEEDED BADLY
 				hasLets = true
 
 		new SequenceExec(loc, shouldReturn, hasLets, execs)
