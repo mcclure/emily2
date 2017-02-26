@@ -13,31 +13,32 @@ let scriptArgv = array()
 
 # --- Parse arguments ---
 
-let i = argv.iter
-while (i.more)
-	let arg = i.next
+do
+	let i = argv.iter
+	while (i.more)
+		let arg = i.next
 
-	with arg match
-		"--ast" =
-			cmdAst = true
-		"--ast2" =
-			cmdAst2 = true
-		"-e" = do
-			if (not (i.more))
-				# TODO Write on stderr not stdout
-				stderr.println "Missing argument for -e"
-				exit 2
-			cmdExecute = i.next
-		_ = do
-			if (== "-" (arg 0))
-				stderr.print "Unrecognized argument" arg ln
-				exit 2
-			cmdTarget = arg
+		with arg match
+			"--ast" =
+				cmdAst = true
+			"--ast2" =
+				cmdAst2 = true
+			"-e" = do
+				if (not (i.more))
+					# TODO Write on stderr not stdout
+					stderr.println "Missing argument for -e"
+					exit 2
+				cmdExecute = i.next
+			_ = do
+				if (== "-" (arg 0))
+					stderr.print "Unrecognized argument" arg ln
+					exit 2
+				cmdTarget = arg
 
-	if (or(cmdExecute, cmdTarget))
-		while (i.more)
-			scriptArgv.append(i.next)
-		cmdValid = true
+		if (or(cmdExecute, cmdTarget))
+			while (i.more)
+				scriptArgv.append(i.next)
+			cmdValid = true
 
 if (not cmdValid)
 	stderr.println "Must supply either file name or -e"
@@ -566,12 +567,23 @@ let SetMacro = inherit OneSymbolMacro
 			parser.error(node.loc, "Missing name in =")
 		else
 			let process = parser.process(node.loc)
-			exec.indexClause = process(array (left.pop), null)
+			let index = left.pop
+			let failedAt = null
 			if (left.length)
 				exec.targetClause = process(left, null) 
-			exec.valueClause = process(right, tracker)
+				exec.indexClause = process(array (index), null)
+			else
+				if (and (is SymbolExp index) (not (index.isAtom)))
+					exec.indexClause = new AtomLiteralExec(index.loc, index.content)
+				else
+					failedAt = index.loc
 
-			new ProcessResult(null, exec, null)
+			if (failedAt)
+				parser.error(failedAt, "Assigned name must be alphanumeric")
+			else
+				exec.valueClause = process(right, tracker)
+
+				new ProcessResult(null, exec, null)				
 
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
@@ -639,6 +651,7 @@ let Parser = inherit object
 			else
 				execs.append(exe)
 
+		let i = execs.iter
 		while (and (not hasLets) (i.more))
 			let exe = i.next
 			if (and (is SetExec exe) (exe.isLet))
@@ -829,11 +842,12 @@ let SequenceExec = inherit Executable
 		if (this.shouldReturn)
 			tags.append "Returning"
 		nullJoin array
-			"[Sequence "
+			"[Sequence"
 			if (tags.length)
-				nullJoin("(", join "," tags, ")")
+				nullJoin array("(", join "," tags, ")")
 			else
 				""
+			" "
 			join " " (this.execs)
 			"]"
 
