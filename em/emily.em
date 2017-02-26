@@ -503,8 +503,19 @@ let insertMacro = insertLinked function(x,y)
 
 let isSymbol = function(node, goal)
 	with node match
-		SymbolExp = and (not node.isAtom) (== (node.content) goal)
+		SymbolExp = and (not (node.isAtom)) (== (node.content) goal)
 		_ = false
+
+let stripLeftSymbol = function(list, goal)
+	if (not (list.length))
+		null
+	else
+		let left = list 0
+		if (isSymbol(left, goal))
+			popLeft list
+			left
+		else
+			null
 
 let SequenceTracker = inherit object
 	field statements = null
@@ -529,6 +540,39 @@ let SequenceTracker = inherit object
 
 # Macro classes
 
+let OneSymbolMacro = inherit Macro
+	method matches = function(left, node, right)
+		isSymbol(node, this.symbol)
+
+let SetMacro = inherit OneSymbolMacro
+	progress = + (ProgressBase.parser) 100
+	symbol = "="
+
+	method apply = function(parser, left, node, right, tracker) # DO I NEED TO COPY RIGHT?
+		let exec = new SetExec(node.loc)
+
+		let pending = true
+		while (pending)
+			if (stripLeftSymbol(left, "let"))
+				exec.isLet = true
+			elif (stripLeftSymbol(left, "field"))
+				exec.isField = true
+			elif (stripLeftSymbol(left, "method"))
+				exec.isMethod = true
+			else
+				pending = false
+
+		if (not (left.length))
+			parser.error(node.loc, "Missing name in =")
+		else
+			let process = parser.process(node.loc)
+			exec.indexClause = process(array (left.pop), null)
+			if (left.length)
+				exec.targetClause = process(left, null) 
+			exec.valueClause = process(right, tracker)
+
+			new ProcessResult(null, exec, null)
+
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
 
@@ -539,7 +583,7 @@ let ValueMacro = inherit Macro
 			SymbolExp = true
 			_ = false
 
-	method apply = function(left, node, right, _)
+	method apply = function(_, left, node, right, _)
 		node = with node match
 			QuoteExp(loc, content) = new StringLiteralExec(loc, content)
 			NumberExp(loc, integer, dot, decimal) = do
@@ -562,6 +606,7 @@ let ValueMacro = inherit Macro
 			new ProcessResult(left, node, right)
 
 let standardMacros = array
+	SetMacro
 	ValueMacro
 
 # Parser
@@ -631,7 +676,12 @@ let Parser = inherit object
 				let right = nodes
 
 				# One by one move the items out of right into left and macro-filter along the way
-				while (and (right.length) (not foundError))
+				
+				while (
+						and
+							if (right) (right.length)
+							not foundError
+					)
 					let at = popLeft right
 
 					# FIXME: Need to bring in "macro levels" concept from parser.py
@@ -641,7 +691,7 @@ let Parser = inherit object
 								<= (at.progress) (m.progress)
 								m.matches(left, at, right)
 						)
-						let result = m.apply(left, at, right, tracker)
+						let result = m.apply(this, left, at, right, tracker)
 
 						# Unpack
 						with result match
@@ -652,6 +702,8 @@ let Parser = inherit object
 								at = _at
 								right = _right
 
+						if (not left)
+							left = array()
 						if (at)
 							left.append at
 					else
@@ -839,6 +891,25 @@ let ApplyExec = inherit Executable
 
 	method eval = function (scope)
 		this.fn.eval(scope).apply (this.arg.eval(scope))
+
+let SetExec = inherit Executable
+	field isLet = false
+	field isMethod = false
+	field isField = false
+	field targetClause = null
+	field indexClause = null
+	field valueClause = null
+
+	method toString = nullJoin array
+		"["
+		if (this.isLet) ("Let") else ("Set")
+		" "
+		if (this.targetClause) (this.targetClause) else ("Scope")
+		" "
+		this.indexClause
+		" "
+		this.valueClause
+		"]"
 
 let Unit = NullLiteralExec # Just an alias
 
