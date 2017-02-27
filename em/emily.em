@@ -540,6 +540,22 @@ let SequenceTracker = inherit object
 		else
 			null
 
+let getExpGroup = function(parser, loc, symbol, ary)
+	let failMsg = function(a) (parser.error(loc, nullJoin a))
+
+	if (not (ary.length))
+		failMsg array
+			"Emptiness after \""
+			symbol
+			"\""
+	elif (not (is ExpGroup (ary 0)))
+		failMsg array
+			"Expected a (group) after \""
+			symbol
+			"\""
+	else
+		popLeft(ary)
+
 # Macro classes
 
 # Abstract macro: Matches on a single known symbol
@@ -550,21 +566,12 @@ let OneSymbolMacro = inherit Macro
 # Abstract macro: Expects KNOWNSYMBOL (GROUP)
 let SeqMacro = inherit OneSymbolMacro
 	method apply = function(parser, left, node, right, _)
-		let failMsg = function(a) (parser.error(node.loc, nullJoin a))
-		if (not (right.length))
-			failMsg array
-				"Emptiness after \""
-				this.symbol
-				"\""
+		let exp = getExpGroup(parser, node.loc, this.symbol, right)
+
+		if (is Error exp)
+			exp
 		else
-			let seq = right.pop
-			if (not (is ExpGroup seq))
-				failMsg array
-					"Expected a (group) after \""
-					this.symbol
-					"\""
-			else
-				new ProcessResult(left, this.construct(parser, seq), right)
+			new ProcessResult(left, this.construct(parser, exp), right)
 
 # a = b
 let SetMacro = inherit OneSymbolMacro
@@ -614,6 +621,60 @@ let DoMacro = inherit SeqMacro
 
 	method construct = function(parser, seq)
 		parser.makeSequence(seq.loc, seq.statements, true)
+
+# function(args) (body)
+let FunctionMacro = inherit OneSymbolMacro
+	progress = + (ProgressBase.parser) 400
+	symbol = "function"
+
+	method apply = function(parser, left, node, right, _)
+		let getNext = getExpGroup(parser, node.loc)
+
+		let argExp = getNext(this.symbol, right)
+		if (is Error argExp)
+			argExp
+		else
+			let bodyExp = getNext(+ (this.symbol) " (args)", right)
+			if (is Error bodyExp)
+				bodyExp
+			else
+				let args = array()
+				let argError = null
+				if (not (argExp.empty))
+					let i = argExp.statements.iter
+					while (and (not argError) (i.more))
+						let stm = i.next
+						let failBecause = function(reason)
+							argError = parser.error
+								node.loc
+								nullJoin array
+									"Arg #"
+									args.length
+									" on "
+									this.symbol
+									" is "
+									reason
+
+						if (not (stm.nodes.length))
+							failBecause "blank"
+						elif (!= (stm.nodes.length) 1)
+							failBecause "an expression"
+						elif (not (isSymbol (stm 0) SymbolExp))
+							failBecause "not a symbol"
+						else
+							args.append(stm(0).content)
+
+				if (argError)
+					argError
+				else
+					new ProcessResult
+						left
+						new MakeFuncExec
+							node.loc
+							args
+							parser.makeSequence(bodyExp.loc, bodyExp.statements, true)
+						right
+
 
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900

@@ -323,12 +323,12 @@ class IfMacro(OneSymbolMacro):
 		return (left, execution.IfExec(node.loc, s.loop, cond, seq, elseq), right)
 
 # function (args) (body) -- OR -- func (args) (body)
-class FunctionMacro(Macro):
+class FunctionMacro(OneSymbolMacro):
 	def __init__(s):
 		super(FunctionMacro, s).__init__(progress = ProgressBase.Parser + 400)
 
-	def match(s, left, node, right):
-		return isSymbol(node, u"function") or isSymbol(node, u"func")
+	def symbol(s):
+		return u"function"
 
 	def apply(s, m, left, node, right, _):
 		name = node.content
