@@ -1178,7 +1178,7 @@ let ArrayValue = inherit Value
 			_ = fail "Only number or atom keys allowed on array"
 
 	method assign = function(_, key, value)
-		with value match
+		with key match
 			NumberValue number = (this.values number = value)
 			_ = fail "Tried to write non-number index on array"
 
