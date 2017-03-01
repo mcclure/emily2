@@ -659,10 +659,10 @@ let FunctionMacro = inherit OneSymbolMacro
 							failBecause "blank"
 						elif (!= (stm.nodes.length) 1)
 							failBecause "an expression"
-						elif (not (isSymbol (stm 0) SymbolExp))
+						elif (not (is SymbolExp (stm.nodes 0)))
 							failBecause "not a symbol"
 						else
-							args.append(stm(0).content)
+							args.append(stm.nodes(0).content)
 
 				if (argError)
 					argError

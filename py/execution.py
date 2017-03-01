@@ -570,13 +570,17 @@ defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
 
-# Dubious
+# Dubious, intentionally undocumented
 def debugPrint(obj):
 	print "----\nDEBUG: %s" % (type(obj))
+	print "Id: %s" % (id(obj))
+	parent = getattr(obj, 'parent', None)
+	if parent:
+		print "Parent id: %s" % (id(parent))
 	atoms = getattr(obj, 'atoms', None)
 	if atoms:
 		print "Atoms: %s" % atoms
-	values = getattr(obj, 'atoms', None)
+	values = getattr(obj, 'values', None)
 	if values:
 		print "Values: %s" % values
 	print "----"
