@@ -568,7 +568,7 @@ let SeqMacro = inherit OneSymbolMacro
 	method apply = function(parser, left, node, right, _)
 		let exp = getExpGroup(parser, node.loc, this.symbol, right)
 
-		if (is Error exp)
+		if (is InvalidExec exp)
 			exp
 		else
 			new ProcessResult(left, this.construct(parser, exp), right)
@@ -631,11 +631,11 @@ let FunctionMacro = inherit OneSymbolMacro
 		let getNext = getExpGroup(parser, node.loc)
 
 		let argExp = getNext(this.symbol, right)
-		if (is Error argExp)
+		if (is InvalidExec argExp)
 			argExp
 		else
 			let bodyExp = getNext(+ (this.symbol) " (args)", right)
-			if (is Error bodyExp)
+			if (is InvalidExec bodyExp)
 				bodyExp
 			else
 				let args = array()
@@ -686,7 +686,7 @@ let ValueMacro = inherit Macro
 			SymbolExp = true
 			_ = false
 
-	method apply = function(_, left, node, right, _)
+	method apply = function(parser, left, node, right, _)
 		node = with node match
 			QuoteExp(loc, content) = new StringLiteralExec(loc, content)
 			NumberExp(loc, integer, dot, decimal) = do
@@ -701,9 +701,9 @@ let ValueMacro = inherit Macro
 					new AtomLiteralExec(loc, content)
 				else
 					new VarExec(loc, content)
-			_ = new Error(node.loc, "Internal error: AST node of indecipherable type found at end of macro processing")
+			_ = parser.error(node.loc, "Internal error: AST node of indecipherable type found at end of macro processing")
 
-		if (is Error node)
+		if (is InvalidExec node)
 			node
 		else
 			new ProcessResult(left, node, right)
@@ -711,6 +711,7 @@ let ValueMacro = inherit Macro
 let standardMacros = array
 	SetMacro
 	DoMacro
+	FunctionMacro
 	ValueMacro
 
 # Parser
@@ -796,11 +797,13 @@ let Parser = inherit object
 								<= (at.progress) (m.progress)
 								m.matches(left, at, right)
 						)
+						# apply() returns either a ProcessResult so processing can continue,
+						# or a bare InvalidExec to signal that processing should short-circuit.
 						let result = m.apply(this, left, at, right, tracker)
 
 						# Unpack
 						with result match
-							Error =
+							InvalidExec =
 								foundError = result
 							ProcessResult(_left, _at, _right) = do
 								left = _left
@@ -834,7 +837,7 @@ let Parser = inherit object
 					let firstNode = popLeft nodes
 					if (firstNode.empty)                   # ()
 						result = new Unit (firstNode.loc)
-					elif (> firstNode.statements.length 1) # (arg)
+					elif (> (firstNode.statements.length) 1) # (arg)
 						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
 					else                                   # (arg1, arg2, ...)
 						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")

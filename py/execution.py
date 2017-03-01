@@ -570,6 +570,18 @@ defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
 
+# Dubious
+def debugPrint(obj):
+	print "----\nDEBUG: %s" % (type(obj))
+	atoms = getattr(obj, 'atoms', None)
+	if atoms:
+		print "Atoms: %s" % atoms
+	values = getattr(obj, 'atoms', None)
+	if values:
+		print "Values: %s" % values
+	print "----"
+defaultScope.atoms['DEBUG'] = PythonFunctionValue(1, debugPrint)
+
 # Macro support
 
 def makeSplitMacro(progress, symbol):
@@ -785,7 +797,12 @@ def stringIteratorImpl(ary):
 	return x
 stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
 stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
-stringPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(x)))
+def toNumberImpl(x):
+	try:
+		return float(x)
+	except ValueError:
+		raise LibraryException("Could not convert to number: %s" % x)
+stringPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, toNumberImpl))
 
 # FIXME: Null has a prototype?
 
