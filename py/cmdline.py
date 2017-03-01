@@ -80,7 +80,7 @@ else:
 
 # TODO: Convert -e to unicode
 
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(50000)
 
 try:
 	ast = reader.ast(

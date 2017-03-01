@@ -289,6 +289,7 @@ let makeAst = function(i)
 		if (== ch "\r")
 			nextState Cr
 		else
+			newline()
 			nextState new Indent
 
 	# States-- see big diagram comment in reader.py
@@ -337,6 +338,7 @@ let makeAst = function(i)
 
 	let Cr = inherit State
 		handle = function(ch)
+			newline()
 			nextState new Indent
 			if (!= ch "\n") # Eat LFs, handle everything else
 				state.handle ch
@@ -837,7 +839,7 @@ let Parser = inherit object
 					let firstNode = popLeft nodes
 					if (firstNode.empty)                   # ()
 						result = new Unit (firstNode.loc)
-					elif (> (firstNode.statements.length) 1) # (arg)
+					elif (== (firstNode.statements.length) 1) # (arg)
 						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
 					else                                   # (arg1, arg2, ...)
 						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
