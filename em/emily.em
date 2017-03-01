@@ -677,6 +677,12 @@ let FunctionMacro = inherit OneSymbolMacro
 							parser.makeSequence(bodyExp.loc, bodyExp.statements, true)
 						right
 
+let ArrayMacro = inherit SeqMacro
+	progress = + (ProgressBase.parser) 900
+	symbol = "array"
+
+	method construct = function(parser, seq)
+		new MakeArrayExec(seq.loc, parser.makeArray(seq))
 
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
@@ -714,6 +720,7 @@ let standardMacros = array
 	SetMacro
 	DoMacro
 	FunctionMacro
+	ArrayMacro
 	ValueMacro
 
 # Parser
@@ -753,6 +760,16 @@ let Parser = inherit object
 				hasLets = true
 
 		new SequenceExec(loc, shouldReturn, hasLets, execs)
+
+	method makeArray = function(expGroup)
+		let result = array()
+		if (not (expGroup.empty))
+			let tracker = new SequenceTracker(expGroup.statements)
+			while (tracker.more)
+				let statement = tracker.next
+				let exe = this.process(expGroup.loc, statement.nodes, tracker)
+				result.append exe
+		result
 
 	method loadAll = function(macros)
 		let i = macros.iter
@@ -1051,6 +1068,21 @@ let MakeFuncExec = inherit Executable
 	method eval = function(scope)
 		new FunctionValue(this.args, this.body, scope)
 
+let MakeArrayExec = inherit Executable
+	field contents = null
+
+	method toString = nullJoin array
+		"[Array "
+		join ", " (this.contents)
+		"]"
+
+	method eval = function(scope)
+		let values = array()
+		let i = this.contents.iter
+		while (i.more)
+			values.append (i.next.eval(scope))
+		new ArrayValue(values)
+
 let Unit = NullLiteralExec # Just an alias
 
 # Values
@@ -1137,7 +1169,18 @@ let FunctionValue = inherit Value
 				new FunctionValue(this.argNames, this.exe, this.scope, newArgs)
 
 let ArrayValue = inherit Value
-	field method value = array()
+	field method values = array()
+
+	method apply = function(value)
+		with value match
+			NumberValue number = this.values number
+			AtomLiteralExec(_, key) = arrayValuePrototype.lookup key
+			_ = fail "Only number or atom keys allowed on array"
+
+	method assign = function(_, key, value)
+		with value match
+			NumberValue number = (this.values number = value)
+			_ = fail "Tried to write non-number index on array"
 
 let NullValue = inherit Value
 
