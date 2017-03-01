@@ -1035,9 +1035,35 @@ let SetExec = inherit Executable
 				scope
 			this.indexClause.eval scope
 
+let MakeFuncExec = inherit Executable
+	field args = null
+	field body = null
+
+	method toString = nullJoin array
+		"[Function ["
+		join ", " (this.args)
+		"] "
+		this.body
+		"]"
+
+	method eval = function(scope)
+		new FunctionValue(this.args, this.body, scope)
+
 let Unit = NullLiteralExec # Just an alias
 
 # Values
+
+# Util function
+let copyArgsWithAppend = function (ary, value)
+	if (ary)
+		let result = array()
+		let i = ary.iter
+		while (i.more)
+			result.append(i.next)
+		result.append value
+		result
+	else
+		array(value)
 
 let Value = inherit object
 	apply = function(value)
@@ -1087,6 +1113,27 @@ let ObjectValue = inherit Value
 			AtomLiteralExec = this.lookup (value.value)
 			_ = fail "Object has atom keys only"
 
+let FunctionValue = inherit Value
+	field argNames = null
+	field exe = null
+	field scope = null
+	field args = null
+
+	method apply = function(value)
+		if (not (this.argNames.length))
+			this.exe.eval(this.scope)
+		else
+			let newArgs = copyArgsWithAppend(this.args, value)
+			if (>= (newArgs.length) (this.argNames.length))
+				let scope = new ObjectValue(this.scope)
+				let idx = 0
+				while (< idx (this.argNames.length))
+					scope.atoms.set(this.argNames idx, newArgs idx)
+					idx = + idx 1
+				this.exe.eval(scope)
+			else
+				new FunctionValue(this.argNames, this.exe, this.scope, newArgs)
+
 let ArrayValue = inherit Value
 	field method value = array()
 
@@ -1094,17 +1141,6 @@ let NullValue = inherit Value
 
 let LiteralValue = inherit Value
 	field value = null
-
-let copyArgsWithAppend = function (ary, value)
-	if (ary)
-		let result = array()
-		let i = ary.iter
-		while (i.more)
-			result.append(i.next)
-		result.append value
-		result
-	else
-		array(value)
 
 let LiteralFunctionValue = inherit LiteralValue
 	field count = 0
@@ -1118,6 +1154,8 @@ let LiteralFunctionValue = inherit LiteralValue
 let StringValue = inherit LiteralValue
 
 let NumberValue = inherit LiteralValue
+
+# Stdlib
 
 let wrapBinaryNumber = function(f)
 	new LiteralFunctionValue
