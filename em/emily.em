@@ -25,7 +25,6 @@ do
 				cmdAst2 = true
 			"-e" = do
 				if (not (i.more))
-					# TODO Write on stderr not stdout
 					stderr.println "Missing argument for -e"
 					exit 2
 				cmdExecute = i.next
@@ -124,6 +123,9 @@ let checkErrors = function(errors)
 			stderr.println
 				nullJoin array (error.loc, ": ", error.msg)
 		exit 1
+
+let nonempty = function (ary)
+	if ary (ary) else (ary.length)
 
 # String ops
 let join = function(joiner)
@@ -689,10 +691,10 @@ let IfMacro = inherit OneSymbolMacro
 	method apply = function(parser, left, node, right, tracker)
 		let getNext = getExpGroup(parser, node.loc)
 
-		let condExp = getNext(this.symbol, right)
-		if (is InvalidExec condExp)
-			condExp
+		if (not (right.length))
+			parser.error(node, "Emptiness after \"if\"")
 		else
+			let condExp = popLeft right
 			let seqExp = getNext(+ (this.symbol) " (group)", right)
 
 			if (is InvalidExec seqExp)
@@ -703,9 +705,9 @@ let IfMacro = inherit OneSymbolMacro
 				let elseExec = null
 
 				if (not (this.loop))
-					if (and (not (right.length)) tracker)
+					if (and (not (nonempty right)) tracker)
 						right = tracker.steal "else"
-					if (and (not (right.length)) tracker)
+					if (and (not (nonempty right)) tracker)
 						right = tracker.steal "elif"
 					if (right.length)
 						if (isSymbol(right 0, "else"))
@@ -1160,7 +1162,7 @@ let IfExec = inherit Executable
 			elif (this.elseClause)
 				this.elseClause.eval(scope)
 		else
-			while (isTrue(s.condClause.eval(scope)))
+			while (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
 			null
 
