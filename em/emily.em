@@ -125,7 +125,7 @@ let checkErrors = function(errors)
 		exit 1
 
 let nonempty = function (ary)
-	if ary (ary) else (ary.length)
+	if ary (ary.length)
 
 # String ops
 let join = function(joiner)
@@ -709,12 +709,12 @@ let IfMacro = inherit OneSymbolMacro
 						right = tracker.steal "else"
 					if (and (not (nonempty right)) tracker)
 						right = tracker.steal "elif"
-					if (right.length)
+					if (nonempty right)
 						if (isSymbol(right 0, "else"))
 							popLeft(right)
 							let elseExp = getNext("else", right)
 							if (elseExp)
-								elseExec = parser.process(elseExp, array(elseExp), null)
+								elseExec = parser.makeSequence(elseExp.loc, elseExp.statements, true)
 						elif (isSymbol(right 0, "elif"))
 							let elifSymbol = popLeft(right)
 							let elseResult = this.apply(parser, array(), elifSymbol, right, tracker)
@@ -1154,6 +1154,7 @@ let IfExec = inherit Executable
 			+ " " (this.elseClause.toString)
 		else
 			""
+		"]"
 
 	method eval = function(scope)
 		if (not (this.loop))
