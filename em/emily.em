@@ -560,6 +560,8 @@ let getExpGroup = function(parser, loc, symbol, ary)
 
 # Macro classes
 
+# FIXME: In which places is null allowed in place of array()? In which places *should* it be?
+
 # Abstract macro: Matches on a single known symbol
 let OneSymbolMacro = inherit Macro
 	method matches = function(left, node, right)
@@ -677,8 +679,56 @@ let FunctionMacro = inherit OneSymbolMacro
 							parser.makeSequence(bodyExp.loc, bodyExp.statements, true)
 						right
 
+let IfMacro = inherit OneSymbolMacro
+	field loop = false
+	
+	progress = + (ProgressBase.parser) 400
+
+	method symbol = if (this.loop) ("while") else ("if")
+
+	method apply = function(parser, left, node, right, tracker)
+		let getNext = getExpGroup(parser, node.loc)
+
+		let condExp = getNext(this.symbol, right)
+		if (is InvalidExec condExp)
+			condExp
+		else
+			let seqExp = getNext(+ (this.symbol) " (group)", right)
+
+			if (is InvalidExec seqExp)
+				seqExp
+			else
+				let condExec = parser.process(condExp, array(condExp), null)
+				let seqExec = parser.makeSequence(seqExp.loc, seqExp.statements, not (this.loop))
+				let elseExec = null
+
+				if (not (this.loop))
+					if (and (not (right.length)) tracker)
+						right = tracker.steal "else"
+					if (and (not (right.length)) tracker)
+						right = tracker.steal "elif"
+					if (right.length)
+						if (isSymbol(right 0, "else"))
+							popLeft(right)
+							let elseExp = getNext("else", right)
+							if (elseExp)
+								elseExec = parser.process(elseExp, array(elseExp), null)
+						elif (isSymbol(right 0, "elif"))
+							let elifSymbol = popLeft(right)
+							let elseResult = this.apply(parser, array(), elifSymbol, right, tracker)
+							if (is ProcessResult elseResult)
+								elseExec = elseResult.at
+								right = elseResult.right
+							else
+								elseExec = elseResult
+
+				if (is InvalidExec elseExec)
+					elseExec
+				else
+					new ProcessResult(left, new IfExec(node.loc, this.loop, condExec, seqExec, elseExec), right)
+
 let ArrayMacro = inherit SeqMacro
-	progress = + (ProgressBase.parser) 900
+	progress = + (ProgressBase.parser) 500
 	symbol = "array"
 
 	method construct = function(parser, seq)
@@ -720,6 +770,8 @@ let standardMacros = array
 	SetMacro
 	DoMacro
 	FunctionMacro
+	new IfMacro( false )
+	new IfMacro( true )
 	ArrayMacro
 	ValueMacro
 
@@ -1083,9 +1135,44 @@ let MakeArrayExec = inherit Executable
 			values.append (i.next.eval(scope))
 		new ArrayValue(values)
 
+let IfExec = inherit Executable
+	field loop = false
+	field condClause = null
+	field ifClause = null
+	field elseClause = null
+
+	method toString = nullJoin array
+		"["
+		if (this.loop) ("While") else ("If")
+		" "
+		this.condClause
+		" "
+		this.ifClause
+		if (this.elseClause)
+			+ " " (this.elseClause.toString)
+		else
+			""
+
+	method eval = function(scope)
+		if (not (this.loop))
+			if (isTrue(this.condClause.eval(scope)))
+				this.ifClause.eval(scope)
+			elif (this.elseClause)
+				this.elseClause.eval(scope)
+		else
+			while (isTrue(s.condClause.eval(scope)))
+				this.ifClause.eval(scope)
+			null
+
 let Unit = NullLiteralExec # Just an alias
 
 # Values
+
+# Util function
+let isTrue = match
+	NullValue = false
+	NumberValue v = (!= v 0)
+	_ = true
 
 # Util function
 let copyArgsWithAppend = function (ary, value)
