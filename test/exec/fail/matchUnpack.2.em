@@ -5,7 +5,7 @@ let None = inherit object
 let Some = inherit object
 	field value = null
 
-p = Some 3
+let p = new Some(3)
 
 with p match # Unpack vector
 	None = println "?"

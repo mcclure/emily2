@@ -1437,7 +1437,7 @@ let wrapPrintRepeat = function(f)
 				with x match
 					StringValue v = v
 					NumberValue v = v
-					NullValue v = "null"
+					NullValue = "null"
 					_ = "[Unprintable]"
 			repeat
 	repeat
