@@ -1381,7 +1381,7 @@ let ArrayValue = inherit Value
 	method apply = function(value)
 		with value match
 			NumberValue number = this.values number
-			AtomLiteralExec(_, key) = arrayValuePrototype.lookup key
+			AtomLiteralExec(_, key) = arrayPrototype.lookup key
 			_ = fail "Only number or atom keys allowed on array"
 
 	method assign = function(_, key, value)
@@ -1407,12 +1407,27 @@ let StringValue = inherit LiteralValue
 
 let NumberValue = inherit LiteralValue
 
-# Stdlib
+let TrueValue = new NumberValue(1)
+
+# Stdlib: Array
+
+let arrayPrototype = new ObjectValue
+
+# Stdlib: Scope
 
 let wrapBinaryNumber = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			new NumberValue(f (x.value) (y.value))
+		2
+
+let wrapBinaryBool = function(f)
+	new LiteralFunctionValue
+		function(x,y)
+			if (f (x.value) (y.value))
+				TrueValue
+			else
+				NullValue
 		2
 
 let wrapPrintRepeat = function(f)
@@ -1430,10 +1445,24 @@ let wrapPrintRepeat = function(f)
 let rootObject = new ObjectValue
 
 let defaultScope = new ObjectValue
+
 defaultScope.atoms.set "+" (wrapBinaryNumber +)
+defaultScope.atoms.set "-" (wrapBinaryNumber -)
+defaultScope.atoms.set "*" (wrapBinaryNumber *)
+defaultScope.atoms.set "/" (wrapBinaryNumber /)
+
+defaultScope.atoms.set "<"  (wrapBinaryBool <)
+defaultScope.atoms.set "<=" (wrapBinaryBool <=)
+defaultScope.atoms.set ">"  (wrapBinaryBool >)
+defaultScope.atoms.set ">=" (wrapBinaryBool >=)
+defaultScope.atoms.set "==" (wrapBinaryBool ==)
+defaultScope.atoms.set "!=" (wrapBinaryBool !=)
+
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
+
 defaultScope.atoms.set "object" rootObject
+defaultScope.atoms.set "null"   NullValue
 
 # --- Run ---
 
