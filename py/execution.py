@@ -107,7 +107,10 @@ class MatchFunctionValue(EmilyValue):
 					scope = ObjectValue(scope)
 					unpackIdx = 0
 					for atom in m.unpacks:
-						scope.atoms[atom.value] = value.apply(unpackIdx)
+						try:
+							scope.atoms[atom.value] = value.apply(unpackIdx)
+						except LookupException:
+							raise InternalExecutionException("Match error: Unpack specification has too many values")
 						unpackIdx += 1
 				return m.statement.eval(scope)
 		raise InternalExecutionException("No match clause was met")
@@ -174,7 +177,10 @@ class ObjectValue(EmilyValue):
 		return MethodPseudoValue.fetch(s, key, s)
 
 	def apply(s, key):
-		key = s.key(key)
+		try:
+			key = s.key(key)
+		except IndexError: # Used an excessive int key
+			noSuchKey(key, False)
 		return s.lookup(key.value)
 
 	def innerAssign(s, isLet, key, value): # Again, sanitized for atom correctness
@@ -186,7 +192,10 @@ class ObjectValue(EmilyValue):
 			noSuchKey(key, True) # Raises
 
 	def assign(s, isLet, key, value):
-		key = s.key(key)
+		try:
+			key = s.key(key)
+		except IndexError: # Used an excessive int key
+			noSuchKey(key, True)
 		return s.innerAssign(isLet, key.value, value)
 
 # Small chunk of standard library: The array prototype
