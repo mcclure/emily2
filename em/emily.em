@@ -544,7 +544,7 @@ let SequenceTracker = inherit object
 		else
 			null
 
-let getExpGroup = function(parser, loc, symbol, ary)
+let getNextExp = function(parser, loc, isExp, symbol, ary)
 	let failMsg = function(a) (parser.error(loc, nullJoin a))
 
 	if (not (ary.length))
@@ -552,7 +552,7 @@ let getExpGroup = function(parser, loc, symbol, ary)
 			"Emptiness after \""
 			symbol
 			"\""
-	elif (not (is ExpGroup (ary 0)))
+	elif (if isExp (not (is ExpGroup (ary 0))))
 		failMsg array
 			"Expected a (group) after \""
 			symbol
@@ -572,7 +572,7 @@ let OneSymbolMacro = inherit Macro
 # Abstract macro: Expects KNOWNSYMBOL (GROUP)
 let SeqMacro = inherit OneSymbolMacro
 	method apply = function(parser, left, node, right, _)
-		let exp = getExpGroup(parser, node.loc, this.symbol, right)
+		let exp = getNextExp(parser, node.loc, true, this.symbol, right)
 
 		if (is InvalidExec exp)
 			exp
@@ -634,13 +634,13 @@ let FunctionMacro = inherit OneSymbolMacro
 	symbol = "function"
 
 	method apply = function(parser, left, node, right, _)
-		let getNext = getExpGroup(parser, node.loc)
+		let getNextGroup = getNextExp(parser, node.loc, true)
 
-		let argExp = getNext(this.symbol, right)
+		let argExp = getNextGroup(this.symbol, right)
 		if (is InvalidExec argExp)
 			argExp
 		else
-			let bodyExp = getNext(+ (this.symbol) " (args)", right)
+			let bodyExp = getNextGroup(+ (this.symbol) " (args)", right)
 			if (is InvalidExec bodyExp)
 				bodyExp
 			else
@@ -689,13 +689,13 @@ let IfMacro = inherit OneSymbolMacro
 	method symbol = if (this.loop) ("while") else ("if")
 
 	method apply = function(parser, left, node, right, tracker)
-		let getNext = getExpGroup(parser, node.loc)
+		let getNext = getNextExp(parser, node.loc)
 
-		if (not (right.length))
-			parser.error(node, "Emptiness after \"if\"")
+		let condExp = getNext(false, this.symbol, right)
+		if (is InvalidExec condExp)
+			condExp
 		else
-			let condExp = popLeft right
-			let seqExp = getNext(+ (this.symbol) " (group)", right)
+			let seqExp = getNext(true, + (this.symbol) " (group)", right)
 
 			if (is InvalidExec seqExp)
 				seqExp
@@ -712,7 +712,7 @@ let IfMacro = inherit OneSymbolMacro
 					if (nonempty right)
 						if (isSymbol(right 0, "else"))
 							popLeft(right)
-							let elseExp = getNext("else", right)
+							let elseExp = getNext(true, "else", right)
 							if (elseExp)
 								elseExec = parser.makeSequence(elseExp.loc, elseExp.statements, true)
 						elif (isSymbol(right 0, "elif"))
@@ -735,6 +735,63 @@ let ArrayMacro = inherit SeqMacro
 
 	method construct = function(parser, seq)
 		new MakeArrayExec(seq.loc, parser.makeArray(seq))
+
+let ObjectMacro = inherit OneSymbolMacro
+	field instance = false
+
+	progress = + (ProgressBase.parser) 500
+	
+	method symbol = if (this.instance) ("new") else ("inherit")
+
+	method apply = function(parser, left, node, right, _)
+		let getNext = getNextExp(parser, node.loc)
+		let baseExp = getNext(false, this.symbol, right)
+		if (is InvalidExec baseExp)
+			baseExp
+		else
+			let baseExec = parser.process(baseExp, array(baseExp), null)
+
+			let seqExp = if (not (right.length))
+				new ExpGroup(baseExp.loc)
+			else
+				getNext(true, + (this.symbol) " [base]", right)
+
+			if (is InvalidExec seqExp)
+				seqExp
+			else
+				let seq = if (not (seqExp.empty))
+					parser.makeSequence(seqExp.loc, seqExp.statements, false).execs
+				else
+					array()
+
+				let values = array()
+				let assigns = array()
+				let foundSet = false
+				let foundError = null
+
+				let i = seq.iter
+				while (and (not foundError) (i.more))
+					let assign = i.next
+
+					if (is SetExec assign)
+						foundSet = true
+						if (assign.targetClause)
+							foundError = parser.error(assign.loc, "Assignment inside object literal was not of form key=value")
+						elif (assign.isLet)
+							foundError = parser.error(assign.loc, "Found a stray value expression inside an object literal")
+						else
+							assign.isLet = true
+							assigns.append assign
+					else
+						if foundSet
+							foundError = parser.error(assign.loc, "Found a stray value expression inside an object literal")
+						else
+							values.append assign
+
+				if (foundError)
+					foundError
+				else
+					new ProcessResult(left, new MakeObjectExec(node.loc, baseExec, values, assigns, this.instance), right)
 
 let ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
@@ -775,6 +832,8 @@ let standardMacros = array
 	new IfMacro( false )
 	new IfMacro( true )
 	ArrayMacro
+	new ObjectMacro ( false )
+	new ObjectMacro ( true )
 	ValueMacro
 
 # Parser
@@ -1122,6 +1181,64 @@ let MakeFuncExec = inherit Executable
 	method eval = function(scope)
 		new FunctionValue(this.args, this.body, scope)
 
+let MakeObjectExec = inherit Executable
+	field baseClause = null
+	field method values = array()
+	field method assigns = array()
+	field isInstance = false
+
+	method toString = nullJoin array
+		"["
+		if (this.isInstance) ("New") else ("Inherit")
+		this.baseClause
+		"["
+		join ", " (this.values)
+		"]]"
+
+	method eval = function(scope)
+		let base = this.baseClause.eval(scope)
+		if (== base rootObject) # Tiny optimization: Don't actually inherit from Object
+			base = null
+		let infields = if (base) (base.fields) else (null)
+		let result = new ObjectValue(base)
+		if (and (this.isInstance) infields) # FIXME: This calls method fields even when not needed
+			let i = infields.iter
+			while (i.more)
+				let f = i.next
+				result.assign(true, f, base.apply(f))
+
+		if (
+				>
+					if (this.values) (this.values.length) else (0) # FIXME: Wait, when will this ever happen?
+					if (infields) (infields.length) else (0)
+			)
+				fail "Tried to specify more values in \"new\" than this object has fields"
+
+		let valueProgress = 0
+		let i = this.values.iter
+		while (i.more)
+			let value = i.next.eval(scope)
+			result.atoms.set (infields(valueProgress).value) value
+			valueProgress = + valueProgress 1
+
+		let i = this.assigns.iter
+		while (i.more)
+			let exe = i.next
+			let index = exe.indexClause.eval(scope) # do this early for field handling
+			if (exe.isField)
+				if (not (is AtomLiteralExec index))
+					fail "Objects have atom keys only"
+				if (not (result.fields)) # FIXME: Again, when does this happen?
+					result.fields = if infields (infields) else (array())
+				result.fields.append(index)
+			exe.setEval(scope, result, index)
+
+		if (not (result.fields))
+			result.fields = infields
+
+		result
+
+
 let MakeArrayExec = inherit Executable
 	field contents = null
 
@@ -1310,10 +1427,13 @@ let wrapPrintRepeat = function(f)
 			repeat
 	repeat
 
+let rootObject = new ObjectValue
+
 let defaultScope = new ObjectValue
 defaultScope.atoms.set "+" (wrapBinaryNumber +)
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
+defaultScope.atoms.set "object" rootObject
 
 # --- Run ---
 

@@ -453,7 +453,7 @@ class ArrayMacro(SeqMacro):
 	def construct(s, m, seq):
 		return execution.MakeArrayExec(seq.loc, m.makeArray(seq))
 
-# array (contents)
+# new (contents) or inherit (contents)
 class ObjectMacro(OneSymbolMacro):
 	def __init__(s, isInstance):
 		super(ObjectMacro, s).__init__(progress = ProgressBase.Parser + 500)

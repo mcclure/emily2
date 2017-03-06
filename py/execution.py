@@ -506,7 +506,7 @@ class MakeObjectExec(Executable):
 			base = None
 		infields = base.fields if base else None
 		result = ObjectValue(base)
-		if s.isInstance and infields:
+		if s.isInstance and infields: # FIXME: This calls method fields even when not needed
 			for field in infields:
 				result.assign(True, field, base.apply(field))
 		valueProgress = 0
