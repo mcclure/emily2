@@ -213,7 +213,12 @@ arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFu
 arrayPrototype = ObjectValue()
 arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
 arrayPrototype.atoms['append'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, lambda x,y:x.values.append(y)))
-arrayPrototype.atoms['pop'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x.values.pop()))
+def arrayPopImpl(x):
+	try:
+		return x.values.pop()
+	except IndexError:
+		raise InternalExecutionException(u'Attempted pop on empty array')
+arrayPrototype.atoms['pop'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayPopImpl))
 
 def arrayIteratorImpl(ary):
 	x = ObjectValue(arrayIteratorPrototype)

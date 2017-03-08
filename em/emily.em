@@ -968,7 +968,7 @@ let Parser = inherit object
 				if (is ExpGroup (nodes 0))
 					let firstNode = popLeft nodes
 					if (firstNode.empty)                   # ()
-						result = new Unit (firstNode.loc)
+						result = new UnitExec (firstNode.loc)
 					elif (== (firstNode.statements.length) 1) # (arg)
 						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
 					else                                   # (arg1, arg2, ...)
@@ -984,7 +984,7 @@ let Parser = inherit object
 
 					if (is ExpGroup arg)
 						if (arg.empty) # ()
-							result = new ApplyExec(arg.loc, result, new Unit(arg.loc))
+							result = new ApplyExec(arg.loc, result, new UnitExec(arg.loc))
 						else                    # (arg1, arg2, ...)
 							let argIdx = 0 # Used by error message
 							let tracker = new SequenceTracker(arg.statements)
@@ -1152,7 +1152,7 @@ let SetExec = inherit Executable
 
 	method setEval = function (scope, target, index)
 		let value = if (this.isMethod)
-			fail "Not implemented yet"
+			new FunctionMethodPseudoValue(scope, target, this.valueClause)
 		else
 			this.valueClause.eval scope
 
@@ -1284,7 +1284,7 @@ let IfExec = inherit Executable
 				this.ifClause.eval(scope)
 			null
 
-let Unit = NullLiteralExec # Just an alias
+let UnitExec = NullLiteralExec # Just an alias
 
 # Values
 
@@ -1305,6 +1305,12 @@ let copyArgsWithAppend = function (ary, value)
 		result
 	else
 		array(value)
+
+# Method constructor function
+let makePrototypeApply = function(prototype, this, value)
+	with value match
+		AtomLiteralExec(_, key) = resolveMethod(prototype, key, this)
+		_ = fail "Object has atom keys only"
 
 let Value = inherit object
 	apply = function(value)
@@ -1329,7 +1335,7 @@ let ObjectValue = inherit Value
 
 	# "External" lookup function: Keys are known strings
 	method lookup = function (key)
-		this.innerLookup key # TODO: Method filter
+		resolveMethod this key this
 
 	# "True" assign function: keys are strings, key must exist
 	method innerAssign = function (key, value)
@@ -1381,15 +1387,16 @@ let ArrayValue = inherit Value
 	method apply = function(value)
 		with value match
 			NumberValue number = this.values number
-			AtomLiteralExec(_, key) = arrayPrototype.lookup key
+			AtomLiteralExec(_, key) = resolveMethod(arrayValuePrototype, key, this)
 			_ = fail "Only number or atom keys allowed on array"
 
-	method assign = function(_, key, value)
-		with key match
+	method assign = function(_, index, value)
+		with index match
 			NumberValue number = (this.values number = value)
 			_ = fail "Tried to write non-number index on array"
 
 let NullValue = inherit Value
+	method apply = makePrototypeApply(nullPrototype, this)
 
 let LiteralValue = inherit Value
 	field value = null
@@ -1404,14 +1411,79 @@ let LiteralFunctionValue = inherit LiteralValue
 			new LiteralFunctionValue(result, - (this.count) 1)
 
 let StringValue = inherit LiteralValue
+	method apply = makePrototypeApply(stringValuePrototype, this)
 
 let NumberValue = inherit LiteralValue
+	method apply = makePrototypeApply(numberValuePrototype, this)
 
 let TrueValue = new NumberValue(1)
 
-# Stdlib: Array
+let SuperValue = inherit Value
+	field parent = null
+	field target = null
 
-let arrayPrototype = new ObjectValue
+	method apply = function(index)
+		if (not (is AtomLiteralExec index))
+			fail "Objects have atom keys only"
+		resolveMethod(this.parent, index.value, this.target)
+
+let MethodPseudoValue = inherit object
+
+let FunctionMethodPseudoValue = inherit MethodPseudoValue
+	field scope = null
+	field owner = null
+	field exe = null
+
+	method call = function(target)
+		let scope = new ObjectValue(this.scope)
+		scope.atoms.set "this" target
+		scope.atoms.set "current" (this.owner)
+		scope.atoms.set "super" new SuperValue(this.owner.parent, target)
+		this.exe.eval(scope)
+
+let LiteralMethodPseudoValue = inherit MethodPseudoValue
+	field fn = null
+
+	method call = function(target)
+		this.fn.apply(target)
+
+let resolveMethod = function(source, key, thisValue)
+	let value = source.innerLookup(key)
+	if (is MethodPseudoValue value)
+		value.call(thisValue)
+	else
+		value
+
+# Stdlib: Builtin types
+
+let literalMethod = function(f, n)
+	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
+
+let arrayValuePrototype = new ObjectValue
+
+arrayValuePrototype.atoms.set "length"
+	literalMethod
+		function (this)
+			new NumberValue(this.values.length)
+		1
+
+arrayValuePrototype.atoms.set "append"
+	literalMethod
+		function (this, value)
+			this.values.append value
+		2
+
+arrayValuePrototype.atoms.set "pop"
+	literalMethod
+		function (this)
+			this.values.pop
+		1
+
+let nullValuePrototype = new ObjectValue
+
+let numberValuePrototype = new ObjectValue
+
+let stringValuePrototype = new ObjectValue
 
 # Stdlib: Scope
 
@@ -1463,6 +1535,7 @@ defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
 defaultScope.atoms.set "object" rootObject
 defaultScope.atoms.set "null"   NullValue
+defaultScope.atoms.set "ln"     new StringValue("\n")
 
 # --- Run ---
 
