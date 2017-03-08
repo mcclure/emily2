@@ -1346,19 +1346,24 @@ let ObjectValue = inherit Value
 		else
 			fail (+ "Tried to assign nonexistent key " key)
 
+	method key = function (value)
+		with value match
+			AtomLiteralExec(_, key) = key
+			NumberValue idx = (this.fields idx).value # FIXME: Wait why are atoms stored in here?
+			_ = fail "Object has atom or number keys only"
+
 	# "External" assign function: key has no known type
 	method assign = function (isLet, index, value)
 		# TODO: Sanitize for atom here
-		let key = index.value
+		let key = this.key index
 		if (isLet)
 			this.atoms.set key value
 		else
 			this.innerAssign(key, value)
 
-	method apply = function(value)
-		with value match
-			AtomLiteralExec = this.lookup (value.value)
-			_ = fail "Object has atom keys only"
+	method apply = function(index)
+		this.lookup
+			this.key index
 
 let FunctionValue = inherit Value
 	field argNames = null
