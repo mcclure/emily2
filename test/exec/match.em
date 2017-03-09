@@ -69,7 +69,7 @@ maybeClosure
 
 # Test is
 # Expect:
-# False True False True
+# null 1.0 null 1.0
 
 let q = inherit None
 

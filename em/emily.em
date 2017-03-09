@@ -1523,6 +1523,10 @@ let rootObject = new ObjectValue
 
 let defaultScope = new ObjectValue
 
+defaultScope.atoms.set "object" rootObject
+defaultScope.atoms.set "null"   NullValue
+defaultScope.atoms.set "ln"     new StringValue(ln)
+
 defaultScope.atoms.set "+" (wrapBinaryNumber +)
 defaultScope.atoms.set "-" (wrapBinaryNumber -)
 defaultScope.atoms.set "*" (wrapBinaryNumber *)
@@ -1535,12 +1539,51 @@ defaultScope.atoms.set ">=" (wrapBinaryBool >=)
 defaultScope.atoms.set "==" (wrapBinaryBool ==)
 defaultScope.atoms.set "!=" (wrapBinaryBool !=)
 
+defaultScope.atoms.set "nullfn"
+	new LiteralFunctionValue
+		function (x) (null)
+		1
+
+defaultScope.atoms.set "with"
+	new LiteralFunctionValue
+		function (x, y) (y.apply x)
+		2
+
+let toBoolValue = function(x)
+	if (x)
+		TrueValue
+	else
+		NullValue
+
+let isChild = function(parent,child)
+	if (== parent child)
+		true
+	elif (is ObjectValue child)
+		if (== parent rootObject)
+			true
+		else
+			let result = false
+			while (and (not result) (child.parent))
+				child = child.parent
+				if (== parent child)
+					result = true
+			result
+	else
+		false
+
+defaultScope.atoms.set "is"
+	new LiteralFunctionValue
+		function (x,y)
+			toBoolValue(isChild(x,y))
+		2
+
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
-defaultScope.atoms.set "object" rootObject
-defaultScope.atoms.set "null"   NullValue
-defaultScope.atoms.set "ln"     new StringValue(ln)
+
+
+defaultScope.atoms.set "print"   (wrapPrintRepeat print)
+defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
 # --- Run ---
 

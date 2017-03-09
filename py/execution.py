@@ -570,8 +570,6 @@ defaultScope.atoms['%'] = makeBinop(lambda x,y: x % y)
 def toBool(x):
 	return 1.0 if x else None
 defaultScope.atoms['bool'] = PythonFunctionValue(1, toBool)
-defaultScope.atoms['number'] = PythonFunctionValue(1, lambda x: float(x))
-defaultScope.atoms['string'] = PythonFunctionValue(1, lambda x: str(x))
 defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBool(not x))
 defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBool(x and y))
 defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
@@ -582,7 +580,7 @@ defaultScope.atoms['<']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
 defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
 defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
-defaultScope.atoms['is'] = PythonFunctionValue(2, isImpl)
+defaultScope.atoms['is'] = PythonFunctionValue(2, lambda x,y: toBool(isImpl(x,y)))
 
 # Dubious, intentionally undocumented
 def debugPrint(obj):
