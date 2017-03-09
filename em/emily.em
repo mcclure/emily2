@@ -1540,7 +1540,7 @@ defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
 defaultScope.atoms.set "object" rootObject
 defaultScope.atoms.set "null"   NullValue
-defaultScope.atoms.set "ln"     new StringValue("\n")
+defaultScope.atoms.set "ln"     new StringValue(ln)
 
 # --- Run ---
 

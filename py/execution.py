@@ -682,7 +682,7 @@ closeWrapperValue = MethodPseudoValue(pythonFunction=PythonFunctionValue(1,close
 
 def printWrapper(obj, x):
 	handle = obj.atoms[fileObjectHandle]
-	if type(x) == str and x.endswith('\n'):
+	if type(x) == unicode and x.endswith('\n'):
 		obj.atoms[fileObjectLastNewline] = True
 		handle.flush()
 	else:
@@ -717,7 +717,7 @@ defaultScope.atoms['print'] = stdoutObject.atoms['print']
 defaultScope.atoms['println'] = stdoutObject.atoms['println']
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
-defaultScope.atoms['ln'] = "\n"
+defaultScope.atoms['ln'] = u"\n"
 defaultScope.atoms['argv'] = ArrayValue([])
 
 def failImpl(s):
