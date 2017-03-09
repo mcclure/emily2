@@ -1580,11 +1580,6 @@ defaultScope.atoms.set "is"
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
 
-
-
-defaultScope.atoms.set "print"   (wrapPrintRepeat print)
-defaultScope.atoms.set "println" (wrapPrintRepeat println)
-
 # --- Run ---
 
 let codeIter = do
@@ -1607,6 +1602,11 @@ else
 		println (exe.toString)
 	else
 		let scope = new ObjectValue(defaultScope)
-		scope.atoms.set "argv" (new ArrayValue(scriptArgv))
+
+		let scriptArgvValue = array()
+		let i = scriptArgv.iter
+		while (i.more)
+			scriptArgvValue.append (new StringValue(i.next))
+		scope.atoms.set "argv" (new ArrayValue(scriptArgvValue))
 		
 		exe.eval(scope)
