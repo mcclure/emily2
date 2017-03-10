@@ -700,7 +700,7 @@ let IfMacro = inherit OneSymbolMacro
 			if (is InvalidExec seqExp)
 				seqExp
 			else
-				let condExec = parser.process(condExp, array(condExp), null)
+				let condExec = parser.process(condExp.loc, array(condExp), null)
 				let seqExec = parser.makeSequence(seqExp.loc, seqExp.statements, not (this.loop))
 				let elseExec = null
 
@@ -728,6 +728,104 @@ let IfMacro = inherit OneSymbolMacro
 					elseExec
 				else
 					new ProcessResult(left, new IfExec(node.loc, this.loop, condExec, seqExec, elseExec), right)
+
+let MatchCase = inherit object
+	field targetExe = null
+	field unpacks = null
+	field statement = null
+
+let MatchMacro = inherit OneSymbolMacro
+	progress = + (ProgressBase.parser) 400
+	symbol = "match"
+
+	method apply = function (parser, left, node, right, tracker)
+		let exp = getNextExp(parser, node.loc, true, this.symbol, right)
+
+		if (is InvalidExec exp)
+			exp
+		else
+			let result = array()
+			let iStm = exp.statements.iter
+			let foundError = null
+
+			while (iStm.more)
+				let stm = iStm.next
+				if (stm.nodes.length)
+					let eqNode = null
+					let eqLeft = array()
+					let eqRight = array()
+
+					let iNode = stm.nodes.iter
+					while (iNode.more)
+						let node = iNode.next
+						if (eqNode)
+							eqRight.append node
+						elif (isSymbol node "=")
+							eqNode = node
+						else
+							eqLeft.append node
+
+					if (not eqNode)
+						foundError = parser.error(stm.nodes(0).loc, "Match line does not have an =")
+					elif (not (eqLeft.length))
+						foundError = parser.error(eqNode.loc, "Left of = in match line is blank")
+					elif (> (eqLeft.length) 2)
+						foundError = parser.error(eqLeft(2).loc, "Left of = in match line has too many symbols. Try adding parenthesis?")
+					elif (not (eqRight.length))
+						foundError = parser.error(eqNode.loc, "Right of = in match line is blank")
+					else
+						let targetExp = popLeft eqLeft
+						let unpacksExp = null
+						let unpacks = array()
+
+						if (eqLeft.length) # There is an unpack list
+							let garbled = false
+
+							unpacksExp = eqLeft 0
+							if (is SymbolExp unpacksExp)
+								unpacks.append
+									new AtomLiteralExec(unpacksExp.loc, unpacksExp.content)
+							elif (is ExpGroup unpacksExp)
+								let iUnpack = unpacksExp.statements.iter
+								while (and (not garbled) (iUnpack.more))
+									let unpackStatement = iUnpack.next
+									if (not (unpackStatement.nodes.length))
+										garbled = true
+									else
+										let unpackSymbol = unpackStatement.nodes 0
+										if (not (is SymbolExp unpackSymbol))
+											garbled = true
+										else
+											unpacks.append(new AtomLiteralExec(unpackSymbol.loc, unpackSymbol.content))
+							else
+								garbled = true # Technically redundant
+
+							if (or garbled (not (unpacks.length)))
+								foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list on left of = is garbled")
+
+						if (not foundError)
+							if (isSymbol targetExp "_")
+								if (unpacksExp)
+									foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list used with _")
+								else
+									targetExp = null # Null denotes wildcard match
+							elif (isSymbol targetExp "array")
+								if (not unpacksExp)
+									foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list missing after \"array\"")
+								else
+									targetExp = null
+
+						if (not foundError)
+							let targetExec = 
+								if (targetExp)
+									parser.process (targetExp.loc, array (targetExp), null)
+							let tempStatement = parser.process(eqRight(0).loc, eqRight, tracker)
+							result.append(new MatchCase(targetExec, unpacks, tempStatement))
+
+			if (foundError)
+				foundError
+			else
+				new ProcessResult (left, new MakeMatchExec(node.loc, result), right)
 
 let ArrayMacro = inherit SeqMacro
 	progress = + (ProgressBase.parser) 500
@@ -831,6 +929,7 @@ let standardMacros = array
 	FunctionMacro
 	new IfMacro( false )
 	new IfMacro( true )
+	MatchMacro
 	ArrayMacro
 	new ObjectMacro ( false )
 	new ObjectMacro ( true )
@@ -1254,6 +1353,28 @@ let MakeArrayExec = inherit Executable
 			values.append (i.next.eval(scope))
 		new ArrayValue(values)
 
+let MakeMatchExec = inherit Executable
+	field matches = null
+
+	method toString = do
+		let result = "[Match"
+		let i = s.matches.iter
+		while (i.more)
+			let m = i.next
+			result = + result 
+				nullJoin array
+					" [Case "
+					m.targetExe
+					" ["
+					join  ", " (m.unpacks)
+					"] "
+					m.statement.toString
+					"]"
+		result = + result ("]")
+
+	method eval = function(scope)
+		new MatchFunctionValue(this.matches, scope)
+
 let IfExec = inherit Executable
 	field loop = false
 	field condClause = null
@@ -1305,6 +1426,30 @@ let copyArgsWithAppend = function (ary, value)
 		result
 	else
 		array(value)
+
+# Util function
+let toBoolValue = function(x)
+	if (x)
+		TrueValue
+	else
+		NullValue
+
+# Util function
+let isChild = function(parent,child)
+	if (== parent child)
+		true
+	elif (is ObjectValue child)
+		if (== parent rootObject)
+			true
+		else
+			let result = false
+			while (and (not result) (child.parent))
+				child = child.parent
+				if (== parent child)
+					result = true
+			result
+	else
+		false
 
 # Method constructor function
 let makePrototypeApply = function(prototype, this, value)
@@ -1459,6 +1604,30 @@ let resolveMethod = function(source, key, thisValue)
 	else
 		value
 
+let MatchFunctionValue = inherit Value
+	field matches = null
+	field scope = null
+
+	method apply = function(value)
+		let iMatch = this.matches.iter
+		let found = null
+		while (and (not found) (iMatch.more))
+			let m = iMatch.next
+			if (if (m.targetExe) (isChild(m.targetExe.eval(this.scope), value)) else (true))
+				let scope = this.scope
+				if (m.unpacks)
+					scope = new ObjectValue(scope)
+					let unpackIdx = 0
+					while (< unpackIdx (m.unpacks.length))
+						let atom = m.unpacks unpackIdx
+						scope.atoms.set (atom.value) (value.apply(new NumberValue(unpackIdx)))
+						unpackIdx = + unpackIdx 1
+				found = m.statement.eval(scope)
+		if (found)
+			found
+		else
+			fail "No match clause was met"
+
 # Stdlib: Builtin types
 
 let literalMethod = function(f, n)
@@ -1548,28 +1717,6 @@ defaultScope.atoms.set "with"
 	new LiteralFunctionValue
 		function (x, y) (y.apply x)
 		2
-
-let toBoolValue = function(x)
-	if (x)
-		TrueValue
-	else
-		NullValue
-
-let isChild = function(parent,child)
-	if (== parent child)
-		true
-	elif (is ObjectValue child)
-		if (== parent rootObject)
-			true
-		else
-			let result = false
-			while (and (not result) (child.parent))
-				child = child.parent
-				if (== parent child)
-					result = true
-			result
-	else
-		false
 
 defaultScope.atoms.set "is"
 	new LiteralFunctionValue
