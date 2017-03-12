@@ -1545,6 +1545,8 @@ let ArrayValue = inherit Value
 			NumberValue number = (this.values number = value)
 			_ = fail "Tried to write non-number index on array"
 
+	method length = this.values.length # Stdlib convenience
+
 let NullValue = inherit Value
 	method apply = makePrototypeApply(nullPrototype, this)
 
@@ -1562,6 +1564,8 @@ let LiteralFunctionValue = inherit LiteralValue
 
 let StringValue = inherit LiteralValue
 	method apply = makePrototypeApply(stringValuePrototype, this)
+
+	method length = this.value.length # Stdlib convenience
 
 let NumberValue = inherit LiteralValue
 	method apply = makePrototypeApply(numberValuePrototype, this)
@@ -1630,10 +1634,18 @@ let MatchFunctionValue = inherit Value
 
 # Stdlib: Builtin types
 
-let literalMethod = function(f, n)
-	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
+let nullValuePrototype = new ObjectValue
+
+let numberValuePrototype = new ObjectValue
+
+let stringValuePrototype = new ObjectValue
+
+# Stdlib: Arrays
 
 let arrayValuePrototype = new ObjectValue
+
+let literalMethod = function(f, n)
+	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
 
 arrayValuePrototype.atoms.set "length"
 	literalMethod
@@ -1653,11 +1665,35 @@ arrayValuePrototype.atoms.set "pop"
 			this.values.pop
 		1
 
-let nullValuePrototype = new ObjectValue
+# Stdlib: Iterators
 
-let numberValuePrototype = new ObjectValue
+let iteratorPrototype = new ObjectValue
 
-let stringValuePrototype = new ObjectValue
+let IteratorObjectValue = inherit ObjectValue
+	parent = iteratorPrototype
+	field source = null
+	field idx = 0
+
+iteratorPrototype.atoms.set "more"
+	literalMethod
+		function (this)
+			toBoolValue
+				< (this.idx) (this.source.length)
+		1
+
+iteratorPrototype.atoms.set "next"
+	literalMethod
+		function (this)
+			let value = this.source.apply(new NumberValue(this.idx))
+			this.idx = + (this.idx) 1
+			value
+		1
+
+arrayValuePrototype.atoms.set "iter"
+	literalMethod
+		function (this)
+			new IteratorObjectValue(source = this)
+		1
 
 # Stdlib: Scope
 
@@ -1670,10 +1706,8 @@ let wrapBinaryNumber = function(f)
 let wrapBinaryBool = function(f)
 	new LiteralFunctionValue
 		function(x,y)
-			if (f (x.value) (y.value))
-				TrueValue
-			else
-				NullValue
+			toBoolValue
+				f (x.value) (y.value)
 		2
 
 let wrapPrintRepeat = function(f)
