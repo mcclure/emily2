@@ -1729,6 +1729,29 @@ let installIter = function(prototype)
 installIter arrayValuePrototype
 installIter stringValuePrototype
 
+# Stdlib: "String garbage"
+
+let charObject = new ObjectValue
+do
+	let charFunctions = array
+		.isNonLineSpace
+		.isLineSpace
+		.isSpace
+		.isQuote
+		.isOpenParen
+		.isCloseParen
+		.isParen
+		.isDigit
+
+	let iFn = charFunctions.iter
+	while (iFn.more)
+		let fn = iFn.next
+		charObject.atoms.set (fn.toString)
+			new LiteralFunctionValue
+				function(x)
+					toBoolValue(char fn (x.value))
+				1
+
 # Stdlib: Scope
 
 let wrapBinaryNumber = function(f)
@@ -1794,6 +1817,8 @@ defaultScope.atoms.set "is"
 
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
+
+defaultScope.atoms.set "char" charObject
 
 # --- Run ---
 

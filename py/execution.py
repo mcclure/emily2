@@ -312,7 +312,7 @@ class NumberLiteralExec(Executable):
 	def eval(s, scope):
 		return s.value
 
-class AtomLiteralExec(Executable):
+class AtomLiteralExec(Executable, EmilyValue):
 	def __init__(s, loc, value):
 		super(AtomLiteralExec, s).__init__(loc)
 		s.value = value
@@ -322,6 +322,11 @@ class AtomLiteralExec(Executable):
 
 	def eval(s, scope):
 		return s
+
+	def apply(s, key): # Kludge: AtomLiteralExec, uniquely, also acts like a value
+		if type(key) == AtomLiteralExec:
+			return MethodPseudoValue.fetch(atomPrototype, key.value, s)
+		atomKeysOnly()
 
 class NullLiteralExec(Executable):
 	def __init__(s, loc):
@@ -783,16 +788,21 @@ defaultScope.atoms['stdin'] = stdinObject
 
 # String garbage
 
+def toBoolWrap(fn):
+	def wrap(x):
+		return toBool(fn(x))
+	return wrap
+
 charObject = ObjectValue()
 defaultScope.atoms['char'] = charObject
-charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, reader.isNonLineSpace)
-charObject.atoms['isLineSpace'] = PythonFunctionValue(1, reader.isLineSpace)
-charObject.atoms['isSpace'] = PythonFunctionValue(1, lambda x: reader.isLineSpace(x) or reader.isNonLineSpace(x))
-charObject.atoms['isQuote'] = PythonFunctionValue(1, reader.isQuote)
-charObject.atoms['isOpenParen'] = PythonFunctionValue(1, reader.isOpenParen)
-charObject.atoms['isCloseParen'] = PythonFunctionValue(1, reader.isCloseParen)
-charObject.atoms['isParen'] = PythonFunctionValue(1, lambda x: reader.isOpenParen(x) or reader.isCloseParen(x))
-charObject.atoms['isDigit'] = PythonFunctionValue(1, reader.isDigit)
+charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, toBoolWrap(reader.isNonLineSpace))
+charObject.atoms['isLineSpace'] = PythonFunctionValue(1, toBoolWrap(reader.isLineSpace))
+charObject.atoms['isSpace'] = PythonFunctionValue(1, toBoolWrap(lambda x: reader.isLineSpace(x) or reader.isNonLineSpace(x)))
+charObject.atoms['isQuote'] = PythonFunctionValue(1, toBoolWrap(reader.isQuote))
+charObject.atoms['isOpenParen'] = PythonFunctionValue(1, toBoolWrap(reader.isOpenParen))
+charObject.atoms['isCloseParen'] = PythonFunctionValue(1, toBoolWrap(reader.isCloseParen))
+charObject.atoms['isParen'] = PythonFunctionValue(1, toBoolWrap(lambda x: reader.isOpenParen(x) or reader.isCloseParen(x)))
+charObject.atoms['isDigit'] = PythonFunctionValue(1, toBoolWrap(reader.isDigit))
 
 # Numbers
 
@@ -819,6 +829,11 @@ def toNumberImpl(x):
 	except ValueError:
 		raise LibraryException("Could not convert to number: %s" % x)
 stringPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, toNumberImpl))
+
+# Atoms
+
+atomPrototype = ObjectValue()
+atomPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x.value))
 
 # FIXME: Null has a prototype?
 
