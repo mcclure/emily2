@@ -1729,6 +1729,67 @@ let installIter = function(prototype)
 installIter arrayValuePrototype
 installIter stringValuePrototype
 
+# Stdlib: File I/Only
+
+let infilePrototype = new ObjectValue
+
+let outfilePrototype = new ObjectValue
+
+let FileObjectValue = inherit ObjectValue
+	field handle = null
+
+let fileObject = new ObjectValue
+do
+	let makeFileConstructor = function(fn, prototype)
+		fileObject.atoms.set (fn.toString)
+			new LiteralFunctionValue
+				function (path)
+					new FileObjectValue(prototype, file fn path)
+				1
+
+	makeFileConstructor(.in,     infilePrototype)
+	makeFileConstructor(.out,    outfilePrototype)
+	makeFileConstructor(.append, outfilePrototype)
+
+let closeWrapper = literalMethod
+	function(this)
+		this.handle.close
+	1
+
+do
+	let addWrapper = function(fn)
+		outfilePrototype.atoms.set (fn.toString)
+			literalMethod
+				function (this)
+					wrapPrintRepeat (this.handle fn)
+			1
+
+	addWrapper .write
+	addWrapper .print
+	addWrapper .println
+
+outfilePrototype.atoms.set "flush"
+	literalMethod
+		function(this)
+			this.handle.flush
+		1
+
+outfilePrototype.atoms.set "close" closeWrapper
+
+do
+	let addWrapper = function(fn, cls)
+		infilePrototype.atoms.set (fn.toString)
+			literalMethod
+				function (this)
+					new cls(this.handle fn)
+			1
+
+	addWrapper .more
+	addWrapper .peek
+	addWrapper .next
+
+infilePrototype.atoms.set "close" closeWrapper
+
 # Stdlib: "String garbage"
 
 let charObject = new ObjectValue
@@ -1827,10 +1888,13 @@ defaultScope.atoms.set "fail" # Same as exit?
 			fail(x.value)
 		1
 
+defaultScope.atoms.set "char" charObject
+
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
-
-defaultScope.atoms.set "char" charObject
+defaultScope.atoms.set "file"    fileObject
+defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, stdout)
+defaultScope.atoms.set "stdin"   new FileObjectValue(outfilePrototype, stdin)
 
 # --- Run ---
 
