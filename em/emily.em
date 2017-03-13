@@ -1815,6 +1815,18 @@ defaultScope.atoms.set "is"
 			toBoolValue(isChild(x,y))
 		2
 
+defaultScope.atoms.set "exit"
+	new LiteralFunctionValue
+		function (x)
+			exit(x.value)
+		1
+
+defaultScope.atoms.set "fail" # Same as exit?
+	new LiteralFunctionValue
+		function (x)
+			fail(x.value)
+		1
+
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
 

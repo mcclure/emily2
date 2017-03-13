@@ -587,7 +587,7 @@ defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
 defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
 defaultScope.atoms['is'] = PythonFunctionValue(2, lambda x,y: toBool(isImpl(x,y)))
 
-# Dubious, intentionally undocumented
+# Dubious, intentionally "undocumented"
 def debugPrint(obj):
 	print "----\nDEBUG: %s" % (type(obj))
 	print "Id: %s" % (id(obj))
