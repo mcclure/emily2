@@ -224,6 +224,7 @@ let NumberExp = inherit Node
 		this.decimal = ""
 
 	method toString = nullJoin array
+		"#"
 		this.integer
 		if (this.dot) (".") else ("")
 		if (this.decimal) (this.decimal) else ("")
@@ -409,7 +410,7 @@ let makeAst = function(i)
 			if (char.isSpace ch)
 				nextState Scanning
 				state.handle ch
-			elif (char.isDigit)
+			elif (char.isDigit ch)
 				if (e.dot)
 					e.decimal = + (e.decimal) ch
 				else
@@ -1563,7 +1564,11 @@ let LiteralFunctionValue = inherit LiteralValue
 			new LiteralFunctionValue(result, - (this.count) 1)
 
 let StringValue = inherit LiteralValue
-	method apply = makePrototypeApply(stringValuePrototype, this)
+	method apply = function(value)
+		with value match
+			NumberValue number = new StringValue(this.value number)
+			AtomLiteralExec(_, key) = resolveMethod(stringValuePrototype, key, this)
+			_ = fail "Only number or atom keys allowed on string"
 
 	method length = this.value.length # Stdlib convenience
 
@@ -1632,20 +1637,46 @@ let MatchFunctionValue = inherit Value
 		else
 			fail "No match clause was met"
 
+# Stdlib
+
+# Util function
+let literalMethod = function(f, n)
+	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
+
 # Stdlib: Builtin types
 
 let nullValuePrototype = new ObjectValue
 
 let numberValuePrototype = new ObjectValue
 
+numberValuePrototype.atoms.set "toString"
+	literalMethod
+		function (this)
+			new NumberValue(this.value.toString)
+		1
+
 let stringValuePrototype = new ObjectValue
+
+stringValuePrototype.atoms.set "length"
+	literalMethod
+		function (this)
+			new NumberValue(this.value.length)
+		1
+
+stringValuePrototype.atoms.set "toNumber"
+	literalMethod
+		function (this)
+			new StringValue(this.value.toNumber)
+		1
+
+stringValuePrototype.atoms.set "toString"
+	literalMethod
+		function (this) (this)
+		1
 
 # Stdlib: Arrays
 
 let arrayValuePrototype = new ObjectValue
-
-let literalMethod = function(f, n)
-	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
 
 arrayValuePrototype.atoms.set "length"
 	literalMethod
@@ -1689,11 +1720,14 @@ iteratorPrototype.atoms.set "next"
 			value
 		1
 
-arrayValuePrototype.atoms.set "iter"
-	literalMethod
-		function (this)
-			new IteratorObjectValue(source = this)
-		1
+let installIter = function(prototype)
+	prototype.atoms.set "iter"
+		literalMethod
+			function (this)
+				new IteratorObjectValue(source = this)
+			1
+installIter arrayValuePrototype
+installIter stringValuePrototype
 
 # Stdlib: Scope
 
