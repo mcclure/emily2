@@ -1761,6 +1761,7 @@ do
 		outfilePrototype.atoms.set (fn.toString)
 			literalMethod
 				function (this)
+					#DEBUG (this)
 					wrapPrintRepeat (this.handle fn)
 				1
 
@@ -1895,8 +1896,9 @@ defaultScope.atoms.set "char" charObject
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
 defaultScope.atoms.set "file"    fileObject
-defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, stdout)
-defaultScope.atoms.set "stdin"   new FileObjectValue(outfilePrototype, stdin)
+defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = stdout)
+defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
+defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
 
 # --- Run ---
 

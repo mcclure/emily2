@@ -54,6 +54,7 @@ lib/argv.em
 lib/argv.2.em
 lib/iter.em
 lib/stdout.em
+lib/stdoutInherit.em
 lib/file.em
 lib/string.em
 lib/dict.em
