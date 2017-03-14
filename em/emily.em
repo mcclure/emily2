@@ -1744,7 +1744,7 @@ do
 		fileObject.atoms.set (fn.toString)
 			new LiteralFunctionValue
 				function (path)
-					new FileObjectValue(prototype, file fn path)
+					new FileObjectValue(prototype, handle = file fn (path.value))
 				1
 
 	makeFileConstructor(.in,     infilePrototype)
@@ -1762,7 +1762,7 @@ do
 			literalMethod
 				function (this)
 					wrapPrintRepeat (this.handle fn)
-			1
+				1
 
 	addWrapper .write
 	addWrapper .print
@@ -1777,16 +1777,18 @@ outfilePrototype.atoms.set "flush"
 outfilePrototype.atoms.set "close" closeWrapper
 
 do
-	let addWrapper = function(fn, cls)
+	let addWrapper = function(fn, constructor)
 		infilePrototype.atoms.set (fn.toString)
 			literalMethod
 				function (this)
-					new cls(this.handle fn)
-			1
+					constructor(this.handle fn)
+				1
 
-	addWrapper .more
-	addWrapper .peek
-	addWrapper .next
+	let newString = function (x) (new StringValue (x))
+
+	addWrapper .more toBoolValue
+	addWrapper .peek newString
+	addWrapper .next newString
 
 infilePrototype.atoms.set "close" closeWrapper
 
