@@ -1729,7 +1729,7 @@ let installIter = function(prototype)
 installIter arrayValuePrototype
 installIter stringValuePrototype
 
-# Stdlib: File I/Only
+# Stdlib: File I/O
 
 let infilePrototype = new ObjectValue
 
@@ -1792,6 +1792,56 @@ do
 	addWrapper .next newString
 
 infilePrototype.atoms.set "close" closeWrapper
+
+# Stdlib: Dict
+
+let dictObjectDataKey = new ObjectValue
+let dictPrototype = new ObjectValue
+
+# FIXME: Not tolerant to subclassing
+let dictData = function (dict)
+	if (not (dict.atoms.has dictObjectDataKey))
+		dict.atoms.set dictObjectDataKey
+			new Dict
+	dict.atoms.get dictObjectDataKey
+
+let dictKeyFilter = function (value)
+	with value match
+		NumberValue x = x
+		StringValue x = x
+		_ = value
+
+dictPrototype.atoms.set "get"
+	literalMethod
+		function(dict, index)
+			(dictData dict).get
+				dictKeyFilter index
+		2
+
+dictPrototype.atoms.set "set"
+	literalMethod
+		function(dict, index, value)
+			(dictData dict).set
+				dictKeyFilter index
+				value
+		3
+
+
+dictPrototype.atoms.set "has"
+	literalMethod
+		function(dict, index)
+			toBoolValue
+				(dictData dict).has
+					dictKeyFilter index
+		2
+
+dictPrototype.atoms.set "del"
+	literalMethod
+		function(dict, index)
+			(dictData dict).del
+				dictKeyFilter index
+			NullValue
+		2
 
 # Stdlib: "String garbage"
 
@@ -1896,6 +1946,7 @@ defaultScope.atoms.set "char" charObject
 defaultScope.atoms.set "print"   (wrapPrintRepeat print)
 defaultScope.atoms.set "println" (wrapPrintRepeat println)
 defaultScope.atoms.set "file"    fileObject
+defaultScope.atoms.set "Dict"    dictPrototype
 defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = stdout)
 defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
 defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
