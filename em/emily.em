@@ -1158,7 +1158,7 @@ let SequenceExec = inherit Executable
 		if (this.shouldReturn)
 			result
 		else
-			null
+			NullValue
 
 	method toString = do
 		let tags = array()
@@ -1266,6 +1266,7 @@ let SetExec = inherit Executable
 			else
 				scope
 			this.indexClause.eval scope
+		NullValue
 
 let MakeFuncExec = inherit Executable
 	field args = null
@@ -1404,7 +1405,7 @@ let IfExec = inherit Executable
 		else
 			while (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
-			null
+			NullValue
 
 let UnitExec = NullLiteralExec # Just an alias
 
@@ -1642,6 +1643,8 @@ let MatchFunctionValue = inherit Value
 						let atom = m.unpacks unpackIdx
 						scope.atoms.set (atom.value) (value.apply(new NumberValue(unpackIdx)))
 						unpackIdx = + unpackIdx 1
+				# FIXME: Interesting little quirk here: if due to a bug elsewhere this eval
+				# returns a raw Python None or 0.0, very bad things will happen
 				found = m.statement.eval(scope)
 		if (found)
 			found

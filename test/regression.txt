@@ -42,6 +42,7 @@ exec/method.em
 exec/super.em
 exec/field.em
 exec/match.em
+exec/setValue.em
 
 exec/fail/objectSet.em
 exec/fail/objectSetType.em
