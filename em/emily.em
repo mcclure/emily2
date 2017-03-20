@@ -1913,6 +1913,21 @@ defaultScope.atoms.set ">=" (wrapBinaryBool >=)
 defaultScope.atoms.set "==" (wrapBinaryBool ==)
 defaultScope.atoms.set "!=" (wrapBinaryBool !=)
 
+defaultScope.atoms.set "bool"
+	new LiteralFunctionValue
+		function (x)
+			toBoolValue
+				isTrue x
+		1
+
+defaultScope.atoms.set "not"
+	new LiteralFunctionValue
+		function (x)
+			toBoolValue
+				not
+					isTrue x
+		1
+
 defaultScope.atoms.set "nullfn"
 	new LiteralFunctionValue
 		function (x) (null)
