@@ -1554,7 +1554,7 @@ let ArrayValue = inherit Value
 	method length = this.values.length # Stdlib convenience
 
 let NullValue = inherit Value
-	method apply = makePrototypeApply(nullPrototype, this)
+	method apply = makePrototypeApply(nullValuePrototype, this)
 
 let LiteralValue = inherit Value
 	field value = null

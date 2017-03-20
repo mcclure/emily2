@@ -56,12 +56,13 @@ help += "-i [path]   # Use custom emily script\n"
 help += "-p [path]   # Use custom Python\n"
 help += "--p3        # Use python3\n"
 help += "--meta      # Run through self-hosted interpreter\n"
+help += "--md        # \"Meta depth\" (nest how many interpreters?)\n"
 help += "--untested  # Check repo hygiene-- list tests in sample/test not tested"
 
 parser = optparse.OptionParser(usage=help)
 for a in ["a", "A", "v", "-p3", "-meta", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
-for a in ["f", "t", "r", "i", "p"]: # Long args with arguments
+for a in ["f", "t", "r", "i", "p", "-md"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
 
 (options, cmds) = parser.parse_args()
@@ -127,7 +128,11 @@ if flag("p"):
 elif flag("p3"):
     stdpython = "python3"
 
-stdcall = [stdpython, stdscript] + ([stdmeta] if flag("meta") else [])
+stdmetalist = [stdmeta] if flag("meta") or flag("md") else []
+if flag("md"):
+    stdmetalist *= int(flag("md")[0])
+
+stdcall = [stdpython, stdscript] + stdmetalist
 
 expectp = re.compile(r'# Expect(\s*failure)?(\:?)', re.I)
 linep = re.compile(r'# ?(.+)$', re.S)
