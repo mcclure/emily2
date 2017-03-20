@@ -1406,6 +1406,8 @@ let IfExec = inherit Executable
 				this.ifClause.eval(scope)
 			elif (this.elseClause)
 				this.elseClause.eval(scope)
+			else
+				NullValue
 		else
 			while (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
@@ -2033,7 +2035,7 @@ defaultScope.atoms.set "DEBUG"
 				with x match
 					NumberValue x = stdout.write("number ", x, ln)
 					StringValue x = stdout.write("string ", x, ln)
-					NullValue x = println "null"
+					NullValue = println "null"
 					_ = do
 						println "object"
 						DEBUG x

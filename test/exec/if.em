@@ -52,3 +52,9 @@ elif v
 	println "v true"
 else
 	println "all false"
+
+# Expect:
+# null
+
+println
+	if 0 (4)
