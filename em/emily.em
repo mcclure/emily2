@@ -1329,9 +1329,10 @@ let MakeObjectExec = inherit Executable
 			if (exe.isField)
 				if (not (is AtomLiteralExec index))
 					fail "Objects have atom keys only"
-				if (not (result.fields)) # FIXME: Again, when does this happen?
-					result.fields = if infields (infields) else (array())
-				result.fields.append(index)
+				if (not (result.fields))
+					result.fields = copyArgsWithAppend(infields, index)
+				else
+					result.fields.append(index)
 			exe.setEval(scope, result, index)
 
 		if (not (result.fields))

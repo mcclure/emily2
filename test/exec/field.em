@@ -54,3 +54,20 @@ c 1 = 203
 print
 	c 0, c 1, c 2
 	ln
+
+# Quirks: The self-hosted interpreter choked on this once.
+# Expect: 1.0
+let A = inherit object
+
+let B = inherit A
+	field c = null
+
+let D = inherit B
+	field e = 0
+	
+let F = inherit B
+
+let G = new F(1)
+
+println
+	1.0
