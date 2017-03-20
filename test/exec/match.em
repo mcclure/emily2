@@ -17,6 +17,24 @@ with v match
 			x
 			ln
 
+# Literals
+# Expect: Success Success
+
+print
+	with 3 match
+		2 = 1
+		"3" = 2
+		3 = "Success"
+		"ok" = 3
+		4 = 4
+	with "ok" match
+		2 = 5
+		"3" = 6
+		3 = 7
+		"ok" = "Success"
+		4 = 8
+	ln
+
 # Complex unpack
 # Expect:
 # 4.0 5.0 6.0

@@ -5,7 +5,7 @@ let y = "okay"
 
 print
 
-# Expect: 1.0 1.0 null null 1.0 1.0 null null
+# Expect: 1.0 1.0 null null 1.0 1.0 null null null
 	== 1 1
 	== 1 x
 	== 2 1
@@ -14,9 +14,10 @@ print
 	== "okay" y
 	== "bad" "okay"
 	== "bad" y
+	== 3 "3"
 	ln
 
-# Expect: null null 1.0 1.0 null null 1.0 1.0
+# Expect: null null 1.0 1.0 null null 1.0 1.0 1.0
 	!= 1 1
 	!= 1 x
 	!= 2 1
@@ -25,6 +26,7 @@ print
 	!= "okay" y
 	!= "bad" "okay"
 	!= "bad" y
+	!= 3 "3"
 	ln
 
 # Expect: 1.0 null null

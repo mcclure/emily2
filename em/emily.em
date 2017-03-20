@@ -1622,7 +1622,18 @@ let MatchFunctionValue = inherit Value
 		let found = null
 		while (and (not found) (iMatch.more))
 			let m = iMatch.next
-			if (if (m.targetExe) (isChild(m.targetExe.eval(this.scope), value)) else (true))
+			if (
+				do # FIXME: IF I REMOVE THIS "DO" STUFF BREAKS. SOMETHING'S WRONG IN THE READER
+					if (m.targetExe)
+						do
+							let targetValue = m.targetExe.eval(this.scope)
+							if (isChild(targetValue, value))
+								true
+							else
+								== (equalityFilter targetValue) (equalityFilter value)
+					else
+						true
+			)
 				let scope = this.scope
 				if (m.unpacks)
 					scope = new ObjectValue(scope)
@@ -1805,24 +1816,18 @@ let dictData = function (dict)
 			new Dict
 	dict.atoms.get dictObjectDataKey
 
-let dictKeyFilter = function (value)
-	with value match
-		NumberValue x = x
-		StringValue x = x
-		_ = value
-
 dictPrototype.atoms.set "get"
 	literalMethod
 		function(dict, index)
 			(dictData dict).get
-				dictKeyFilter index
+				equalityFilter index
 		2
 
 dictPrototype.atoms.set "set"
 	literalMethod
 		function(dict, index, value)
 			(dictData dict).set
-				dictKeyFilter index
+				equalityFilter index
 				value
 		3
 
@@ -1832,14 +1837,14 @@ dictPrototype.atoms.set "has"
 		function(dict, index)
 			toBoolValue
 				(dictData dict).has
-					dictKeyFilter index
+					equalityFilter index
 		2
 
 dictPrototype.atoms.set "del"
 	literalMethod
 		function(dict, index)
 			(dictData dict).del
-				dictKeyFilter index
+				equalityFilter index
 			NullValue
 		2
 
@@ -1868,6 +1873,12 @@ do
 
 # Stdlib: Scope
 
+let equalityFilter = function (value)
+	with value match
+		NumberValue x = x
+		StringValue x = x
+		_ = value
+
 let wrapBinaryNumber = function(f)
 	new LiteralFunctionValue
 		function(x,y)
@@ -1879,6 +1890,13 @@ let wrapBinaryBool = function(f)
 		function(x,y)
 			toBoolValue
 				f (x.value) (y.value)
+		2
+
+let wrapBinaryEquality = function(f)
+	new LiteralFunctionValue
+		function(x,y)
+			toBoolValue
+				f (equalityFilter x) (equalityFilter y)
 		2
 
 let wrapBinaryBoolToBool = function(f)
@@ -1918,8 +1936,9 @@ defaultScope.atoms.set "<"  (wrapBinaryBool <)
 defaultScope.atoms.set "<=" (wrapBinaryBool <=)
 defaultScope.atoms.set ">"  (wrapBinaryBool >)
 defaultScope.atoms.set ">=" (wrapBinaryBool >=)
-defaultScope.atoms.set "==" (wrapBinaryBool ==)
-defaultScope.atoms.set "!=" (wrapBinaryBool !=)
+
+defaultScope.atoms.set "==" (wrapBinaryEquality ==)
+defaultScope.atoms.set "!=" (wrapBinaryEquality !=)
 
 defaultScope.atoms.set "and" (wrapBinaryBoolToBool and)
 defaultScope.atoms.set "or"  (wrapBinaryBoolToBool or)
