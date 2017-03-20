@@ -1997,6 +1997,21 @@ defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = 
 defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
 defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
 
+# Dubious, intentionally "undocumented"
+defaultScope.atoms.set "DEBUG"
+	new LiteralFunctionValue
+			function (x)
+				stdout.write "----\nDEBUG: "
+				with x match
+					NumberValue x = stdout.write("number ", x, ln)
+					StringValue x = stdout.write("string ", x, ln)
+					NullValue x = println "null"
+					_ = do
+						println "object"
+						DEBUG x
+				print "----\n"
+			1
+
 # --- Run ---
 
 let codeIter = do
