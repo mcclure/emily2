@@ -1202,6 +1202,9 @@ let AtomLiteralExec = inherit LiteralExec
 	method eval = function (scope)
 		this
 
+	# For questionable reasons, AtomLiteralExec (and no other Executable) doubles as its own value
+	method apply = makePrototypeApply(atomValuePrototype, this)
+
 # Does not inherit LiteralExec because it holds no value
 let NullLiteralExec = inherit Executable
 	toString = "[NullLiteral]"
@@ -1667,7 +1670,7 @@ let numberValuePrototype = new ObjectValue
 numberValuePrototype.atoms.set "toString"
 	literalMethod
 		function (this)
-			new NumberValue(this.value.toString)
+			new StringValue(this.value.toString)
 		1
 
 let stringValuePrototype = new ObjectValue
@@ -1687,6 +1690,14 @@ stringValuePrototype.atoms.set "toNumber"
 stringValuePrototype.atoms.set "toString"
 	literalMethod
 		function (this) (this)
+		1
+
+let atomValuePrototype = new ObjectValue
+
+atomValuePrototype.atoms.set "toString"
+	literalMethod
+		function (this)
+			new StringValue (this.value)
 		1
 
 # Stdlib: Arrays
@@ -1776,7 +1787,6 @@ do
 		outfilePrototype.atoms.set (fn.toString)
 			literalMethod
 				function (this)
-					#DEBUG (this)
 					wrapPrintRepeat (this.handle fn)
 				1
 
@@ -1917,6 +1927,7 @@ let wrapPrintRepeat = function(f)
 				with x match
 					StringValue v = v
 					NumberValue v = v
+					AtomLiteralExec = x.value
 					NullValue = "null"
 					_ = "[Unprintable]"
 			repeat

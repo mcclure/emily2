@@ -55,7 +55,7 @@ print
 	c 0, c 1, c 2
 	ln
 
-# Quirks: The self-hosted interpreter choked on this once.
+# Quirks: The self-hosted interpreter choked on this once because it wasn't properly copying things.
 # Expect: 1.0
 let A = inherit object
 
