@@ -1881,6 +1881,13 @@ let wrapBinaryBool = function(f)
 				f (x.value) (y.value)
 		2
 
+let wrapBinaryBoolToBool = function(f)
+	new LiteralFunctionValue
+		function(x,y)
+			toBoolValue
+				f (isTrue x) (isTrue y)
+		2
+
 let wrapPrintRepeat = function(f)
 	let repeat = new LiteralFunctionValue
 		function (x)
@@ -1905,6 +1912,7 @@ defaultScope.atoms.set "+" (wrapBinaryNumber +)
 defaultScope.atoms.set "-" (wrapBinaryNumber -)
 defaultScope.atoms.set "*" (wrapBinaryNumber *)
 defaultScope.atoms.set "/" (wrapBinaryNumber /)
+defaultScope.atoms.set "%" (wrapBinaryNumber %)
 
 defaultScope.atoms.set "<"  (wrapBinaryBool <)
 defaultScope.atoms.set "<=" (wrapBinaryBool <=)
@@ -1912,6 +1920,10 @@ defaultScope.atoms.set ">"  (wrapBinaryBool >)
 defaultScope.atoms.set ">=" (wrapBinaryBool >=)
 defaultScope.atoms.set "==" (wrapBinaryBool ==)
 defaultScope.atoms.set "!=" (wrapBinaryBool !=)
+
+defaultScope.atoms.set "and" (wrapBinaryBoolToBool and)
+defaultScope.atoms.set "or"  (wrapBinaryBoolToBool or)
+defaultScope.atoms.set "xor" (wrapBinaryBoolToBool xor)
 
 defaultScope.atoms.set "bool"
 	new LiteralFunctionValue
@@ -1930,7 +1942,7 @@ defaultScope.atoms.set "not"
 
 defaultScope.atoms.set "nullfn"
 	new LiteralFunctionValue
-		function (x) (null)
+		function (x) (NullValue)
 		1
 
 defaultScope.atoms.set "with"
