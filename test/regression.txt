@@ -57,5 +57,6 @@ lib/stdout.em
 lib/stdoutInherit.em
 lib/file.em
 lib/string.em
+lib/math.em
 lib/dict.em
 lib/char.em
