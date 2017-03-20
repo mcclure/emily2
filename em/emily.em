@@ -1673,6 +1673,11 @@ numberValuePrototype.atoms.set "toString"
 			new StringValue(this.value.toString)
 		1
 
+numberValuePrototype.atoms.set "toNumber"
+	literalMethod
+		function (this) (this)
+		1
+
 let stringValuePrototype = new ObjectValue
 
 stringValuePrototype.atoms.set "length"
@@ -1684,7 +1689,7 @@ stringValuePrototype.atoms.set "length"
 stringValuePrototype.atoms.set "toNumber"
 	literalMethod
 		function (this)
-			new StringValue(this.value.toNumber)
+			new NumberValue(this.value.toNumber)
 		1
 
 stringValuePrototype.atoms.set "toString"
@@ -1941,7 +1946,15 @@ defaultScope.atoms.set "object" rootObject
 defaultScope.atoms.set "null"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)
 
-defaultScope.atoms.set "+" (wrapBinaryNumber +)
+defaultScope.atoms.set "+" 
+	new LiteralFunctionValue
+		function (x, y)
+			let v = + (x.value) (y.value)
+			with x match
+				StringValue = new StringValue(v)
+				NumberValue = new NumberValue(v)
+		2
+
 defaultScope.atoms.set "-" (wrapBinaryNumber -)
 defaultScope.atoms.set "*" (wrapBinaryNumber *)
 defaultScope.atoms.set "/" (wrapBinaryNumber /)
