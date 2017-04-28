@@ -220,9 +220,19 @@ class PackageValue(EmilyValue):
 		key = key.value
 		if key in s.loaded:
 			return s.loaded[key]
+		isdir = False
 
-		filename = os.path.join(s.base, key + ".em") # TODO: Support directories
+		filename = os.path.join(s.base, key + ".em")
 		filename = os.path.realpath(filename)
+		if not os.path.isfile(filename):
+			dirname = os.path.join(s.base, key)
+			dirname = os.path.realpath(dirname)
+			if os.path.isdir(dirname):
+				isdir = True
+				filename = dirname
+			else:
+				raise InternalExecutionException("Could not find file \"%s\" or directory \"%s\"" % (filename, dirname))
+
 		if filename in globalPackageCache:
 			value = globalPackageCache[filename]
 
@@ -230,16 +240,19 @@ class PackageValue(EmilyValue):
 				raise InternalExecutionException("File \"%s\" attempted to recursively load itself while it was still executing" % filename)
 		else:
 			# FIXME: If it ever becomes possible to recover from errors, this will be a problem
-			globalPackageCache[filename] = None
+			if isdir:
+				value = PackageValue(filename)
+			else:
+				globalPackageCache[filename] = None
 
-			try:
-				ast = reader.ast( fileChars(utfOpen(filename)) )
-			except IOError:
-				raise InternalExecutionException("Could not load file \"%s\"" % filename)
+				try:
+					ast = reader.ast( fileChars(utfOpen(filename)) )
+				except IOError:
+					raise InternalExecutionException("Could not load file \"%s\"" % filename)
 
-			ast = parser.exeFromAst(ast)
-			value = ObjectValue()
-			ast.eval(defaultScope, value)
+				ast = parser.exeFromAst(ast)
+				value = ObjectValue()
+				ast.eval(defaultScope, value)
 
 			globalPackageCache[filename] = value
 

@@ -54,8 +54,9 @@ exec/fail/matchUnpack.2.em
 
 export/basic.em
 export/project.em
-export/order.em
 export/argv.em
+export/order.em
+export/subdir.em
 
 export/fail/let.em
 export/fail/object.em
