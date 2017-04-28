@@ -225,7 +225,13 @@ class PackageValue(EmilyValue):
 		filename = os.path.realpath(filename)
 		if filename in globalPackageCache:
 			value = globalPackageCache[filename]
+
+			if value is None:
+				raise InternalExecutionException("File \"%s\" attempted to recursively load itself while it was still executing" % filename)
 		else:
+			# FIXME: If it ever becomes possible to recover from errors, this will be a problem
+			globalPackageCache[filename] = None
+
 			try:
 				ast = reader.ast( fileChars(utfOpen(filename)) )
 			except IOError:

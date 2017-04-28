@@ -59,6 +59,7 @@ export/order.em
 export/fail/let.em
 export/fail/object.em
 export/fail/scope.em
+export/fail/recursive.em
 
 lib/argv.em
 lib/argv.2.em
