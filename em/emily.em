@@ -1155,17 +1155,28 @@ let SequenceExec = inherit Executable
 	field hasScope = false
 	field method execs = array()
 
-	method eval = function (scope)
+	method evalSequence = function (scope, exportScope)
+		let exportList = null
 		if (this.hasScope)
 			scope = new ObjectValue(scope)
+			if exportScope
+				exportList = array()
+				scope.atoms.set scopeExportList exportList
 		let i = this.execs.iter
 		let result = null
 		while (i.more)
 			result = i.next.eval(scope)
+		if (!= exportList null)
+			let i = exportList.iter
+			while (i.more)
+				exportScope.atoms.set (scope.atoms.get (i.next))
 		if (this.shouldReturn)
 			result
 		else
 			NullValue
+
+	method eval = function (scope)
+		this.evalSequence scope null
 
 	method toString = do
 		let tags = array()
@@ -1671,6 +1682,10 @@ let MatchFunctionValue = inherit Value
 let literalMethod = function(f, n)
 	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
 
+# Used by SequenceExec
+
+let scopeExportList = new ObjectValue
+
 # Stdlib: Builtin types
 
 let nullValuePrototype = new ObjectValue
@@ -1860,7 +1875,6 @@ dictPrototype.atoms.set "set"
 				value
 		3
 
-
 dictPrototype.atoms.set "has"
 	literalMethod
 		function(dict, index)
@@ -1876,6 +1890,17 @@ dictPrototype.atoms.set "del"
 				equalityFilter index
 			NullValue
 		2
+
+dictPrototype.atoms.set "iter"
+	literalMethod
+		function (dict) # Inefficient, it is not necessary to flatten the array
+			let result = new ArrayValue
+			let i = (dictData dict).iter
+			while (i.more) # TODO: Turn numbers and strings back into Emily objects
+				let key = i.next
+				result.values.append(key)
+			new IteratorObjectValue(source = result)
+		1
 
 # Stdlib: "String garbage"
 
@@ -2050,6 +2075,17 @@ defaultScope.atoms.set "DEBUG"
 				print "----\n"
 			1
 
+# This is supposed to print the keys sorted, but instead relies on dict iter incidentally sorting things
+let debugScopeDump = function(obj)
+	let i = obj.atoms.iter
+	while (i.more)
+		let key = i.next
+		stdout.write
+			key
+			": "
+			obj.atoms.get key
+			ln
+
 # --- Run ---
 
 let codeIter = do
@@ -2079,4 +2115,9 @@ else
 			scriptArgvValue.append (new StringValue(i.next))
 		scope.atoms.set "argv" (new ArrayValue(scriptArgvValue))
 		
-		exe.eval(scope)
+		let exportScope = new ObjectValue
+
+		exe.evalSequence(scope, exportScope)
+
+		if cmdExported
+			debugScopeDump(exportScope)

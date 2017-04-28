@@ -669,6 +669,15 @@ def dictDel(obj, key):
 		raise InternalExecutionException("No such key")
 dictObjectPrototype.atoms['del'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, dictDel))
 
+def dictIter(obj):
+	d = obj.atoms.get(dictObjectData)
+	# NOTES:
+	# - This is less efficient than it should be. There's no good reason to allocate a whole array here.
+	# - This is sorted to make certain tests run more predictably. This should not be considered a spec behavior.
+	# - If I'm going to overload stringIteratorImpl like this, shouldn't I rename it?
+	return stringIteratorImpl(sorted(d.keys()) if d else [])
+dictObjectPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, dictIter))
+
 defaultScope.atoms['Dict'] = dictObjectPrototype
 
 # IO : Output
