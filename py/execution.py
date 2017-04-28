@@ -91,6 +91,8 @@ def isImpl(parent, child):
 		return parent == numberPrototype
 	if type(child) == unicode:
 		return parent == stringPrototype
+	if type(child) == ArrayValue:
+		return parent == arrayPrototype
 	if type(child) == ObjectValue:
 		if parent == rootObject:
 			return True
@@ -582,6 +584,7 @@ defaultScope = ObjectValue()
 defaultScope.atoms['null'] = None
 defaultScope.atoms['nullfn'] = PythonFunctionValue(1, lambda x: None)
 defaultScope.atoms['Object'] = rootObject
+defaultScope.atoms['Array'] = arrayPrototype
 defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
 def makeBinop(f):
 	def wrapper(x, y):

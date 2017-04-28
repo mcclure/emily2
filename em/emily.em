@@ -1469,6 +1469,8 @@ let isChild = function(parent,child)
 		== parent numberValuePrototype
 	elif (is StringValue child)
 		== parent stringValuePrototype
+	elif (is ArrayValue child)
+		== parent arrayValuePrototype
 	elif (is ObjectValue child)
 		if (== parent rootObject)
 			true
@@ -1984,6 +1986,7 @@ let defaultScope = new ObjectValue
 defaultScope.atoms.set "Object" rootObject
 defaultScope.atoms.set "String" stringValuePrototype
 defaultScope.atoms.set "Number" numberValuePrototype
+defaultScope.atoms.set "Array"  arrayValuePrototype
 
 defaultScope.atoms.set "null"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)

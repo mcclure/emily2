@@ -87,18 +87,22 @@ maybeClosure
 
 # Test is
 # Expect:
-# 1.0 null 1.0 null
+# 1.0 null 1.0 null 1.0 1.0
 # null 1.0 null 1.0
 
 let q = inherit None
 
+# Builtin types
 print
 	is Number 3
 	is Number None
 	is String "3"
 	is String None
+	is Array array(1,2,3)
+	is Dict (new Dict)
 	ln
 
+# User types
 print
 	is None Object
 	is Object None
