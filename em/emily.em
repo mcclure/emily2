@@ -1465,6 +1465,10 @@ let toBoolValue = function(x)
 let isChild = function(parent,child)
 	if (== parent child)
 		true
+	elif (is NumberValue child)
+		== parent numberValuePrototype
+	elif (is StringValue child)
+		== parent stringValuePrototype
 	elif (is ObjectValue child)
 		if (== parent rootObject)
 			true
@@ -1649,7 +1653,7 @@ let MatchFunctionValue = inherit Value
 		while (and (not found) (iMatch.more))
 			let m = iMatch.next
 			if (
-				do # FIXME: IF I REMOVE THIS "DO" STUFF BREAKS. SOMETHING'S WRONG IN THE READER
+				do # FIXME: IF I REMOVE THIS "DO" AND JUST SAY "IF", STUFF BREAKS. SOMETHING'S WRONG IN THE READER
 					if (m.targetExe)
 						do
 							let targetValue = m.targetExe.eval(this.scope)
@@ -1978,6 +1982,9 @@ let rootObject = new ObjectValue
 let defaultScope = new ObjectValue
 
 defaultScope.atoms.set "Object" rootObject
+defaultScope.atoms.set "String" stringValuePrototype
+defaultScope.atoms.set "Number" numberValuePrototype
+
 defaultScope.atoms.set "null"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)
 

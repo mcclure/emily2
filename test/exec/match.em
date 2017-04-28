@@ -87,9 +87,17 @@ maybeClosure
 
 # Test is
 # Expect:
+# 1.0 null 1.0 null
 # null 1.0 null 1.0
 
 let q = inherit None
+
+print
+	is Number 3
+	is Number None
+	is String "3"
+	is String None
+	ln
 
 print
 	is None Object

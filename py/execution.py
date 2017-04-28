@@ -87,6 +87,10 @@ class FunctionValue(EmilyValue):
 def isImpl(parent, child):
 	if parent == child:
 		return True
+	if type(child) == float:
+		return parent == numberPrototype
+	if type(child) == unicode:
+		return parent == stringPrototype
 	if type(child) == ObjectValue:
 		if parent == rootObject:
 			return True
@@ -841,6 +845,8 @@ numberPrototype = ObjectValue()
 numberPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:unicode(x)))
 numberPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
 
+defaultScope.atoms['Number'] = numberPrototype
+
 # Strings
 
 stringPrototype = ObjectValue()
@@ -860,6 +866,8 @@ def toNumberImpl(x):
 	except ValueError:
 		raise LibraryException("Could not convert to number: %s" % x)
 stringPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, toNumberImpl))
+
+defaultScope.atoms['String'] = stringPrototype
 
 # Atoms
 
