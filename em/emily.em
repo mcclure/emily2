@@ -1902,8 +1902,15 @@ dictPrototype.atoms.set "iter"
 		function (dict) # Inefficient, it is not necessary to flatten the array
 			let result = new ArrayValue
 			let i = (dictData dict).iter
-			while (i.more) # TODO: Turn numbers and strings back into Emily objects
+			while (i.more)
 				let key = i.next
+
+				# Reverse equalityFilter
+				if (is Number key)
+					key = new NumberValue(key)
+				elif (is String key)
+					key = new StringValue(key)
+
 				result.values.append(key)
 			new IteratorObjectValue(source = result)
 		1
