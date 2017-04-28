@@ -19,8 +19,9 @@ help += "Accepted arguments:\n"
 help += "-e [string]               # Instead of file, execute inline string\n"
 help += "--ast                     # Don't execute, dump AST\n"
 help += "--ast2                    # Don't execute, run macros and dump AST"
+help += "--exported                # After executing, print exported symbols"
 
-cmdStoreTrue = ["--ast", "--ast2"] # Single letter args, flags
+cmdStoreTrue = ["--ast", "--ast2", "--exported"] # Single letter args, flags
 cmdAppend = ["-e"] # Long args with arguments
 
 def cmdStrip(s):
@@ -100,7 +101,12 @@ try:
 
 	scope = execution.ObjectValue(execution.defaultScope)
 	scope.atoms['argv'] = execution.ArrayValue(argv)
-	ast.eval(scope)
+	exported = execution.ObjectValue()
+
+	ast.eval(scope, exported)
+
+	if flag('exported'):
+		execution.debugScopeDump(exported)
 
 except execution.ExecutionException as e:
 	output = u"Execution failed:\n\t%s\n\nAt location:" % (e)

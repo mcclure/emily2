@@ -172,7 +172,7 @@ class Parser(object):
 
 		hasLets = False
 		for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
-			if type(exe) == execution.SetExec and exe.isLet:
+			if type(exe) == execution.SetExec and (exe.isLet or exe.isExport):
 				hasLets = True
 				break
 		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
@@ -235,6 +235,7 @@ class SetMacro(OneSymbolMacro):
 		isLet = False
 		isMethod = False
 		isField = False
+		isExport = False
 		target = None
 		for idx in range(len(left)):
 			if isSymbol(left[idx], u"let"):
@@ -243,8 +244,12 @@ class SetMacro(OneSymbolMacro):
 				isMethod = True
 			elif isSymbol(left[idx], u"field"):
 				isField = True
+			elif isSymbol(left[idx], u"export"):
+				isExport = True
 			else:
 				break
+		if isLet and isExport:
+			return Error(node.loc, "Cannot use \"let\" and \"export\" together")
 		if left:
 			left = left[idx:]
 		if len(left) == 0:
@@ -258,7 +263,7 @@ class SetMacro(OneSymbolMacro):
 				return Error(key.loc, "Assigned name must be alphanumeric")
 			key = execution.AtomLiteralExec(key.loc, key.content)
 		value = m.process(right, tracker)
-		return ([], execution.SetExec(node.loc, isLet, isMethod, isField, target, key, value), [])
+		return ([], execution.SetExec(node.loc, isLet, isMethod, isField, isExport, target, key, value), [])
 
 # Abstract macro: Expects SYMBOL (GROUP)
 class SeqMacro(OneSymbolMacro):
@@ -490,6 +495,8 @@ class ObjectMacro(OneSymbolMacro):
 					return Error(assign.loc, "Assignment inside object literal was not of form key=value")
 				if assign.isLet:
 					return Error(assign.loc, "\"let\" is redundant in an object literal")
+				if assign.isLet:
+					return Error(assign.loc, "\"export\" is redundant in an object literal")
 				assign.isLet = True
 				assigns.append(assign)
 		return (left, execution.MakeObjectExec(node.loc, base, values, assigns, s.isInstance), right)

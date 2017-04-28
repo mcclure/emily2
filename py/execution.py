@@ -46,6 +46,8 @@ def intKeysOnly(fields=False):
 def noSuchKey(key, beingSet=False):
 	raise LookupException(u"No such key: %s%s" % (key, " (trying to set)" if beingSet else ""))
 
+scopeExportList = object()
+
 class EmilyValue(object):
 	pass
 
@@ -279,11 +281,22 @@ class SequenceExec(Executable):
 		tags = (["Scoped"] if s.hasScope else []) + (["Returning"] if s.shouldReturn else [])
 		return u"[Sequence%s %s]" % (("(%s)"%u", ".join(tags)) if tags else "", unicodeJoin(u" ", s.execs))
 
-	def eval(s, scope):
+	def eval(s, scope, exportScope = None):
+		exportList = None
+
 		if s.hasScope:
 			scope = ObjectValue(scope)
+			if exportScope:
+				exportList = set()
+				scope.atoms[scopeExportList] = exportList
+
 		for exe in s.execs:
 			result = exe.eval(scope)
+
+		if exportList:
+			for key in exportList:
+				exportScope.atoms[key] = scope.atoms[key]
+
 		return result if s.shouldReturn else None
 
 class LiteralExec(Executable):
@@ -393,17 +406,18 @@ class VarExec(Executable):
 			raise ExecutionException(s.loc, u"Variable read", u"Ctrl-C")
 
 class SetExec(Executable):
-	def __init__(s, loc, isLet, isMethod, isField, target, index, valueClause): # TODO: indexClauses
+	def __init__(s, loc, isLet, isMethod, isField, isExport, target, index, valueClause): # TODO: indexClauses
 		super(SetExec, s).__init__(loc)
 		s.isLet = isLet
 		s.isMethod = isMethod
 		s.isField = isField
+		s.isExport = isExport
 		s.target = target
 		s.index = index
 		s.valueClause = valueClause
 
 	def __unicode__(s):
-		return u"[%s %s %s %s]" % ("Let" if s.isLet else "Set", unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
+		return u"[%s %s %s %s]" % ("Export" if s.isExport else ("Let" if s.isLet else "Set"), unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
 
 	def eval(s, scope, targetOverride = None, indexOverride = None):
 		if targetOverride:
@@ -423,8 +437,13 @@ class SetExec(Executable):
 		else:
 			value = s.valueClause.eval(scope)
 
+		if s.isExport:
+			if scopeExportList not in scope.atoms:
+				raise ExecutionException(s.loc, u"Assignment", u"\"export\" in unexpected place")
+			scope.atoms[scopeExportList].add(index.value)
+
 		try:
-			target.assign(s.isLet, index, value)
+			target.assign(s.isLet or s.isExport, index, value)
 		except InternalExecutionException as e:
 			raise ExecutionException(s.loc, u"Assignment", unicode(e))
 		except KeyboardInterrupt:
@@ -842,3 +861,12 @@ atomPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctio
 
 nullPrototype = ObjectValue()
 nullPrototype.atoms['toString'] = "null"
+
+# Used to test exporting
+
+def debugScopeDump(obj):
+	for key in sorted(obj.atoms.keys()):
+		value = obj.atoms[key]
+		if type(value) == MethodPseudoValue:
+			value = "[Method]"
+		print printable(key) + ": " + printable(value)

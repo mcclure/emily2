@@ -51,6 +51,12 @@ exec/fail/arraySetType.em
 exec/fail/matchUnpack.em
 exec/fail/matchUnpack.2.em
 
+export/basic.em
+
+export/fail/let.em
+export/fail/object.em
+export/fail/scope.em
+
 lib/argv.em
 lib/argv.2.em
 lib/iter.em
