@@ -929,6 +929,7 @@ def setEntryFile(filename):
 
 defaultScope.atoms['package'] = ObjectValue()
 defaultScope.atoms['project'] = ObjectValue()
+# TODO: directory
 
 # Used to test exporting
 
