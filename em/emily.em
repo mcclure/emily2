@@ -5,6 +5,7 @@ let true = 1
 
 let cmdAst = false
 let cmdAst2 = false
+let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
@@ -23,6 +24,8 @@ do
 				cmdAst = true
 			"--ast2" =
 				cmdAst2 = true
+			"--exported" =
+				cmdExported = true
 			"-e" = do
 				if (not (i.more))
 					stderr.println "Missing argument for -e"
@@ -596,9 +599,13 @@ let SetMacro = inherit OneSymbolMacro
 				exec.isField = true
 			elif (stripLeftSymbol(left, "method"))
 				exec.isMethod = true
+			elif (stripLeftSymbol(left, "export"))
+				exec.isExport = true
 			else
 				pending = false
 
+		if (and (exec.isLet) (exec.isExport))
+			parser.error(node.loc, "Cannot use \"let\" and \"export\" together")
 		if (not (left.length))
 			parser.error(node.loc, "Missing name in =")
 		else
@@ -876,7 +883,7 @@ let ObjectMacro = inherit OneSymbolMacro
 						foundSet = true
 						if (assign.targetClause)
 							foundError = parser.error(assign.loc, "Assignment inside object literal was not of form key=value")
-						elif (assign.isLet)
+						elif (or (assign.isLet) (assign.isExport))
 							foundError = parser.error(assign.loc, "Found a stray value expression inside an object literal")
 						else
 							assign.isLet = true
@@ -969,7 +976,7 @@ let Parser = inherit object
 		let i = execs.iter
 		while (and (not hasLets) (i.more))
 			let exe = i.next
-			if ( if (is SetExec exe) (exe.isLet) ) # SHORT CIRCUITING "AND" NEEDED BADLY
+			if ( if (is SetExec exe) (or (exe.isLet) (exe.isExport)) ) # SHORT CIRCUITING "AND" NEEDED BADLY
 				hasLets = true
 
 		new SequenceExec(loc, shouldReturn, hasLets, execs)
@@ -1169,7 +1176,7 @@ let SequenceExec = inherit Executable
 		nullJoin array
 			"[Sequence"
 			if (tags.length)
-				nullJoin array("(", join "," tags, ")")
+				nullJoin array("(", join ", " tags, ")")
 			else
 				""
 			" "
@@ -1238,13 +1245,14 @@ let SetExec = inherit Executable
 	field isLet = false
 	field isMethod = false
 	field isField = false
+	field isExport = false
 	field targetClause = null
 	field indexClause = null
 	field valueClause = null
 
 	method toString = nullJoin array
 		"["
-		if (this.isLet) ("Let") else ("Set")
+		if (this.isExport) ("Export") elif (this.isLet) ("Let") else ("Set")
 		" "
 		if (this.targetClause) (this.targetClause) else ("Scope")
 		" "
