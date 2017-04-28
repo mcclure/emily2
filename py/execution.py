@@ -1,8 +1,9 @@
 # Execution tree classes
 
 import sys
+import os.path
 from core import *
-from util import unicodeJoin, quotedString, utfOpen, streamable
+from util import unicodeJoin, quotedString, fileChars, utfOpen, streamable
 import codecs
 import reader, parser
 
@@ -205,6 +206,39 @@ class ObjectValue(EmilyValue):
 		except IndexError: # Used an excessive int key
 			noSuchKey(key, True)
 		return s.innerAssign(isLet, key.value, value)
+
+globalPackageCache = {}
+
+class PackageValue(EmilyValue):
+	def __init__(s, base):
+		s.base = base
+		s.loaded = {}
+
+	def apply(s, key):
+		if type(key) != AtomLiteralExec:
+			atomKeysOnly() # Raises
+		key = key.value
+		if key in s.loaded:
+			return key
+
+		filename = os.path.join(s.base, key + ".em") # TODO: Support directories
+		filename = os.path.realpath(filename)
+		if filename in globalPackageCache:
+			value = globalPackageCache[filename]
+		else:
+			try:
+				ast = reader.ast( fileChars(utfOpen(filename)) )
+			except IOError:
+				raise InternalExecutionException("Could not load file \"%s\"" % filename)
+
+			ast = parser.exeFromAst(ast)
+			value = ObjectValue()
+			ast.eval(defaultScope, value)
+
+			globalPackageCache[filename] = value
+
+		s.loaded[key] = value
+		return value
 
 # Small chunk of standard library: The array prototype
 
@@ -759,7 +793,7 @@ defaultScope.atoms['println'] = stdoutObject.atoms['println']
 
 defaultScope.atoms['exit'] = PythonFunctionValue(1, lambda x: sys.exit(int(x)))
 defaultScope.atoms['ln'] = u"\n"
-defaultScope.atoms['argv'] = ArrayValue([])
+defaultScope.atoms['argv'] = None # Note: This value will actually be seen by imported files.
 
 def failImpl(s):
 	result = u"Program signaled failure"
@@ -881,6 +915,14 @@ atomPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctio
 
 nullPrototype = ObjectValue()
 nullPrototype.atoms['toString'] = "null"
+
+# Packages
+
+def setEntryFile(filename):
+	defaultScope.atoms['project'] = PackageValue(os.path.dirname(os.path.realpath(filename)))
+
+defaultScope.atoms['package'] = ObjectValue()
+defaultScope.atoms['project'] = ObjectValue()
 
 # Used to test exporting
 

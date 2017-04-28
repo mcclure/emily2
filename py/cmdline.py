@@ -84,10 +84,15 @@ else:
 sys.setrecursionlimit(50000)
 
 try:
-	ast = reader.ast(
-		util.utf8string(flag('e')[0]) if flag('e') 
-			else util.fileChars(util.utfOpen(target))
-	)
+	try:
+		ast = reader.ast(
+			util.utf8string(flag('e')[0]) if flag('e') 
+				else util.fileChars(util.utfOpen(target))
+		)
+	except IOError:
+		print >>sys.stderr, "Compilation failed:"
+		print >>sys.stderr, "Could not open file \"" + target + "\""
+		sys.exit(1)
 
 	if flag('ast'):
 		print ast
@@ -98,6 +103,9 @@ try:
 	if flag('ast2'):
 		print ast
 		sys.exit(0)
+
+	if not flag('e'):
+		execution.setEntryFile(target)
 
 	scope = execution.ObjectValue(execution.defaultScope)
 	scope.atoms['argv'] = execution.ArrayValue(argv)
