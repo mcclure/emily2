@@ -495,7 +495,7 @@ class ObjectMacro(OneSymbolMacro):
 					return Error(assign.loc, "Assignment inside object literal was not of form key=value")
 				if assign.isLet:
 					return Error(assign.loc, "\"let\" is redundant in an object literal")
-				if assign.isLet:
+				if assign.isExport:
 					return Error(assign.loc, "\"export\" is redundant in an object literal")
 				assign.isLet = True
 				assigns.append(assign)

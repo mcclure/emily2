@@ -17,6 +17,7 @@ macro/null.em
 macro/value.em
 macro/set.em
 macro/steal.em
+macro/scopedSequence.em
 
 macro/fail/setCount.em
 macro/fail/setType.em
