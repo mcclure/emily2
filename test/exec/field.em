@@ -5,7 +5,7 @@
 # 1.0 2.0 3.0 4.0 5.0 10.0 3.0
 # 1.0 7.0 9.0 4.0 8.0 10.0 9.0
 
-let a = inherit object
+let a = inherit Object
 	field a = 1
 	field b = 2
 	field c = 3
@@ -57,7 +57,7 @@ print
 
 # Quirks: The self-hosted interpreter choked on this once because it wasn't properly copying things.
 # Expect: 1.0
-let A = inherit object
+let A = inherit Object
 
 let B = inherit A
 	field c = null

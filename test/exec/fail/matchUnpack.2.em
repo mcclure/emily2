@@ -1,8 +1,8 @@
 # Test match with too many fields in untyped unpack
 # Expect failure
 
-let None = inherit object
-let Some = inherit object
+let None = inherit Object
+let Some = inherit Object
 	field value = null
 
 let p = new Some(3)

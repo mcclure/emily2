@@ -3,8 +3,8 @@
 # Basic
 # Expect: Value is: null
 
-let None = inherit object
-let Some = inherit object
+let None = inherit Object
+let Some = inherit Object
 	field value = null
 
 let v = new Some(null)
@@ -41,7 +41,7 @@ print
 # 4.0
 # 4.0 5.0 6.0
 
-let Vector3 = inherit object
+let Vector3 = inherit Object
 	field x = null
 	field y = null
 	field z = null
@@ -92,8 +92,8 @@ maybeClosure
 let q = inherit None
 
 print
-	is None object
-	is object None
+	is None Object
+	is Object None
 	is q None
 	is None q
 	ln

@@ -1,9 +1,9 @@
-# Test object super-- sort of a scope test
+# Test Object super-- sort of a scope test
 
 # Basic super test
 # Expect: 10.0 12.0 15.0
 
-let obj1 = inherit object
+let obj1 = inherit Object
 	v = 1
 	method f = function()
 		10
@@ -34,7 +34,7 @@ print
 # Same test, but have the method use this
 # Expect: 1.0 20.0 210.0
 
-let obj4 = inherit object
+let obj4 = inherit Object
 	v = 1
 	method f = function()
 		this.v

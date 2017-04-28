@@ -61,7 +61,7 @@ let popLeft = function(a)
 	left
 
 # Linked list / stack object
-let Linked = inherit object
+let Linked = inherit Object
 	field value = null
 	field next = null # This looks like an iterator but is immutable. Is this bad
 	method more = (!= (this.next) null)
@@ -164,13 +164,13 @@ let quotedString = function(s)
 # I think I originally imagined macros would update nodes to "at least" their own
 # progress level, but in practice it seems macros only update targets all the way to
 # "executable". Maybe macro-priority and progress should be two separate enums
-let ProgressBase = inherit object
+let ProgressBase = inherit Object
 	none = 0   
 	reader = 1000      # Expression tree structure
 	parser = 2000      # "AST" structure
 	executable = 3000  # Execution tree structure
 
-let Loc = inherit object
+let Loc = inherit Object
 	field line = 0
 	field char = 0
 
@@ -180,11 +180,11 @@ let Loc = inherit object
 		" char "
 		this.char
 
-let Node = inherit object
+let Node = inherit Object
 	field loc = null
 	progress = ProgressBase.none
 
-let Error = inherit object
+let Error = inherit Object
 	field loc = null
 	field msg = null
 
@@ -232,7 +232,7 @@ let NumberExp = inherit Node
 		if (this.dot) (".") else ("")
 		if (this.decimal) (this.decimal) else ("")
 
-let Statement = inherit object
+let Statement = inherit Object
 	field method nodes = array()
 	field dead = false
 
@@ -245,7 +245,7 @@ let Statement = inherit object
 			result = + result (i.next.toString)
 		result
 
-let StatementKind = inherit object
+let StatementKind = inherit Object
 let StatementKind.Outermost = inherit StatementKind
 let StatementKind.Indent = inherit StatementKind
 let StatementKind.Parenthesis = inherit StatementKind
@@ -278,7 +278,7 @@ let makeAst = function(i)
 		finalGroup.finalStatement.dead = true
 		nextState Scanning
 
-	let State = inherit object
+	let State = inherit Object
 		enter = nullfn
 		leave = nullfn
 		handle = nullfn
@@ -505,7 +505,7 @@ let makeAst = function(i)
 
 # Base/helper
 
-let Macro = inherit object
+let Macro = inherit Object
 	progress = ProgressBase.reader
 
 let insertMacro = insertLinked function(x,y)
@@ -527,7 +527,7 @@ let stripLeftSymbol = function(list, goal)
 		else
 			null
 
-let SequenceTracker = inherit object
+let SequenceTracker = inherit Object
 	field statements = null
 	field idx = 0
 
@@ -737,7 +737,7 @@ let IfMacro = inherit OneSymbolMacro
 				else
 					new ProcessResult(left, new IfExec(node.loc, this.loop, condExec, seqExec, elseExec), right)
 
-let MatchCase = inherit object
+let MatchCase = inherit Object
 	field targetExe = null
 	field unpacks = null
 	field statement = null
@@ -945,12 +945,12 @@ let standardMacros = array
 
 # Parser
 
-let ProcessResult = inherit object
+let ProcessResult = inherit Object
 	field left = null
 	field at = null
 	field right = null
 
-let Parser = inherit object
+let Parser = inherit Object
 	field macros = null # Linked[Macro]
 	field errors = array()
 
@@ -1484,7 +1484,7 @@ let makePrototypeApply = function(prototype, this, value)
 		AtomLiteralExec(_, key) = resolveMethod(prototype, key, this)
 		_ = fail "Object has atom keys only"
 
-let Value = inherit object
+let Value = inherit Object
 	apply = function(value)
 		fail "Apply for this object unimplemented"
 
@@ -1612,7 +1612,7 @@ let SuperValue = inherit Value
 			fail "Objects have atom keys only"
 		resolveMethod(this.parent, index.value, this.target)
 
-let MethodPseudoValue = inherit object
+let MethodPseudoValue = inherit Object
 
 let FunctionMethodPseudoValue = inherit MethodPseudoValue
 	field scope = null
@@ -1977,7 +1977,7 @@ let rootObject = new ObjectValue
 
 let defaultScope = new ObjectValue
 
-defaultScope.atoms.set "object" rootObject
+defaultScope.atoms.set "Object" rootObject
 defaultScope.atoms.set "null"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)
 

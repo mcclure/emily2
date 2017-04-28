@@ -6,7 +6,7 @@
 # 4.0
 # 5.0
 
-let obj1 = inherit object
+let obj1 = inherit Object
 	a = 1
 	b = 2
 	c = 3
@@ -67,12 +67,12 @@ println
 # Expect:
 # 30.0
 
-obj2.c = inherit object
-	x = inherit object
+obj2.c = inherit Object
+	x = inherit Object
 		y = null
 
-obj2.c.x.y = inherit object()
-let obj2.c.x.y.z = inherit object
+obj2.c.x.y = inherit Object()
+let obj2.c.x.y.z = inherit Object
 	w = 0
 obj2.c.x.y.z.w = 30.0
 

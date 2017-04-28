@@ -3,7 +3,7 @@
 # Test 'this' mutation
 # Expect: 30.0 30.0
 
-let total = inherit object
+let total = inherit Object
 	value = 0
 	method increment = function (x)
 		this.value =
