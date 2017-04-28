@@ -1169,7 +1169,8 @@ let SequenceExec = inherit Executable
 		if (!= exportList null)
 			let i = exportList.iter
 			while (i.more)
-				exportScope.atoms.set (scope.atoms.get (i.next))
+				let key = i.next
+				exportScope.atoms.set key (scope.atoms.get key)
 		if (this.shouldReturn)
 			result
 		else
@@ -1278,16 +1279,25 @@ let SetExec = inherit Executable
 		else
 			this.valueClause.eval scope
 
-		target.assign(this.isLet, index, value)
+		target.assign(or (this.isLet) (this.isExport), index, value)
 
 	method eval = function (scope)
-		this.setEval
-			scope
+		let target = do
 			if (this.targetClause)
 				this.targetClause.eval scope
 			else
 				scope
-			this.indexClause.eval scope
+		let index = this.indexClause.eval scope
+		
+		this.setEval(scope, target, index)			
+		
+		if (this.isExport)
+			if (not (scope.atoms.has scopeExportList))
+				this.fail "\"export\" in unexpected place"
+			else
+				let exportList = scope.atoms.get scopeExportList
+				exportList.append (index.value) # Just assume it's an atom
+
 		NullValue
 
 let MakeFuncExec = inherit Executable
@@ -1973,16 +1983,19 @@ let wrapBinaryBoolToBool = function(f)
 				f (isTrue x) (isTrue y)
 		2
 
+let printable = function(x)
+	with x match
+		StringValue v = v
+		NumberValue v = v
+		AtomLiteralExec = x.value
+		NullValue = "null"
+		_ = "[Unprintable]"
+
 let wrapPrintRepeat = function(f)
 	let repeat = new LiteralFunctionValue
 		function (x)
 			f
-				with x match
-					StringValue v = v
-					NumberValue v = v
-					AtomLiteralExec = x.value
-					NullValue = "null"
-					_ = "[Unprintable]"
+				printable x
 			repeat
 	repeat
 
@@ -2097,10 +2110,14 @@ let debugScopeDump = function(obj)
 	let i = obj.atoms.iter
 	while (i.more)
 		let key = i.next
+		let value = obj.atoms.get key
 		stdout.write
 			key
 			": "
-			obj.atoms.get key
+			if (is MethodPseudoValue value)
+				"[Method]"
+			else
+				printable value
 			ln
 
 # --- Run ---
