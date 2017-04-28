@@ -219,7 +219,7 @@ class PackageValue(EmilyValue):
 			atomKeysOnly() # Raises
 		key = key.value
 		if key in s.loaded:
-			return key
+			return s.loaded[key]
 
 		filename = os.path.join(s.base, key + ".em") # TODO: Support directories
 		filename = os.path.realpath(filename)

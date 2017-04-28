@@ -53,6 +53,8 @@ exec/fail/matchUnpack.em
 exec/fail/matchUnpack.2.em
 
 export/basic.em
+export/project.em
+export/order.em
 
 export/fail/let.em
 export/fail/object.em
