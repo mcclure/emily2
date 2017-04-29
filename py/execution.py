@@ -877,12 +877,23 @@ fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
 stdinObject = makeInfileObject( codecs.getreader('utf-8')(sys.stdin) )
 defaultScope.atoms['stdin'] = stdinObject
 
-# String garbage
+# IO: Filesystem
 
 def toBoolWrap(fn):
 	def wrap(x):
 		return toBool(fn(x))
 	return wrap
+
+pathObject = ObjectValue()
+fileObject.atoms['path'] = pathObject
+
+pathObject.atoms['join'] = PythonFunctionValue(2, os.path.join)
+pathObject.atoms['normalize'] = PythonFunctionValue(1, os.path.realpath)
+pathObject.atoms['isFile'] = PythonFunctionValue(1, toBoolWrap(os.path.isfile))
+pathObject.atoms['isDir'] = PythonFunctionValue(1, toBoolWrap(os.path.isdir))
+pathObject.atoms['dir'] = PythonFunctionValue(1, os.path.dirname)
+
+# String garbage
 
 charObject = ObjectValue()
 defaultScope.atoms['char'] = charObject

@@ -69,6 +69,7 @@ lib/iter.em
 lib/stdout.em
 lib/stdoutInherit.em
 lib/file.em
+lib/path.em
 lib/string.em
 lib/math.em
 lib/dict.em

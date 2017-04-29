@@ -1848,6 +1848,9 @@ outfilePrototype.atoms.set "flush"
 
 outfilePrototype.atoms.set "close" closeWrapper
 
+# Util function
+let newString = function (x) (new StringValue (x))
+
 do
 	let addWrapper = function(fn, constructor)
 		infilePrototype.atoms.set (fn.toString)
@@ -1856,13 +1859,35 @@ do
 					constructor(this.handle fn)
 				1
 
-	let newString = function (x) (new StringValue (x))
-
 	addWrapper .more toBoolValue
 	addWrapper .peek newString
 	addWrapper .next newString
 
 infilePrototype.atoms.set "close" closeWrapper
+
+# Stdlib: Paths
+
+let pathObject = new ObjectValue
+fileObject.atoms.set "path" pathObject
+
+pathObject.atoms.set "join"
+	new LiteralFunctionValue
+		function(x,y)
+			new StringValue( file.path.join( x.value, y.value ) )
+		2
+
+do
+	let addWrapper = function(fn, constructor)
+		pathObject.atoms.set (fn.toString)
+			new LiteralFunctionValue
+				function (str)
+					constructor( file.path fn (str.value) )
+				1
+
+	addWrapper .isDir toBoolValue
+	addWrapper .isFile toBoolValue
+	addWrapper .normalize newString
+	addWrapper .dir newString
 
 # Stdlib: Dict
 
