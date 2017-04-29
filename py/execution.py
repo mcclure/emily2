@@ -826,7 +826,10 @@ fileObject = ObjectValue()
 defaultScope.atoms['file'] = fileObject
 def makeOutOpen(arg):
 	def outOpen(filename):
-		return makeOutfileObject(open(filename, arg))
+		try:
+			return makeOutfileObject(open(filename, arg))
+		except IOError:
+			raise InternalExecutionException("Could not open file \"%s\" for writing" % filename)
 	return PythonFunctionValue(1, outOpen)
 fileObject.atoms['out'] = makeOutOpen("w")
 fileObject.atoms['append'] = makeOutOpen("a")
@@ -871,7 +874,10 @@ def makeInfileObject(handle):
 
 # FIXME: What about binary mode?
 def makeInOpen(filename):
-	return makeInfileObject(utfOpen(filename))
+	try:
+		return makeInfileObject(utfOpen(filename))
+	except IOError:
+		raise InternalExecutionException("Could not open file \"%s\" for reading" % filename)
 fileObject.atoms['in'] = PythonFunctionValue(1,makeInOpen)
 
 stdinObject = makeInfileObject( codecs.getreader('utf-8')(sys.stdin) )

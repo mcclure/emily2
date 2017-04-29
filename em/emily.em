@@ -1360,7 +1360,7 @@ let MakeObjectExec = inherit Executable
 			let index = exe.indexClause.eval(scope) # do this early for field handling
 			if (exe.isField)
 				if (not (is AtomLiteralExec index))
-					fail "Objects have atom keys only"
+					this.fail "Objects have atom keys only"
 				if (not (result.fields))
 					result.fields = copyArgsWithAppend(infields, index)
 				else
@@ -1691,6 +1691,67 @@ let MatchFunctionValue = inherit Value
 			found
 		else
 			fail "No match clause was met"
+
+let globalPackageCache = new Dict
+
+let PackageValue = inherit Value
+	field base = null
+	field method loaded = new Dict
+
+	method subpath = function(component)
+		file.path.normalize
+			file.path.join(this.base, component)
+
+	method apply = function(key)
+		if (not (is AtomLiteralExec key))
+			fail "Package has atom keys only"
+		key = key.value
+		if (this.loaded.has key)
+			this.loaded.get key
+		else
+			let isDir = false
+			let filename = this.subpath(+ key ".em")
+
+			if (not (file.path.isFile filename))
+				let dirname = this.subpath(key)
+				if (file.path.isDir dirname)
+					isDir = true
+					filename = dirname
+				else
+					fail 
+						nullJoin array
+							"Could not find file \""
+							filename
+							"\" or directory \""
+							dirname
+							"\""
+
+			let value = null
+
+			if (globalPackageCache.has filename)
+				value = globalPackageCache.get filename
+
+				if (== value null)
+					fail
+						nullJoin array
+							"File \""
+							filename
+							"\" attempted to recursively load itself while it was still executing"
+			else
+				if (isDir)
+					value = new PackageValue(filename)
+				else
+					globalPackageCache.set filename null
+
+					let ast = makeAst (file.in filename)
+					let exe = exeFromAst(ast)
+					value = new ObjectValue()
+					exe.evalSequence(defaultScope, value)
+
+				globalPackageCache.set filename value
+
+			this.loaded.set key value
+			value
 
 # Stdlib
 
@@ -2024,6 +2085,10 @@ let wrapPrintRepeat = function(f)
 			repeat
 	repeat
 
+let setEntryFile = function(filename)
+	defaultScope.atoms.set "project"
+		new PackageValue(file.path.dir(file.path.normalize(filename)))
+
 let rootObject = new ObjectValue
 
 let defaultScope = new ObjectValue
@@ -2034,6 +2099,7 @@ defaultScope.atoms.set "Number" numberValuePrototype
 defaultScope.atoms.set "Array"  arrayValuePrototype
 
 defaultScope.atoms.set "null"   NullValue
+defaultScope.atoms.set "argv"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)
 
 defaultScope.atoms.set "+" 
@@ -2115,6 +2181,9 @@ defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = 
 defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
 defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
 
+defaultScope.atoms.set "package" new ObjectValue()
+defaultScope.atoms.set "project" new ObjectValue()
+
 # Dubious, intentionally "undocumented"
 defaultScope.atoms.set "DEBUG"
 	new LiteralFunctionValue
@@ -2156,6 +2225,7 @@ let codeIter = do
 let ast = makeAst codeIter
 
 if cmdTarget
+	setEntryFile cmdTarget
 	codeIter.close
 
 if cmdAst
