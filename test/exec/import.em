@@ -9,12 +9,11 @@ let a = inherit Object
 		g = 5
 
 import a.b
-import c from a
-import d.e from a
+from a import c
+from a import d.e
 
-import
+from a.d import
 	f, g
-from a.d
 
 # Expect: 1.0 2.0 3.0 4.0 5.0
 

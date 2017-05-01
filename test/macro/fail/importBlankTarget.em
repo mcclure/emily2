@@ -3,4 +3,4 @@
 # Arg: --ast2
 # Expect failure
 
-import from a
+from a import

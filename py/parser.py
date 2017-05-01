@@ -254,46 +254,25 @@ class ImportMacro(OneSymbolMacro):
 		return execution.SetExec(loc, True, False, False, False, None, symbol, m.process(target))
 
 	def apply(s, m, left, node, right, tracker):
+		prefix = None
 		if left:
-			return Error(node.loc, u"Stray garbage before \"import\"")
+			if isSymbol(left[0], u"from"):
+				if len(left) == 1:
+					return Error(left[0].loc, "Expected symbols between \"from\" and \"import\"")
+				prefix = left[1:]
+			else:
+				return Error(node.loc, u"Stray garbage before \"import\"")
 
-		# Ensure logical placement of "from" and determine its position
-		fromAt = None
-		for i in range(len(right)):
-			if isSymbol(right[i], u"from"):
-				if (i == 0):
-					return Error(right[i].loc, u"Expected symbol before \"from\"")
-				elif fromAt is not None:
-					return Error(right[i].loc, u"Unexpected extra \"from\"")
-				else:
-					fromAt = i
-
-		# "from" on next line (FIXME: should this steal even if no from found?)
-		if fromAt is None:
-			more = tracker.steal(u"from")
-			if more:
-				fromAt = len(right)
-				right += more
-
-		if fromAt is None: # import x.y.z
-			target = right
-			prefix = None 
-		else: # import z from x.y
-			target = right[:fromAt]
-			prefix = right[fromAt+1:]
-			if not prefix:
-				return Error(right[fromAt].loc, u"Emptiness after \"from\"")
-
-		if len(target) == 1 and type(target[0]) == reader.ExpGroup:
+		if len(right) == 1 and type(right[0]) == reader.ExpGroup:
 			setExecs = []
-			for stm in target[0].statements:
+			for stm in right[0].statements:
 				setExec = s.generateSetExec(m, node.loc, prefix, stm.nodes)
 				if type(setExec) == Error:
 					return setExec
 				setExecs.append(setExec)
 			result = execution.SequenceExec(node.loc, False, False, setExecs)
 		else:
-			result = s.generateSetExec(m, node.loc, prefix, target)
+			result = s.generateSetExec(m, node.loc, prefix, right)
 
 		if type(result) == Error:
 			return result
