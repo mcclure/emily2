@@ -18,12 +18,18 @@ macro/value.em
 macro/set.em
 macro/steal.em
 macro/scopedSequence.em
+macro/import.em
 
 macro/fail/setCount.em
 macro/fail/setType.em
 macro/fail/setType2.em
 macro/fail/setInvalid.em
 macro/fail/emptyComma.em
+macro/fail/importAtom.em
+macro/fail/importBlankFrom.em
+macro/fail/importBlankTarget.em
+macro/fail/importNoAtom.em
+macro/fail/importSingle.em
 
 macro/custom/splitter.em
 
@@ -44,6 +50,7 @@ exec/super.em
 exec/field.em
 exec/match.em
 exec/setValue.em
+exec/import.em
 
 exec/fail/objectSet.em
 exec/fail/objectSetType.em

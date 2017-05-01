@@ -223,6 +223,83 @@ class MacroMacro(OneSymbolMacro):
 		macros = m.makeArray(macroGroup)
 		return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros]), [])
 
+class ImportMacro(OneSymbolMacro):
+	def __init__(s):
+		super(ImportMacro, s).__init__(progress=ProgressBase.Parser + 10)
+
+	def symbol(s):
+		return u"import"
+
+	# FIXME: This entire setup too easily accepts nonsense like "import a + b from c + d"
+	def generateSetExec(s, m, loc, prefix, target):
+		if not target:
+			return Error(loc, u"Missing target to import")
+		if prefix:
+			if type(target[0]) == reader.SymbolExp:
+				if target[0].isAtom:
+					return Error(target[0].loc, u"Expected a symbol after \"import\"")
+				newSymbol = reader.SymbolExp(target[0].loc, True)
+				newSymbol.content = target[0].content
+				target = [newSymbol] + target[1:]
+			target = prefix + target
+
+		if len(target) == 1:
+			return Error(target[0].loc, u"import expects either multiple symbols or a \"from\" clause")
+
+		if type(target[-1]) != reader.SymbolExp or not target[-1].isAtom:
+			return Error(target[-1].loc, u"End of import path needs to be an atom")
+
+		symbol = execution.AtomLiteralExec(target[-1].loc, target[-1].content)
+
+		return execution.SetExec(loc, True, False, False, False, None, symbol, m.process(target))
+
+	def apply(s, m, left, node, right, tracker):
+		if left:
+			return Error(node.loc, u"Stray garbage before \"import\"")
+
+		# Ensure logical placement of "from" and determine its position
+		fromAt = None
+		for i in range(len(right)):
+			if isSymbol(right[i], u"from"):
+				if (i == 0):
+					return Error(right[i].loc, u"Expected symbol before \"from\"")
+				elif fromAt is not None:
+					return Error(right[i].loc, u"Unexpected extra \"from\"")
+				else:
+					fromAt = i
+
+		# "from" on next line (FIXME: should this steal even if no from found?)
+		if fromAt is None:
+			more = tracker.steal(u"from")
+			if more:
+				fromAt = len(right)
+				right += more
+
+		if fromAt is None: # import x.y.z
+			target = right
+			prefix = None 
+		else: # import z from x.y
+			target = right[:fromAt]
+			prefix = right[fromAt+1:]
+			if not prefix:
+				return Error(right[fromAt].loc, u"Emptiness after \"from\"")
+
+		if len(target) == 1 and type(target[0]) == reader.ExpGroup:
+			setExecs = []
+			for stm in target[0].statements:
+				setExec = s.generateSetExec(m, node.loc, prefix, stm.nodes)
+				if type(setExec) == Error:
+					return setExec
+				setExecs.append(setExec)
+			result = execution.SequenceExec(node.loc, False, False, setExecs)
+		else:
+			result = s.generateSetExec(m, node.loc, prefix, target)
+
+		if type(result) == Error:
+			return result
+
+		return ([], result, [])
+
 # = sign
 class SetMacro(OneSymbolMacro):
 	def __init__(s):
@@ -532,7 +609,7 @@ class ValueMacro(Macro):
 		return (left, node, right)
 
 standard_macros = [
-	MacroMacro(),
+	MacroMacro(), ImportMacro(),
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
 	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),
 	SetMacro(),
