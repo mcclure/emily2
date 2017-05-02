@@ -626,7 +626,7 @@ let ImportMacro = inherit OneSymbolMacro
 
 			if (not error)
 				let targetEnd = lastFrom target
-				if (if (is SymbolExp targetEnd) (false) else (not (targetEnd.isAtom)))
+				if (if (is SymbolExp targetEnd) (not (targetEnd.isAtom)))
 					error = parser.error(targetEnd.loc, "End of import path needs to be an atom")
 
 			if (error)
