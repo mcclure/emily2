@@ -236,7 +236,7 @@ class ImportMacro(OneSymbolMacro):
 			return Error(loc, u"Missing target to import")
 		if prefix:
 			if type(target[0]) == reader.SymbolExp:
-				if target[0].isAtom:
+				if target[0].isAtom: # FIXME: This check should occur even if prefix does not
 					return Error(target[0].loc, u"Expected a symbol after \"import\"")
 				newSymbol = reader.SymbolExp(target[0].loc, True)
 				newSymbol.content = target[0].content
@@ -258,7 +258,7 @@ class ImportMacro(OneSymbolMacro):
 		if left:
 			if isSymbol(left[0], u"from"):
 				if len(left) == 1:
-					return Error(left[0].loc, "Expected symbols between \"from\" and \"import\"")
+					return Error(left[0].loc, u"Expected symbols between \"from\" and \"import\"")
 				prefix = left[1:]
 			else:
 				return Error(node.loc, u"Stray garbage before \"import\"")

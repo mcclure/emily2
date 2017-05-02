@@ -60,6 +60,22 @@ let popLeft = function(a)
 	a.pop
 	left
 
+let appendArray = function (a, b)
+	let i = b.iter
+	while (i.more)
+		a.append (i.next)
+
+let cloneArray = function(a)
+	let result = array()
+	appendArray(result, a)
+	result
+
+let catArray = function (a, b)
+	let result = array()
+	appendArray(result, a)
+	appendArray(result, b)
+	result
+
 # Linked list / stack object
 let Linked = inherit Object
 	field value = null
@@ -583,6 +599,82 @@ let SeqMacro = inherit OneSymbolMacro
 		else
 			new ProcessResult(left, this.construct(parser, exp), right)
 
+# from a import b
+let ImportMacro = inherit OneSymbolMacro
+	progress = + (ProgressBase.parser) 10
+	symbol = "import"
+
+	method generateSetExec = function(parser, loc, prefix, target)
+		if (not (target.length))
+			parser.error(loc, "Missing target to import")
+		else
+			let error = null
+
+			if (prefix)
+				let targetStart = target 0
+				if (is SymbolExp targetStart)
+					if (targetStart.isAtom)
+						error = parser.error(targetStart.loc, "Expected a symbol after \"import\"")
+					else
+						target = cloneArray target
+						target 0 = new SymbolExp(loc, targetStart.content, true)
+				if (not error)
+					target = catArray prefix target
+
+			if (if (not error) (== (target.length) 1))
+				error = parser.error(target(0).loc, "import expects either multiple symbols or a \"from\" clause")
+
+			if (not error)
+				let targetEnd = lastFrom target
+				if (if (is SymbolExp targetEnd) (false) else (not (targetEnd.isAtom)))
+					error = parser.error(targetEnd.loc, "End of import path needs to be an atom")
+
+			if (error)
+				error
+			else
+				let targetEnd = lastFrom target
+				let symbol = new AtomLiteralExec(targetEnd.loc, targetEnd.content)
+				
+				new SetExec(loc, true, false, false, false, null, symbol, parser.process(loc, target, null))
+
+	method apply = function(parser, left, node, right, tracker)
+		let prefix = null
+		let error = null
+
+		if (left.length)
+			if (isSymbol(left 0, "from"))
+				if (== (left.length) 1)
+					error = parser.error(left(0).loc, "Expected symbols between \"from\" and \"import\"")
+				else
+					prefix = cloneArray left
+					popLeft prefix
+			else
+				error = parser.error(node.loc, "Stray garbage before \"import\"")
+
+		if (error)
+			error
+		else
+			let result = null
+
+			if (if (== (right.length) 1) (is ExpGroup (right 0)))
+				let setExecs = array()
+				let i = right(0).statements.iter
+				while (if (result) (false) else (i.more))
+					let setExec = this.generateSetExec(parser, node.loc, prefix, i.next.nodes)
+					if (is Error setExec)
+						result = setExec
+					else
+						setExecs.append setExec
+				if (not result)
+					result = new SequenceExec(node.loc, false, false, setExecs)
+			else
+				result = this.generateSetExec(parser, node.loc, prefix, right)
+
+			if (is Error result)
+				result
+			else
+				new ProcessResult(null, result, null)
+
 # a = b
 let SetMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 100
@@ -932,6 +1024,7 @@ let ValueMacro = inherit Macro
 			new ProcessResult(left, node, right)
 
 let standardMacros = array
+	ImportMacro
 	SetMacro
 	DoMacro
 	FunctionMacro
