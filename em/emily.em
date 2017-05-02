@@ -423,7 +423,7 @@ let makeAst = function(i)
 	let Number = inherit BasicState
 		enter = function(ch)
 			appendExp
-				new NumberExp
+				new NumberExp(loc)
 		subHandle = function(ch)
 			let e = lastExp
 			if (char.isSpace ch)
@@ -443,7 +443,7 @@ let makeAst = function(i)
 	let Symbol = inherit BasicState
 		enter = function(ch)
 			appendExp
-				new SymbolExp
+				new SymbolExp(loc)
 		subHandle = function(ch)
 			if (char.isSpace ch)
 				nextState Scanning
@@ -470,7 +470,7 @@ let makeAst = function(i)
 
 		enter = function(ch)
 			appendExp
-				new QuoteExp
+				new QuoteExp(loc)
 		method handle = function(ch)
 			let trueCh = ch
 
