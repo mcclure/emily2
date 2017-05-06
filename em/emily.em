@@ -667,6 +667,8 @@ let ImportMacro = inherit OneSymbolMacro
 						setExecs.append setExec
 				if (not result)
 					result = new SequenceExec(node.loc, false, false, setExecs)
+			elif (if (== (right.length) 1) (isSymbol (right 0) "*"))
+				result = new ImportAllExec(node.loc, parser.process(node.loc, prefix, null))
 			else
 				result = this.generateSetExec(parser, node.loc, prefix, right)
 
@@ -980,6 +982,9 @@ let ObjectMacro = inherit OneSymbolMacro
 						else
 							assign.isLet = true
 							assigns.append assign
+					elif (is ImportAllExec assign)
+						foundSet = true
+						assigns.append assign
 					else
 						if foundSet
 							foundError = parser.error(assign.loc, "Found a stray value expression inside an object literal")
@@ -1366,6 +1371,7 @@ let SetExec = inherit Executable
 		this.valueClause
 		"]"
 
+
 	method setEval = function (scope, target, index)
 		let value = if (this.isMethod)
 			new FunctionMethodPseudoValue(scope, target, this.valueClause)
@@ -1392,6 +1398,37 @@ let SetExec = inherit Executable
 				exportList.append (index.value) # Just assume it's an atom
 
 		NullValue
+
+let ImportAllExec = inherit Executable
+	field sourceClause = null
+
+	method toString = nullJoin array
+		"[ImportAll "
+		this.sourceClause
+		"]"
+
+	method setEval = function (scope, targetOverride, _)
+		let source = this.sourceClause.eval(scope)
+
+		if (not (is ObjectValue source))
+			this.fail "Attempted to import * from something other than an object"
+
+		let target = null
+		if (targetOverride)
+			target = targetOverride
+		else
+			target = scope
+
+		let i = source.atoms.iter
+		while (i.more)
+			let key = i.next
+			let value = source.lookup(key)
+			target.atoms.set key value # FIXME: Should this be done via a method on target?
+
+		NullValue
+
+	method eval = function (scope)
+		this.setEval(scope, null, null)
 
 let MakeFuncExec = inherit Executable
 	field args = null
@@ -1450,14 +1487,16 @@ let MakeObjectExec = inherit Executable
 		let i = this.assigns.iter
 		while (i.more)
 			let exe = i.next
-			let index = exe.indexClause.eval(scope) # do this early for field handling
-			if (exe.isField)
-				if (not (is AtomLiteralExec index))
-					this.fail "Objects have atom keys only"
-				if (not (result.fields))
-					result.fields = copyArgsWithAppend(infields, index)
-				else
-					result.fields.append(index)
+			let index = null
+			if (is SetExec exe)
+				index = exe.indexClause.eval(scope) # do this early for field handling
+				if (exe.isField)
+					if (not (is AtomLiteralExec index))
+						this.fail "Objects have atom keys only"
+					if (not (result.fields))
+						result.fields = copyArgsWithAppend(infields, index)
+					else
+						result.fields.append(index)
 			exe.setEval(scope, result, index)
 
 		if (not (result.fields))

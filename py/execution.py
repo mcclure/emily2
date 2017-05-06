@@ -476,7 +476,7 @@ class SetExec(Executable):
 		s.valueClause = valueClause
 
 	def __unicode__(s):
-		return u"[%s %s %s %s]" % ("Export" if s.isExport else ("Let" if s.isLet else "Set"), unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
+		return u"[%s %s %s %s]" % (u"Export" if s.isExport else (u"Let" if s.isLet else u"Set"), unicode(s.target) if s.target else u"Scope", unicode(s.index), unicode(s.valueClause))
 
 	def eval(s, scope, targetOverride = None, indexOverride = None):
 		if targetOverride:
@@ -515,6 +515,9 @@ class ImportAllExec(Executable):
 		super(ImportAllExec, s).__init__(loc)
 		s.sourceClause = sourceClause
 	
+	def __unicode__(s):
+		return u"[ImportAll %s]" % (unicode(s.sourceClause))
+
 	def eval(s, scope, targetOverride = None, indexOverride = None):
 		source = s.sourceClause.eval(scope)
 		if not isinstance(source, ObjectValue):
