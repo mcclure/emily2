@@ -51,6 +51,7 @@ exec/field.em
 exec/match.em
 exec/setValue.em
 exec/import.em
+exec/importStar.em
 
 exec/fail/objectSet.em
 exec/fail/objectSetType.em
@@ -58,6 +59,8 @@ exec/fail/arraySet.em
 exec/fail/arraySetType.em
 exec/fail/matchUnpack.em
 exec/fail/matchUnpack.2.em
+exec/fail/importStarFunction.em
+exec/fail/importStarPackage.em
 
 export/basic.em
 export/project.em

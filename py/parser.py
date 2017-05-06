@@ -271,6 +271,8 @@ class ImportMacro(OneSymbolMacro):
 					return setExec
 				setExecs.append(setExec)
 			result = execution.SequenceExec(node.loc, False, False, setExecs)
+		elif len(right) == 1 and isSymbol(right[0], "*"):
+			result = execution.ImportAllExec(node.loc, m.process(prefix))
 		else:
 			result = s.generateSetExec(m, node.loc, prefix, right)
 
@@ -540,12 +542,7 @@ class ObjectMacro(OneSymbolMacro):
 		assigns = []
 		foundSet = False
 		for assign in seq:
-			if type(assign) != execution.SetExec:
-				if foundSet:
-					return Error(assign.loc, "Found a stray value expression inside an object literal")
-				else:
-					values.append(assign)
-			else:
+			if type(assign) == execution.SetExec:
 				foundSet = True
 				if assign.target:
 					return Error(assign.loc, "Assignment inside object literal was not of form key=value")
@@ -555,6 +552,14 @@ class ObjectMacro(OneSymbolMacro):
 					return Error(assign.loc, "\"export\" is redundant in an object literal")
 				assign.isLet = True
 				assigns.append(assign)
+			elif type(assign) == execution.ImportAllExec:
+				foundSet = True
+				assigns.append(assign)
+			else:
+				if foundSet:
+					return Error(assign.loc, "Found a stray value expression inside an object literal")
+				else:
+					values.append(assign)
 		return (left, execution.MakeObjectExec(node.loc, base, values, assigns, s.isInstance), right)
 
 # Final pass: Turn everything not swallowed by a macro into a value

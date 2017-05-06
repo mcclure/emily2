@@ -510,6 +510,32 @@ class SetExec(Executable):
 
 		return None
 
+class ImportAllExec(Executable):
+	def __init__(s, loc, sourceClause): # TODO: indexClauses
+		super(ImportAllExec, s).__init__(loc)
+		s.sourceClause = sourceClause
+	
+	def eval(s, scope, targetOverride = None, indexOverride = None):
+		source = s.sourceClause.eval(scope)
+		if not isinstance(source, ObjectValue):
+			raise ExecutionException(s.loc, u"Import", u"Attempted to import * from something other than an object")
+
+		if targetOverride:
+			target = targetOverride
+		else:
+			target = scope
+
+		try:
+			for key in source.atoms:
+				value = source.lookup(key)
+				target.innerAssign(True, key, value)
+		except InternalExecutionException as e:
+			raise ExecutionException(s.loc, u"Import", unicode(e))
+		except KeyboardInterrupt:
+			raise ExecutionException(s.loc, u"Import", u"Ctrl-C")
+
+		return None
+
 class ApplyExec(Executable):
 	def __init__(s, loc, f, arg): # f for function
 		super(ApplyExec, s).__init__(loc) # FIXME: f.location
@@ -617,13 +643,16 @@ class MakeObjectExec(Executable):
 			result.atoms[ infields[valueProgress].value ] = value
 			valueProgress += 1
 		for exe in s.assigns:
-			key = exe.index.eval(scope) # do this early for field handling
-			if exe.isField:
-				if type(key) != AtomLiteralExec:
-					raise ExecutionException(exe.loc, u"Object construction", "Objects have atom keys only")
-				if not result.fields:
-					result.fields = list(infields) if infields else []
-				result.fields.append(key)
+			if isinstance(exe, SetExec):
+				key = exe.index.eval(scope) # do this early for field handling
+				if exe.isField:
+					if type(key) != AtomLiteralExec:
+						raise ExecutionException(exe.loc, u"Object construction", "Objects have atom keys only")
+					if not result.fields:
+						result.fields = list(infields) if infields else []
+					result.fields.append(key)
+			else:
+				key = None
 			exe.eval(scope, result, key)
 		if not result.fields:
 			result.fields = infields
