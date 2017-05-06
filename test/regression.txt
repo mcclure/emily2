@@ -59,6 +59,7 @@ exec/fail/arraySet.em
 exec/fail/arraySetType.em
 exec/fail/matchUnpack.em
 exec/fail/matchUnpack.2.em
+exec/fail/matchUnpack.3.em
 exec/fail/importStarFunction.em
 exec/fail/importStarPackage.em
 
