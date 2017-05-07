@@ -601,6 +601,7 @@ export MatchFunctionValue = inherit Value
 export globalPackageCache = new Dict
 
 export PackageValue = inherit Value
+	field tagBase = null
 	field base = null
 	field method loaded = new Dict
 
@@ -644,12 +645,14 @@ export PackageValue = inherit Value
 							filename
 							"\" attempted to recursively load itself while it was still executing"
 			else
+				let tag = nullJoin array(this.tagBase, ".", key)
+
 				if (isDir)
-					value = new PackageValue(filename)
+					value = new PackageValue(tag, filename)
 				else
 					globalPackageCache.set filename null
 
-					let ast = project.reader.makeAst (file.in filename)
+					let ast = project.reader.makeAst (file.in filename, tag)
 					let exe = project.parser.exeFromAst(ast)
 					value = new ObjectValue()
 					exe.evalSequence(defaultScope, value)
@@ -993,7 +996,7 @@ export wrapPrintRepeat = function(f)
 
 export setEntryFile = function(filename)
 	defaultScope.atoms.set "project"
-		new PackageValue(file.path.dir(file.path.normalize(filename)))
+		new PackageValue("project", file.path.dir(file.path.normalize(filename)))
 
 export rootObject = new ObjectValue
 

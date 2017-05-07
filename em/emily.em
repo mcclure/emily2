@@ -54,7 +54,7 @@ let codeIter = do
 	else
 		cmdExecute.iter
 
-let ast = reader.makeAst codeIter
+let ast = reader.makeAst codeIter null
 
 if cmdTarget
 	execution.setEntryFile cmdTarget

@@ -201,7 +201,7 @@ export SetMacro = inherit OneSymbolMacro
 				exec.targetClause = process(left, null) 
 				exec.indexClause = process(array (index), null)
 			else
-				if (and (is SymbolExp index) (not (index.isAtom)))
+				if (if (is SymbolExp index) (not (index.isAtom)))
 					exec.indexClause = new AtomLiteralExec(index.loc, index.content)
 				else
 					failedAt = index.loc

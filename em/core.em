@@ -1,5 +1,7 @@
 # Shared classes used by all bits of the interpreter chain
 
+from project.util import *
+
 # TODO: Important question to consider:
 # Is it actually useful to have macro stages fit "between" parser and executable? 
 # I think I originally imagined macros would update nodes to "at least" their own
@@ -12,10 +14,15 @@ export ProgressBase = inherit Object
 	executable = 3000  # Execution tree structure
 
 export Loc = inherit Object
+	field file = null
 	field line = 0
 	field char = 0
 
 	method toString = nullJoin array
+		if (this.file)
+			+ (this.file) ", "
+		else
+			""
 		"line "
 		this.line
 		" char "

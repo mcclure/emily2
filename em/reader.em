@@ -63,13 +63,13 @@ let StatementKind.Outermost = inherit StatementKind
 let StatementKind.Indent = inherit StatementKind
 let StatementKind.Parenthesis = inherit StatementKind
 
-export makeAst = function(i)
+export makeAst = function(i, fileTag)
 	let lineAt = 1
 	let charAt = 0
 	let groupStack = null
 	let errors = array()
 
-	let method loc = new Loc(lineAt, charAt)
+	let method loc = new Loc(fileTag, lineAt, charAt)
 	let method finalGroup = groupStack.value
 	let method lastExp = lastFrom (finalGroup.finalStatement.nodes)
 	let appendExp = function (node)
@@ -283,7 +283,7 @@ export makeAst = function(i)
 				if (not trueCh)
 					recoverableError
 						nullJoin array
-							"Unrecognized backslash sequence \\\""
+							"Unrecognized backslash sequence \"\\"
 							ch
 							"\""
 			elif (== ch "\\")
