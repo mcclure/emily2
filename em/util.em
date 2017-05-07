@@ -1,15 +1,15 @@
 # Misc helper functions/classes
 # (Most of this should probably be in the stdlib)
 
-let false = null
-let true = 1
+export false = null
+export true = 1
 
 # Array utilities
 
-let lastFrom = function(a)
+export lastFrom = function(a)
 	a (- (a.length) 1)
 
-let popLeft = function(a)
+export popLeft = function(a)
 	let left = a 0
 	let idx = 0
 	while (< idx (- (a.length) 1))
@@ -18,29 +18,29 @@ let popLeft = function(a)
 	a.pop
 	left
 
-let appendArray = function (a, b)
+export appendArray = function (a, b)
 	let i = b.iter
 	while (i.more)
 		a.append (i.next)
 
-let cloneArray = function(a)
+export cloneArray = function(a)
 	let result = array()
 	appendArray(result, a)
 	result
 
-let catArray = function (a, b)
+export catArray = function (a, b)
 	let result = array()
 	appendArray(result, a)
 	appendArray(result, b)
 	result
 
 # Linked list / stack object
-let Linked = inherit Object
+export Linked = inherit Object
 	field value = null
 	field next = null # This looks like an iterator but is immutable. Is this bad
 	method more = (!= (this.next) null)
 
-let cloneLinked = function(list)
+export cloneLinked = function(list)
 	if (list)
 		let head = new Linked
 		let node = head
@@ -52,7 +52,7 @@ let cloneLinked = function(list)
 	else
 		null
 
-let cmp = function (x, y)
+export cmp = function (x, y)
 	if (< x y)
 		-1
 	elif (> x y)
@@ -60,7 +60,7 @@ let cmp = function (x, y)
 	else
 		0
 
-let insertLinked = function(cmp, list, value)
+export insertLinked = function(cmp, list, value)
 	let worse = function(node)
 		if (not node)
 			true
@@ -81,7 +81,7 @@ let insertLinked = function(cmp, list, value)
 			node = node.next
 		list
 
-let foldl = function(default, f, ary)
+export foldl = function(default, f, ary)
 	let i = ary.iter
 	if (not (i.more))
 		default
@@ -91,7 +91,7 @@ let foldl = function(default, f, ary)
 			value = f(value, i.next)
 		value
 
-let checkErrors = function(errors)
+export checkErrors = function(errors)
 	if (< 0 (errors.length))
 		let i = errors.iter
 		stderr.println "Compilation failed:"
@@ -101,15 +101,15 @@ let checkErrors = function(errors)
 				nullJoin array (error.loc, ": ", error.msg)
 		exit 1
 
-let nonempty = function (ary)
+export nonempty = function (ary)
 	if ary (ary.length)
 
 # String ops
 
-let join = function(joiner)
+export join = function(joiner)
 	foldl "" function (x,y) ( +( +(x.toString, joiner), y.toString) )
-let nullJoin = join ""
-let startsWith = function(x, y)
+export nullJoin = join ""
+export startsWith = function(x, y)
 	let idx = 0
 	let valid = (<= (y.length) (x.length)) # Don't bother if x is shorter
 	while (and valid (< idx (y.length)))   # Iterate until difference found
@@ -118,7 +118,7 @@ let startsWith = function(x, y)
 		idx = + idx 1
 	valid
 
-let quotedString = function(s)
+export quotedString = function(s)
 	let result = "\""
 	let i = s.iter
 	while (i.more)

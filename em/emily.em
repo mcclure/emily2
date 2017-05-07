@@ -68,6 +68,7 @@ else
 	if cmdAst2
 		println (exe.toString)
 	else
+		from execution import (ObjectValue, StringValue, ArrayValue, defaultScope)
 		let scope = new ObjectValue(defaultScope)
 
 		let scriptArgvValue = array()

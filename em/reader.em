@@ -1,6 +1,9 @@
 # Reader: Turns unicode string iterator into parse tree
 
-let ExpGroup = inherit Node
+from project.util import *
+from project.core import *
+
+export ExpGroup = inherit Node
 	field openedWithParenthesis = false
 	field indent = null
 	field method statements = array( new Statement )
@@ -14,20 +17,20 @@ let ExpGroup = inherit Node
 		not (this.statements.length)
 		not (this.statements(0).nodes.length)
 
-let StringContentExp = inherit Node
+export StringContentExp = inherit Node
 	field content = ""
 
-let SymbolExp = inherit StringContentExp
+export SymbolExp = inherit StringContentExp
 	field isAtom = false
 
 	method toString = +
 		if (this.isAtom) (".") else ("")
 		this.content
 
-let QuoteExp = inherit StringContentExp
+export QuoteExp = inherit StringContentExp
 	method toString = quotedString (this.content)
 
-let NumberExp = inherit Node
+export NumberExp = inherit Node
 	field integer = ""
 	field dot = null
 	field decimal = null
@@ -42,7 +45,7 @@ let NumberExp = inherit Node
 		if (this.dot) (".") else ("")
 		if (this.decimal) (this.decimal) else ("")
 
-let Statement = inherit Object
+export Statement = inherit Object
 	field method nodes = array()
 	field dead = false
 
@@ -55,12 +58,12 @@ let Statement = inherit Object
 			result = + result (i.next.toString)
 		result
 
-let StatementKind = inherit Object
+export StatementKind = inherit Object
 let StatementKind.Outermost = inherit StatementKind
 let StatementKind.Indent = inherit StatementKind
 let StatementKind.Parenthesis = inherit StatementKind
 
-let makeAst = function(i)
+export makeAst = function(i)
 	let lineAt = 1
 	let charAt = 0
 	let groupStack = null

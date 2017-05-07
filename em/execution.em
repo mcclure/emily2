@@ -1,8 +1,11 @@
 # Execution tree classes, code for values and default scope
 
+from project.util import *
+from project.core import *
+
 # Execution tree
 
-let Executable = inherit Node
+export Executable = inherit Node
 	progress = ProgressBase.executable
 
 	method fail = function (msg)
@@ -13,13 +16,13 @@ let Executable = inherit Node
 				":\n\t"
 				msg
 
-let InvalidExec = inherit Executable
+export InvalidExec = inherit Executable
 	toString = "[Invalid node]"
 
 	eval = function (scope)
 		this.fail "Tried to execute invalid program"
 
-let SequenceExec = inherit Executable
+export SequenceExec = inherit Executable
 	field shouldReturn = false
 	field hasScope = false
 	field method execs = array()
@@ -64,27 +67,27 @@ let SequenceExec = inherit Executable
 			join " " (this.execs)
 			"]"
 
-let UserMacroList = inherit Executable
+export UserMacroList = inherit Executable
 	field contents = null
 
 	toString = "[Misplaced macro node]"
 
-let LiteralExec = inherit Executable
+export LiteralExec = inherit Executable
 	field value = null
 
-let StringLiteralExec = inherit LiteralExec
+export StringLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[StringLiteral ", quotedString(this.value), "]")
 
 	method eval = function (scope)
 		new StringValue(this.value)
 
-let NumberLiteralExec = inherit LiteralExec
+export NumberLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[NumberLiteral ", this.value, "]")
 
 	method eval = function (scope)
 		new NumberValue(this.value)
 
-let AtomLiteralExec = inherit LiteralExec
+export AtomLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[AtomLiteral ", this.value, "]")
 
 	method eval = function (scope)
@@ -94,13 +97,13 @@ let AtomLiteralExec = inherit LiteralExec
 	method apply = makePrototypeApply(atomValuePrototype, this)
 
 # Does not inherit LiteralExec because it holds no value
-let NullLiteralExec = inherit Executable
+export NullLiteralExec = inherit Executable
 	toString = "[NullLiteral]"
 
 	method eval = function (scope)
 		NullValue
 
-let VarExec = inherit Executable
+export VarExec = inherit Executable
 	field symbol = null
 
 	method toString = nullJoin array("[Var ", this.symbol, "]")
@@ -108,7 +111,7 @@ let VarExec = inherit Executable
 	method eval = function (scope)
 		scope.lookup (this.symbol)
 
-let ApplyExec = inherit Executable
+export ApplyExec = inherit Executable
 	field fn = null
 	field arg = null
 
@@ -122,7 +125,7 @@ let ApplyExec = inherit Executable
 	method eval = function (scope)
 		this.fn.eval(scope).apply (this.arg.eval(scope))
 
-let SetExec = inherit Executable
+export SetExec = inherit Executable
 	field isLet = false
 	field isMethod = false
 	field isField = false
@@ -170,7 +173,7 @@ let SetExec = inherit Executable
 
 		NullValue
 
-let ImportAllExec = inherit Executable
+export ImportAllExec = inherit Executable
 	field sourceClause = null
 
 	method toString = nullJoin array
@@ -201,7 +204,7 @@ let ImportAllExec = inherit Executable
 	method eval = function (scope)
 		this.setEval(scope, null, null)
 
-let MakeFuncExec = inherit Executable
+export MakeFuncExec = inherit Executable
 	field args = null
 	field body = null
 
@@ -215,7 +218,7 @@ let MakeFuncExec = inherit Executable
 	method eval = function(scope)
 		new FunctionValue(this.args, this.body, scope)
 
-let MakeObjectExec = inherit Executable
+export MakeObjectExec = inherit Executable
 	field baseClause = null
 	field method values = array()
 	field method assigns = array()
@@ -276,7 +279,7 @@ let MakeObjectExec = inherit Executable
 		result
 
 
-let MakeArrayExec = inherit Executable
+export MakeArrayExec = inherit Executable
 	field contents = null
 
 	method toString = nullJoin array
@@ -291,7 +294,7 @@ let MakeArrayExec = inherit Executable
 			values.append (i.next.eval(scope))
 		new ArrayValue(values)
 
-let MakeMatchExec = inherit Executable
+export MakeMatchExec = inherit Executable
 	field matches = null
 
 	method toString = do
@@ -313,7 +316,7 @@ let MakeMatchExec = inherit Executable
 	method eval = function(scope)
 		new MatchFunctionValue(this.matches, scope)
 
-let IfExec = inherit Executable
+export IfExec = inherit Executable
 	field loop = false
 	field condClause = null
 	field ifClause = null
@@ -345,18 +348,18 @@ let IfExec = inherit Executable
 				this.ifClause.eval(scope)
 			NullValue
 
-let UnitExec = NullLiteralExec # Just an alias
+export UnitExec = NullLiteralExec # Just an alias
 
 # Values
 
 # Util function
-let isTrue = match
+export isTrue = match
 	NullValue = false
 	NumberValue v = (!= v 0)
 	_ = true
 
 # Util function
-let copyArgsWithAppend = function (ary, value)
+export copyArgsWithAppend = function (ary, value)
 	if (ary)
 		let result = array()
 		let i = ary.iter
@@ -368,14 +371,14 @@ let copyArgsWithAppend = function (ary, value)
 		array(value)
 
 # Util function
-let toBoolValue = function(x)
+export toBoolValue = function(x)
 	if (x)
 		TrueValue
 	else
 		NullValue
 
 # Util function
-let isChild = function(parent,child)
+export isChild = function(parent,child)
 	if (== parent child)
 		true
 	elif (is NumberValue child)
@@ -398,16 +401,16 @@ let isChild = function(parent,child)
 		false
 
 # Method constructor function
-let makePrototypeApply = function(prototype, this, value)
+export makePrototypeApply = function(prototype, this, value)
 	with value match
 		AtomLiteralExec(_, key) = resolveMethod(prototype, key, this)
 		_ = fail "Object has atom keys only"
 
-let Value = inherit Object
+export Value = inherit Object
 	apply = function(value)
 		fail "Apply for this object unimplemented"
 
-let ObjectValue = inherit Value
+export ObjectValue = inherit Value
 	field parent = null
 	field fields = null
 	field method atoms = new Dict
@@ -456,7 +459,7 @@ let ObjectValue = inherit Value
 		this.lookup
 			this.key index
 
-let FunctionValue = inherit Value
+export FunctionValue = inherit Value
 	field argNames = null
 	field exe = null
 	field scope = null
@@ -477,7 +480,7 @@ let FunctionValue = inherit Value
 			else
 				new FunctionValue(this.argNames, this.exe, this.scope, newArgs)
 
-let ArrayValue = inherit Value
+export ArrayValue = inherit Value
 	field method values = array()
 
 	method apply = function(value)
@@ -493,13 +496,13 @@ let ArrayValue = inherit Value
 
 	method length = this.values.length # Stdlib convenience
 
-let NullValue = inherit Value
+export NullValue = inherit Value
 	method apply = makePrototypeApply(nullValuePrototype, this)
 
-let LiteralValue = inherit Value
+export LiteralValue = inherit Value
 	field value = null
 
-let LiteralFunctionValue = inherit LiteralValue
+export LiteralFunctionValue = inherit LiteralValue
 	field count = 0
 	method apply = function(value)
 		let result = this.value value # Just killed tail recursion
@@ -508,7 +511,7 @@ let LiteralFunctionValue = inherit LiteralValue
 		else
 			new LiteralFunctionValue(result, - (this.count) 1)
 
-let StringValue = inherit LiteralValue
+export StringValue = inherit LiteralValue
 	method apply = function(value)
 		with value match
 			NumberValue number = new StringValue(this.value number)
@@ -517,12 +520,12 @@ let StringValue = inherit LiteralValue
 
 	method length = this.value.length # Stdlib convenience
 
-let NumberValue = inherit LiteralValue
+export NumberValue = inherit LiteralValue
 	method apply = makePrototypeApply(numberValuePrototype, this)
 
-let TrueValue = new NumberValue(1)
+export TrueValue = new NumberValue(1)
 
-let SuperValue = inherit Value
+export SuperValue = inherit Value
 	field parent = null
 	field target = null
 
@@ -531,9 +534,9 @@ let SuperValue = inherit Value
 			fail "Objects have atom keys only"
 		resolveMethod(this.parent, index.value, this.target)
 
-let MethodPseudoValue = inherit Object
+export MethodPseudoValue = inherit Object
 
-let FunctionMethodPseudoValue = inherit MethodPseudoValue
+export FunctionMethodPseudoValue = inherit MethodPseudoValue
 	field scope = null
 	field owner = null
 	field exe = null
@@ -545,20 +548,20 @@ let FunctionMethodPseudoValue = inherit MethodPseudoValue
 		scope.atoms.set "super" new SuperValue(this.owner.parent, target)
 		this.exe.eval(scope)
 
-let LiteralMethodPseudoValue = inherit MethodPseudoValue
+export LiteralMethodPseudoValue = inherit MethodPseudoValue
 	field fn = null
 
 	method call = function(target)
 		this.fn.apply(target)
 
-let resolveMethod = function(source, key, thisValue)
+export resolveMethod = function(source, key, thisValue)
 	let value = source.innerLookup(key)
 	if (is MethodPseudoValue value)
 		value.call(thisValue)
 	else
 		value
 
-let MatchFunctionValue = inherit Value
+export MatchFunctionValue = inherit Value
 	field matches = null
 	field scope = null
 
@@ -595,9 +598,9 @@ let MatchFunctionValue = inherit Value
 		else
 			fail "No match clause was met"
 
-let globalPackageCache = new Dict
+export globalPackageCache = new Dict
 
-let PackageValue = inherit Value
+export PackageValue = inherit Value
 	field base = null
 	field method loaded = new Dict
 
@@ -646,8 +649,8 @@ let PackageValue = inherit Value
 				else
 					globalPackageCache.set filename null
 
-					let ast = makeAst (file.in filename)
-					let exe = exeFromAst(ast)
+					let ast = project.reader.makeAst (file.in filename)
+					let exe = project.parser.exeFromAst(ast)
 					value = new ObjectValue()
 					exe.evalSequence(defaultScope, value)
 
@@ -659,18 +662,18 @@ let PackageValue = inherit Value
 # Stdlib
 
 # Util function
-let literalMethod = function(f, n)
+export literalMethod = function(f, n)
 	new LiteralMethodPseudoValue(new LiteralFunctionValue(f,n))
 
 # Used by SequenceExec
 
-let scopeExportList = new ObjectValue
+export scopeExportList = new ObjectValue
 
 # Stdlib: Builtin types
 
-let nullValuePrototype = new ObjectValue
+export nullValuePrototype = new ObjectValue
 
-let numberValuePrototype = new ObjectValue
+export numberValuePrototype = new ObjectValue
 
 numberValuePrototype.atoms.set "toString"
 	literalMethod
@@ -683,7 +686,7 @@ numberValuePrototype.atoms.set "toNumber"
 		function (this) (this)
 		1
 
-let stringValuePrototype = new ObjectValue
+export stringValuePrototype = new ObjectValue
 
 stringValuePrototype.atoms.set "length"
 	literalMethod
@@ -702,7 +705,7 @@ stringValuePrototype.atoms.set "toString"
 		function (this) (this)
 		1
 
-let atomValuePrototype = new ObjectValue
+export atomValuePrototype = new ObjectValue
 
 atomValuePrototype.atoms.set "toString"
 	literalMethod
@@ -712,7 +715,7 @@ atomValuePrototype.atoms.set "toString"
 
 # Stdlib: Arrays
 
-let arrayValuePrototype = new ObjectValue
+export arrayValuePrototype = new ObjectValue
 
 arrayValuePrototype.atoms.set "length"
 	literalMethod
@@ -734,9 +737,9 @@ arrayValuePrototype.atoms.set "pop"
 
 # Stdlib: Iterators
 
-let iteratorPrototype = new ObjectValue
+export iteratorPrototype = new ObjectValue
 
-let IteratorObjectValue = inherit ObjectValue
+export IteratorObjectValue = inherit ObjectValue
 	parent = iteratorPrototype
 	field source = null
 	field idx = 0
@@ -756,7 +759,7 @@ iteratorPrototype.atoms.set "next"
 			value
 		1
 
-let installIter = function(prototype)
+export installIter = function(prototype)
 	prototype.atoms.set "iter"
 		literalMethod
 			function (this)
@@ -767,14 +770,14 @@ installIter stringValuePrototype
 
 # Stdlib: File I/O
 
-let infilePrototype = new ObjectValue
+export infilePrototype = new ObjectValue
 
-let outfilePrototype = new ObjectValue
+export outfilePrototype = new ObjectValue
 
-let FileObjectValue = inherit ObjectValue
+export FileObjectValue = inherit ObjectValue
 	field handle = null
 
-let fileObject = new ObjectValue
+export fileObject = new ObjectValue
 do
 	let makeFileConstructor = function(fn, prototype)
 		fileObject.atoms.set (fn.toString)
@@ -787,7 +790,7 @@ do
 	makeFileConstructor(.out,    outfilePrototype)
 	makeFileConstructor(.append, outfilePrototype)
 
-let closeWrapper = literalMethod
+export closeWrapper = literalMethod
 	function(this)
 		this.handle.close
 	1
@@ -813,7 +816,7 @@ outfilePrototype.atoms.set "flush"
 outfilePrototype.atoms.set "close" closeWrapper
 
 # Util function
-let newString = function (x) (new StringValue (x))
+export newString = function (x) (new StringValue (x))
 
 do
 	let addWrapper = function(fn, constructor)
@@ -831,7 +834,7 @@ infilePrototype.atoms.set "close" closeWrapper
 
 # Stdlib: Paths
 
-let pathObject = new ObjectValue
+export pathObject = new ObjectValue
 fileObject.atoms.set "path" pathObject
 
 pathObject.atoms.set "join"
@@ -855,11 +858,11 @@ do
 
 # Stdlib: Dict
 
-let dictObjectDataKey = new ObjectValue
-let dictPrototype = new ObjectValue
+export dictObjectDataKey = new ObjectValue
+export dictPrototype = new ObjectValue
 
 # FIXME: Not tolerant to subclassing
-let dictData = function (dict)
+export dictData = function (dict)
 	if (not (dict.atoms.has dictObjectDataKey))
 		dict.atoms.set dictObjectDataKey
 			new Dict
@@ -916,7 +919,7 @@ dictPrototype.atoms.set "iter"
 
 # Stdlib: "String garbage"
 
-let charObject = new ObjectValue
+export charObject = new ObjectValue
 do
 	let charFunctions = array
 		.isNonLineSpace
@@ -939,40 +942,40 @@ do
 
 # Stdlib: Scope
 
-let equalityFilter = function (value)
+export equalityFilter = function (value)
 	with value match
 		NumberValue x = x
 		StringValue x = x
 		_ = value
 
-let wrapBinaryNumber = function(f)
+export wrapBinaryNumber = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			new NumberValue(f (x.value) (y.value))
 		2
 
-let wrapBinaryBool = function(f)
+export wrapBinaryBool = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			toBoolValue
 				f (x.value) (y.value)
 		2
 
-let wrapBinaryEquality = function(f)
+export wrapBinaryEquality = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			toBoolValue
 				f (equalityFilter x) (equalityFilter y)
 		2
 
-let wrapBinaryBoolToBool = function(f)
+export wrapBinaryBoolToBool = function(f)
 	new LiteralFunctionValue
 		function(x,y)
 			toBoolValue
 				f (isTrue x) (isTrue y)
 		2
 
-let printable = function(x)
+export printable = function(x)
 	with x match
 		StringValue v = v
 		NumberValue v = v
@@ -980,7 +983,7 @@ let printable = function(x)
 		NullValue = "null"
 		_ = "[Unprintable]"
 
-let wrapPrintRepeat = function(f)
+export wrapPrintRepeat = function(f)
 	let repeat = new LiteralFunctionValue
 		function (x)
 			f
@@ -988,13 +991,13 @@ let wrapPrintRepeat = function(f)
 			repeat
 	repeat
 
-let setEntryFile = function(filename)
+export setEntryFile = function(filename)
 	defaultScope.atoms.set "project"
 		new PackageValue(file.path.dir(file.path.normalize(filename)))
 
-let rootObject = new ObjectValue
+export rootObject = new ObjectValue
 
-let defaultScope = new ObjectValue
+export defaultScope = new ObjectValue
 
 defaultScope.atoms.set "Object" rootObject
 defaultScope.atoms.set "String" stringValuePrototype
@@ -1103,7 +1106,7 @@ defaultScope.atoms.set "DEBUG"
 			1
 
 # This is supposed to print the keys sorted, but instead relies on dict iter incidentally sorting things
-let debugScopeDump = function(obj)
+export debugScopeDump = function(obj)
 	let i = obj.atoms.iter
 	while (i.more)
 		let key = i.next

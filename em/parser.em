@@ -1,19 +1,29 @@
 # Parser: Transformations ("macros") applied to parse tree to gradually make it executable
 
+from project.util import *
+from project.core import *
+from project.reader import
+	SymbolExp, QuoteExp, NumberExp, ExpGroup
+from project.execution import
+	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec
+	InvalidExec, VarExec, ApplyExec, SetExec, IfExec, SequenceExec, ImportAllExec
+	MakeFuncExec, MakeMatchExec, MakeArrayExec, MakeObjectExec
+	ObjectValue, UserMacroList
+
 # Base/helper
 
-let Macro = inherit Object
+export Macro = inherit Object
 	progress = ProgressBase.reader
 
-let insertMacro = insertLinked function(x,y)
+export insertMacro = insertLinked function(x,y)
 	cmp (x.progress) (y.progress)
 
-let isSymbol = function(node, goal)
+export isSymbol = function(node, goal)
 	with node match
 		SymbolExp = and (not (node.isAtom)) (== (node.content) goal)
 		_ = false
 
-let stripLeftSymbol = function(list, goal)
+export stripLeftSymbol = function(list, goal)
 	if (not (list.length))
 		null
 	else
@@ -24,7 +34,7 @@ let stripLeftSymbol = function(list, goal)
 		else
 			null
 
-let SequenceTracker = inherit Object
+export SequenceTracker = inherit Object
 	field statements = null
 	field idx = 0
 
@@ -45,7 +55,7 @@ let SequenceTracker = inherit Object
 		else
 			null
 
-let getNextExp = function(parser, loc, isExp, symbol, ary)
+export getNextExp = function(parser, loc, isExp, symbol, ary)
 	let failMsg = function(a) (parser.error(loc, nullJoin a))
 
 	if (not (ary.length))
@@ -66,12 +76,12 @@ let getNextExp = function(parser, loc, isExp, symbol, ary)
 # FIXME: In which places is null allowed in place of array()? In which places *should* it be?
 
 # Abstract macro: Matches on a single known symbol
-let OneSymbolMacro = inherit Macro
+export OneSymbolMacro = inherit Macro
 	method matches = function(left, node, right)
 		isSymbol(node, this.symbol)
 
 # Abstract macro: Expects KNOWNSYMBOL (GROUP)
-let SeqMacro = inherit OneSymbolMacro
+export SeqMacro = inherit OneSymbolMacro
 	method apply = function(parser, left, node, right, _)
 		let exp = getNextExp(parser, node.loc, true, this.symbol, right)
 
@@ -81,7 +91,7 @@ let SeqMacro = inherit OneSymbolMacro
 			new ProcessResult(left, this.construct(parser, exp), right)
 
 # from a import b
-let ImportMacro = inherit OneSymbolMacro
+export ImportMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 10
 	symbol = "import"
 
@@ -159,7 +169,7 @@ let ImportMacro = inherit OneSymbolMacro
 				new ProcessResult(null, result, null)
 
 # a = b
-let SetMacro = inherit OneSymbolMacro
+export SetMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 100
 	symbol = "="
 
@@ -204,7 +214,7 @@ let SetMacro = inherit OneSymbolMacro
 				new ProcessResult(null, exec, null)				
 
 # do (statements)
-let DoMacro = inherit SeqMacro
+export DoMacro = inherit SeqMacro
 	progress = + (ProgressBase.parser) 400
 	symbol = "do"
 
@@ -212,7 +222,7 @@ let DoMacro = inherit SeqMacro
 		parser.makeSequence(seq.loc, seq.statements, true)
 
 # function(args) (body)
-let FunctionMacro = inherit OneSymbolMacro
+export FunctionMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 400
 	symbol = "function"
 
@@ -264,7 +274,7 @@ let FunctionMacro = inherit OneSymbolMacro
 							parser.makeSequence(bodyExp.loc, bodyExp.statements, true)
 						right
 
-let IfMacro = inherit OneSymbolMacro
+export IfMacro = inherit OneSymbolMacro
 	field loop = false
 	
 	progress = + (ProgressBase.parser) 400
@@ -312,12 +322,12 @@ let IfMacro = inherit OneSymbolMacro
 				else
 					new ProcessResult(left, new IfExec(node.loc, this.loop, condExec, seqExec, elseExec), right)
 
-let MatchCase = inherit Object
+export MatchCase = inherit Object
 	field targetExe = null
 	field unpacks = null
 	field statement = null
 
-let MatchMacro = inherit OneSymbolMacro
+export MatchMacro = inherit OneSymbolMacro
 	progress = + (ProgressBase.parser) 400
 	symbol = "match"
 
@@ -410,14 +420,14 @@ let MatchMacro = inherit OneSymbolMacro
 			else
 				new ProcessResult (left, new MakeMatchExec(node.loc, result), right)
 
-let ArrayMacro = inherit SeqMacro
+export ArrayMacro = inherit SeqMacro
 	progress = + (ProgressBase.parser) 500
 	symbol = "array"
 
 	method construct = function(parser, seq)
 		new MakeArrayExec(seq.loc, parser.makeArray(seq))
 
-let ObjectMacro = inherit OneSymbolMacro
+export ObjectMacro = inherit OneSymbolMacro
 	field instance = false
 
 	progress = + (ProgressBase.parser) 500
@@ -477,7 +487,7 @@ let ObjectMacro = inherit OneSymbolMacro
 				else
 					new ProcessResult(left, new MakeObjectExec(node.loc, baseExec, values, assigns, this.instance), right)
 
-let ValueMacro = inherit Macro
+export ValueMacro = inherit Macro
 	progress = + (ProgressBase.parser) 900
 
 	method matches = function(left, node, right)
@@ -509,7 +519,7 @@ let ValueMacro = inherit Macro
 		else
 			new ProcessResult(left, node, right)
 
-let standardMacros = array
+export standardMacros = array
 	ImportMacro
 	SetMacro
 	DoMacro
@@ -524,12 +534,12 @@ let standardMacros = array
 
 # Parser
 
-let ProcessResult = inherit Object
+export ProcessResult = inherit Object
 	field left = null
 	field at = null
 	field right = null
 
-let Parser = inherit Object
+export Parser = inherit Object
 	field macros = null # Linked[Macro]
 	field errors = array()
 
@@ -696,10 +706,10 @@ let Parser = inherit Object
 				else
 					result
 
-let cloneParser = function(parser)
+export cloneParser = function(parser)
 	new Parser(cloneLinked (parser.macros), parser.errors)
 
-let exeFromAst = function(ast)
+export exeFromAst = function(ast)
 	let parser = new Parser
 	parser.loadAll standardMacros
 	let result = parser.makeSequence(ast.loc, ast.statements, false)
