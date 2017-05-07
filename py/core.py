@@ -1,4 +1,4 @@
-# Shared classes used by all bits of the parse chain
+# Shared classes used by all bits of the interpreter chain
 
 # Every Node has a progress field. The progress of a node >= the progress of its children (if any)
 
