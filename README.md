@@ -1,4 +1,4 @@
-This is a test with the eventual aim of making a programming language interpreter. Right now all that's here is a parser for a sort of LISP-with-significant-whitespace. If you're looking for the actual Emily language, try [emilylang.org](emilylang.org).
+This is a test with the eventual aim of making a programming language interpreter. Right now all that's here is a parser for a sort of LISP-with-significant-whitespace. If you're looking for the actual Emily language, try [emilylang.org](http://emilylang.org).
 
 To run a program, try:
 
