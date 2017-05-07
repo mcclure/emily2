@@ -27,6 +27,10 @@ class Error(object):
 		s.msg = msg
 
 class Loc(Printable):
-	def __init__(s, line, char):
+	def __init__(s, file, line, char):
+		s.file = file
 		s.line = line
 		s.char = char
+
+def errorFormat(e):
+	return u"%s%sine %s char %s: %s" % (e.loc.file if e.loc.file else "", ": l" if e.loc.file else "L", e.loc.line, e.loc.char, e.msg)

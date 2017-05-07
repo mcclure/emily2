@@ -210,7 +210,8 @@ class ObjectValue(EmilyValue):
 globalPackageCache = {}
 
 class PackageValue(EmilyValue):
-	def __init__(s, base):
+	def __init__(s, tagbase, base):
+		s.tagbase = tagbase
 		s.base = base
 		s.loaded = {}
 
@@ -239,14 +240,16 @@ class PackageValue(EmilyValue):
 			if value is None:
 				raise InternalExecutionException("File \"%s\" attempted to recursively load itself while it was still executing" % filename)
 		else:
+			tag = s.tagbase + "." + key
+
 			# FIXME: If it ever becomes possible to recover from errors, this will be a problem
 			if isdir:
-				value = PackageValue(filename)
+				value = PackageValue(tag, filename)
 			else:
 				globalPackageCache[filename] = None
 
 				try:
-					ast = reader.ast( fileChars(utfOpen(filename)) )
+					ast = reader.ast( fileChars(utfOpen(filename)), tag )
 				except IOError:
 					raise InternalExecutionException("Could not load file \"%s\"" % filename)
 
@@ -359,10 +362,10 @@ class SequenceExec(Executable):
 		return result if s.shouldReturn else None
 
 class LiteralExec(Executable):
-	def __init__(s, loc, source):
-		super(LiteralExec, s).__init__(loc) # source.line, source.char
+	def __init__(s, loc):
+		super(LiteralExec, s).__init__(loc)
 
-class StringLiteralExec(Executable):
+class StringLiteralExec(LiteralExec):
 	def __init__(s, loc, value):
 		super(StringLiteralExec, s).__init__(loc)
 		s.value = value
@@ -373,7 +376,7 @@ class StringLiteralExec(Executable):
 	def eval(s, scope):
 		return s.value
 
-class NumberLiteralExec(Executable):
+class NumberLiteralExec(LiteralExec):
 	def __init__(s, loc, value):
 		super(NumberLiteralExec, s).__init__(loc)
 		s.value = value
@@ -384,7 +387,7 @@ class NumberLiteralExec(Executable):
 	def eval(s, scope):
 		return s.value
 
-class AtomLiteralExec(Executable, EmilyValue):
+class AtomLiteralExec(LiteralExec, EmilyValue):
 	def __init__(s, loc, value):
 		super(AtomLiteralExec, s).__init__(loc)
 		s.value = value
@@ -400,7 +403,7 @@ class AtomLiteralExec(Executable, EmilyValue):
 			return MethodPseudoValue.fetch(atomPrototype, key.value, s)
 		atomKeysOnly()
 
-class NullLiteralExec(Executable):
+class NullLiteralExec(LiteralExec):
 	def __init__(s, loc):
 		super(NullLiteralExec, s).__init__(loc)
 
@@ -987,7 +990,7 @@ nullPrototype.atoms['toString'] = "null"
 # Packages
 
 def setEntryFile(filename):
-	defaultScope.atoms['project'] = PackageValue(os.path.dirname(os.path.realpath(filename)))
+	defaultScope.atoms['project'] = PackageValue("project", os.path.dirname(os.path.realpath(filename)))
 
 defaultScope.atoms['package'] = ObjectValue()
 defaultScope.atoms['project'] = ObjectValue()

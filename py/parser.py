@@ -604,8 +604,6 @@ def exeFromAst(ast):
 	parser = Parser()
 	result = parser.makeSequence(ast.loc, ast.statements) # TODO test to make sure it's a group
 	if parser.errors:
-		output = []
-		for e in parser.errors:
-			output.append(u"Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
+		output = [errorFormat(e) for e in parser.errors]
 		raise ParserException(u"\n".join(output))
 	return result

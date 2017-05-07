@@ -141,7 +141,8 @@ def isDigit(ch):
 	return ord(ch) >= ord(u'0') and ord(ch) <= ord(u'9')
 
 class Reader:
-	def __init__(s):
+	def __init__(s, filetag = None):
+		s.filetag = filetag
 		s.line = 1
 		s.char = 0
 		s.groupStack = []
@@ -149,7 +150,7 @@ class Reader:
 		s.appendGroup()
 
 	def loc(s):
-		return Loc(s.line, s.char)
+		return Loc(s.filetag, s.line, s.char)
 
 	def finalGroup(s):
 		return s.groupStack[-1]
@@ -316,7 +317,7 @@ class Reader:
 						s.backslashed = False
 
 						if trueCh is None:
-							s.error("Unrecognized backslash sequence '\%'", True)
+							s.error("Unrecognized backslash sequence '\%s'" % (ch), True)
 							break # Don't know what to do with this backslash, so just eat it. DONE
 					elif ch == u'\\':
 						s.backslashed = True
@@ -406,13 +407,11 @@ class Reader:
 				s.error("Parenthesis on line %d char %d never closed" % (group.loc.line, group.loc.char))
 			s.groupStack.pop()
 
-def ast(iter):
-	parser = Reader()
+def ast(iter, filetag = None):
+	parser = Reader(filetag)
 	parser.ast(iter)
 	if parser.errors:
-		output = []
-		for e in parser.errors:
-			output.append(u"Line %s char %s: %s" % (e.loc.line, e.loc.char, e.msg))
+		output = [errorFormat(e) for e in parser.errors]
 		raise ReaderException(u"\n".join(output))
 	return parser.finalGroup()
 
