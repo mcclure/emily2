@@ -224,13 +224,21 @@ class MacroMacro(OneSymbolMacro):
 			export = True
 		if not right:
 			return Error(node.loc, u"Emptiness after \"macro\"")
-		macroGroup = right.pop(0)
-		if type(macroGroup) != reader.ExpGroup:
-			return Error(node.loc, u"Expected a (group) after \"macro\"")
-		if right:
-			return Error(node.loc, u"Stray garbage after \"macro (group)\"")
-		macros = m.makeArray(macroGroup)
-		return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros], export), [])
+		macroGroup = right[0]
+		if type(macroGroup) == reader.SymbolExp:
+			# TODO: Consider only allowing this if atom keys. TODO: Do something more sensible when this fails?
+			macroObject = m.process(right).eval(execution.profileScope)
+			if type(macroObject) != execution.ObjectValue:
+				return Error(node.loc, u"macro import path did not resolve to a valid module")
+			else:
+				return ([], UserMacroList(node.loc, dict.get(macroObject.atoms, execution.macroExportList, []), export), [])
+		elif type(macroGroup) == reader.ExpGroup:
+			if len(right) > 1:
+				return Error(node.loc, u"Stray garbage after \"macro (group)\"")
+			macros = m.makeArray(macroGroup)
+			return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros], export), [])
+		else:
+			return Error(node.loc, u"Expected a path or a (group) after \"macro\"")
 
 class ImportMacro(OneSymbolMacro):
 	def __init__(s):

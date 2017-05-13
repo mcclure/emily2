@@ -97,15 +97,15 @@ try:
 	if flag('ast'):
 		print ast
 		sys.exit(0)
-	
+
+	if not flag('e'):
+		execution.setEntryFile(target)
+
 	ast = parser.exeFromAst(ast)
 
 	if flag('ast2'):
 		print ast
 		sys.exit(0)
-
-	if not flag('e'):
-		execution.setEntryFile(target)
 
 	scope = execution.ObjectValue(execution.defaultScope)
 	scope.atoms['argv'] = execution.ArrayValue(argv)

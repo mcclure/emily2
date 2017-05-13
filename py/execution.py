@@ -994,11 +994,18 @@ nullPrototype.atoms['toString'] = "null"
 
 # Packages
 
+profileScope = ObjectValue()
+
 def setEntryFile(filename):
-	defaultScope.atoms['project'] = PackageValue("project", os.path.dirname(os.path.realpath(filename)))
+	project = PackageValue("project", os.path.dirname(os.path.realpath(filename)))
+	defaultScope.atoms['project'] = project
+	profileScope.atoms['project'] = project
 
 defaultScope.atoms['package'] = ObjectValue()
+profileScope.atoms['package'] = defaultScope.atoms['package']
 defaultScope.atoms['project'] = ObjectValue()
+profileScope.atoms['project'] = defaultScope.atoms['project']
+
 # TODO: directory
 
 # Used to test exporting

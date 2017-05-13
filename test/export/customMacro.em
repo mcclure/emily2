@@ -1,4 +1,4 @@
-# Test export 
+# Test export. IS ALSO IMPORTED BY MACRO.EM
 # Arg: --exported
 # Expect:
 # Printed
