@@ -32,6 +32,7 @@ macro/fail/importNoAtom.em
 macro/fail/importSingle.em
 
 macro/custom/splitter.em
+macro/custom/fail/let.em
 
 scope/letSequence.em
 scope/closure.em
@@ -64,6 +65,7 @@ exec/fail/importStarFunction.em
 exec/fail/importStarPackage.em
 
 export/basic.em
+export/customMacro.em
 export/project.em
 export/argv.em
 export/order.em

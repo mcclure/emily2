@@ -48,6 +48,7 @@ def noSuchKey(key, beingSet=False):
 	raise LookupException(u"No such key: %s%s" % (key, " (trying to set)" if beingSet else ""))
 
 scopeExportList = object()
+macroExportList = object()
 
 class EmilyValue(object):
 	pass
@@ -333,11 +334,12 @@ class InvalidExec(Executable):
 		raise ExecutionException(s.loc, "Invalid expression", "Tried to execute invalid program")
 
 class SequenceExec(Executable):
-	def __init__(s, loc, shouldReturn, hasScope, execs):
+	def __init__(s, loc, shouldReturn, hasScope, execs, macros = None):
 		super(SequenceExec, s).__init__(loc)
 		s.shouldReturn = shouldReturn
 		s.hasScope = hasScope
 		s.execs = execs
+		s.macros = macros
 
 	def __unicode__(s):
 		tags = (["Scoped"] if s.hasScope else []) + (["Returning"] if s.shouldReturn else [])
@@ -358,6 +360,8 @@ class SequenceExec(Executable):
 		if exportList:
 			for key in exportList:
 				exportScope.atoms[key] = scope.atoms[key]
+			if s.macros:
+				exportScope.atoms[macroExportList] = s.macros
 
 		return result if s.shouldReturn else None
 
@@ -533,8 +537,9 @@ class ImportAllExec(Executable):
 
 		try:
 			for key in source.atoms:
-				value = source.lookup(key)
-				target.innerAssign(True, key, value)
+				if key != macroExportList:
+					value = source.lookup(key)
+					target.innerAssign(True, key, value)
 		except InternalExecutionException as e:
 			raise ExecutionException(s.loc, u"Import", unicode(e))
 		except KeyboardInterrupt:
@@ -1001,6 +1006,9 @@ defaultScope.atoms['project'] = ObjectValue()
 def debugScopeDump(obj):
 	for key in sorted(obj.atoms.keys()):
 		value = obj.atoms[key]
-		if type(value) == MethodPseudoValue:
-			value = "[Method]"
-		print printable(key) + ": " + printable(value)
+		if key == macroExportList:
+			print "[Macros: %d]" % (len(value))
+		else:
+			if type(value) == MethodPseudoValue:
+				value = "[Method]"
+			print printable(key) + ": " + printable(value)

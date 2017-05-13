@@ -159,6 +159,7 @@ class Parser(object):
 
 	def makeSequence(s, loc, statements, shouldReturn = False):
 		execs = []
+		macros = []
 		m = None
 		tracker = SequenceTracker(statements)
 		for stm in tracker:
@@ -167,6 +168,8 @@ class Parser(object):
 				if not m:
 					m = Parser(s)
 				m.loadAll(exe.contents)
+				if exe.export:
+					macros += exe.contents
 			else:
 				execs.append(exe)
 
@@ -175,7 +178,7 @@ class Parser(object):
 			if type(exe) == execution.SetExec and (exe.isLet or exe.isExport):
 				hasLets = True
 				break
-		return execution.SequenceExec(loc, shouldReturn, hasLets, execs)
+		return execution.SequenceExec(loc, shouldReturn, hasLets, execs, macros)
 
 	def makeArray(s, seq):
 		tracker = SequenceTracker(seq.statements)
@@ -195,9 +198,10 @@ class OneSymbolMacro(Macro):
 
 # Macro for loading macros -- Can masquerade as an Executable
 class UserMacroList(execution.Executable):
-	def __init__(s, loc, contents):
+	def __init__(s, loc, contents, export):
 		super(UserMacroList, s).__init__(loc)
 		s.contents = contents
+		s.export = export
 
 	def __unicode__(s):
 		return u"[Misplaced macro node]"
@@ -213,6 +217,11 @@ class MacroMacro(OneSymbolMacro):
 		return u"macro"
 
 	def apply(s, m, left, node, right, _):
+		export = False
+		if left:
+			if not (len(left) == 1 and isSymbol(left[0], "export")):
+				return Error(node.loc, "Stray garbage before \"macro\"")
+			export = True
 		if not right:
 			return Error(node.loc, u"Emptiness after \"macro\"")
 		macroGroup = right.pop(0)
@@ -221,7 +230,7 @@ class MacroMacro(OneSymbolMacro):
 		if right:
 			return Error(node.loc, u"Stray garbage after \"macro (group)\"")
 		macros = m.makeArray(macroGroup)
-		return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros]), [])
+		return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros], export), [])
 
 class ImportMacro(OneSymbolMacro):
 	def __init__(s):
