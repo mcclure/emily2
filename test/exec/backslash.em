@@ -15,3 +15,18 @@ let \let = null
 println
 	\let.method
 	\let \.method
+
+# Test import specially
+# Expect:
+# 5.0
+# 3.0
+
+let z = inherit Object
+	\* = 5
+	\method = 6
+
+from z import \*
+
+println
+	\*
+	\method
