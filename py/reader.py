@@ -393,7 +393,9 @@ class Reader:
 						s.reset(ReaderState.Dot)
 					break # Have consumed .. DONE
 				elif isDigit(ch):
-					if case(ReaderState.Scanning):
+					if case(ReaderState.Backslash):
+						s.error(u"Backslash cannot be followed by a number")
+					elif case(ReaderState.Scanning):
 						s.reset(ReaderState.Number)
 				else: # Symbol character
 					if case(ReaderState.Scanning) or case(ReaderState.Number):
