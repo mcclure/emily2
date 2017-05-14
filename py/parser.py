@@ -173,11 +173,13 @@ class Parser(object):
 			else:
 				execs.append(exe)
 
-		hasLets = False
-		for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
-			if type(exe) == execution.SetExec and (exe.isLet or exe.isExport):
-				hasLets = True
-				break
+		hasLets = bool(macros)
+		if not hasLets:
+			for exe in execs: # FIXME: This approach will do something weird if you = in a argument list or condition
+				if type(exe) == execution.SetExec and (exe.isLet or exe.isExport):
+					hasLets = True
+					break
+
 		return execution.SequenceExec(loc, shouldReturn, hasLets, execs, macros)
 
 	def makeArray(s, seq):
@@ -432,13 +434,17 @@ class FunctionMacro(OneSymbolMacro):
 				args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
-class SplitMacro(OneSymbolMacro):
+class UserMacro(OneSymbolMacro):
 	def __init__(s, progress, symbol):
-		super(SplitMacro, s).__init__(progress = progress)
+		super(UserMacro, s).__init__(progress = progress)
 		s.symbolCache = symbol
 
 	def symbol(s):
 		return s.symbolCache
+
+class SplitMacro(UserMacro):
+	def __init__(s, progress, symbol):
+		super(SplitMacro, s).__init__(progress, symbol)
 
 	def apply(s, m, left, node, right, tracker):
 		return ([],
@@ -448,6 +454,20 @@ class SplitMacro(OneSymbolMacro):
 						m.process(left)),
 				m.process(right, tracker)),
 			[])
+
+class UnaryMacro(UserMacro):
+	def __init__(s, progress, symbol):
+		super(UnaryMacro, s).__init__(progress, symbol)
+
+	def apply(s, m, left, node, right, tracker):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
+		capture = right.pop(0)
+		return (left,
+				execution.ApplyExec(node.loc,
+					execution.VarExec(node.loc, s.symbolCache),
+					m.process([capture])),
+			right)
 
 # match (matchbody)
 class MatchCase(object):
@@ -616,6 +636,11 @@ standard_macros = [
 	SetMacro(),
 	ValueMacro()
 ]
+
+def loadDefaultMacros():
+	additional = execution.libraryPackage.lookup("emily").lookup("profile").lookup("default")
+	execution.debugPrint(additional)
+	execution.debugPrint(additional.lookup(execution.macroExportList))
 
 def exeFromAst(ast):
 	parser = Parser()

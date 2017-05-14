@@ -219,7 +219,9 @@ class PackageValue(EmilyValue):
 	def apply(s, key):
 		if type(key) != AtomLiteralExec:
 			atomKeysOnly() # Raises
-		key = key.value
+		return s.lookup(key.value)
+
+	def lookup(s, key): # Already sanitized for atom correctness
 		if key in s.loaded:
 			return s.loaded[key]
 		isdir = False
@@ -357,7 +359,7 @@ class SequenceExec(Executable):
 		for exe in s.execs:
 			result = exe.eval(scope)
 
-		if exportList:
+		if exportList is not None:
 			for key in exportList:
 				exportScope.atoms[key] = scope.atoms[key]
 			if s.macros:
@@ -727,13 +729,22 @@ defaultScope.atoms['DEBUG'] = PythonFunctionValue(1, debugPrint)
 
 # Macro support
 
-def makeSplitMacro(progress, symbol):
+def makeMacroChecks(progress, symbol):
 	if progress < 0 or progress >= 1000:
 		raise Exception("Macro progress must be between 0 and 999 inclusive")
 	if type(symbol) != unicode:
 		raise Exception("Macro symbol is not a symbol")
+	
+def makeSplitMacro(progress, symbol):
+	makeMacroChecks(progress, symbol)
 	return parser.SplitMacro(ProgressBase.Parser + progress, symbol)
 defaultScope.atoms['splitMacro'] = PythonFunctionValue(2, makeSplitMacro)
+
+def makeUnaryMacro(progress, symbol):
+	makeMacroChecks(progress, symbol)
+	return parser.UnaryMacro(ProgressBase.Parser + progress, symbol)
+defaultScope.atoms['unaryMacro'] = PythonFunctionValue(2, makeUnaryMacro)
+
 
 # Dict
 
@@ -1001,8 +1012,11 @@ def setEntryFile(filename):
 	defaultScope.atoms['project'] = project
 	profileScope.atoms['project'] = project
 
-defaultScope.atoms['package'] = ObjectValue()
-profileScope.atoms['package'] = defaultScope.atoms['package']
+# FIXME: This assumes emily is being executed out of its own VCS repo
+libraryPackage = PackageValue("package", os.path.realpath(os.path.join(os.path.join(os.path.dirname(__file__), ".."), "library")))
+
+defaultScope.atoms['package'] = libraryPackage
+profileScope.atoms['package'] = libraryPackage
 defaultScope.atoms['project'] = ObjectValue()
 profileScope.atoms['project'] = defaultScope.atoms['project']
 

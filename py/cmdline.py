@@ -18,7 +18,7 @@ help += "\n"
 help += "Accepted arguments:\n"
 help += "-e [string]               # Instead of file, execute inline string\n"
 help += "--ast                     # Don't execute, dump AST\n"
-help += "--ast2                    # Don't execute, run macros and dump AST"
+help += "--ast2                    # Don't execute, run macros and dump AST\n"
 help += "--exported                # After executing, print exported symbols"
 
 cmdStoreTrue = ["--ast", "--ast2", "--exported"] # Single letter args, flags
@@ -84,6 +84,7 @@ else:
 sys.setrecursionlimit(50000)
 
 try:
+	# String to token tree
 	try:
 		ast = reader.ast(
 			util.utf8string(flag('e')[0]) if flag('e') 
@@ -98,14 +99,19 @@ try:
 		print ast
 		sys.exit(0)
 
+	# Interpreter init that is needed if we got past the reader
+	# parser.loadDefaultMacros() # TODO
 	if not flag('e'):
 		execution.setEntryFile(target)
 
+	# Token tree to execution tree
 	ast = parser.exeFromAst(ast)
 
 	if flag('ast2'):
 		print ast
 		sys.exit(0)
+
+	# Evaluate execution tree
 
 	scope = execution.ObjectValue(execution.defaultScope)
 	scope.atoms['argv'] = execution.ArrayValue(argv)

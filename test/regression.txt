@@ -69,7 +69,9 @@ exec/fail/importStarPackage.em
 
 export/basic.em
 export/customMacro.em
+export/customMacroOnly.em
 export/macro.em
+export/macro.2.em
 export/project.em
 export/argv.em
 export/order.em
