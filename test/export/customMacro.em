@@ -8,9 +8,9 @@
 export w = 2
 
 export macro
-	splitMacro(600, "+")
+	splitMacro(600, "add")
 
 macro
-	splitMacro(610, "*")
+	splitMacro(610, "times")
 
 println "Printed"
