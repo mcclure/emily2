@@ -189,7 +189,7 @@ class Parser(object):
 # TODO: do, if, while
 
 def isSymbol(exp, match):
-	return type(exp) == reader.SymbolExp and exp.content == match
+	return type(exp) == reader.SymbolExp and not exp.isAtom and not exp.isEscaped and exp.content == match
 
 # Abstract macro: matches on just one known symbol
 class OneSymbolMacro(Macro):

@@ -12,11 +12,13 @@ parse/fail/lparen.em
 parse/fail/parenDedent.em
 parse/fail/rparen.em
 parse/fail/startingComma.em
+parse/fail/backslash.em
 
 macro/null.em
 macro/value.em
 macro/set.em
 macro/steal.em
+macro/backslash.em
 macro/scopedSequence.em
 macro/import.em
 
@@ -41,6 +43,7 @@ scope/badLet.em
 
 scope/fail/noLet.em
 
+exec/backslash.em
 exec/if.em
 exec/while.em
 exec/ski.em

@@ -38,9 +38,10 @@ class StringContentExp(Node):
 		s.content += ch
 
 class SymbolExp(StringContentExp):
-	def __init__(s, loc, isAtom = False):
+	def __init__(s, loc, isAtom = False, isEscaped = False):
 		super(SymbolExp, s).__init__(loc)
 		s.isAtom = isAtom
+		s.isEscaped = isEscaped
 
 	def __unicode__(s):
 		return (u"." if s.isAtom else u"") + s.content
@@ -117,7 +118,7 @@ class Statement(Printable): # Not a node, only a helper for ExpGroup
 # Dot: Ambiguous; could become either Symbol or Number
 # QuoteCr: Hit CR, looking for LF, inside quote
 class ReaderState:
-	Indent, Scanning, Cr, Dot, Symbol, Number, Quote, QuoteCr, Comment = range(9)
+	Indent, Scanning, Cr, Dot, Backslash, Symbol, Number, Quote, QuoteCr, Comment = range(10)
 
 def isNonLineSpace(ch):
 	if ch == '\t':
@@ -289,7 +290,7 @@ class Reader:
 					elif isDigit(ch):
 						s.reset(ReaderState.Number)
 						s.finalExp().appendDot()
-					elif ch == u'.' or ch == u'(' or ch == u')' or ch == u'"':
+					elif ch == u'.' or ch == u'(' or ch == u')' or ch == u'"' or ch == '\\':
 						s.error("'.' was followed by special character '%s'" % ch)
 					elif ch == u'#' or isLineSpace(ch):
 						s.error("Line ended with a '.'")
@@ -375,7 +376,9 @@ class Reader:
 					s.reset(ReaderState.Comment)
 					break # Have consumed #. DONE
 
-				if ch == u'.': # Shared by: Scanning Symbol Number
+				if ch == u'\\': # Shared by: Scanning Symbol Number
+					s.reset(ReaderState.Backslash)
+				elif ch == u'.': # Shared by: Scanning Symbol Number
 					if case(ReaderState.Number):
 						if s.finalExp().dot:
 							s.reset(ReaderState.Dot) # We're starting an atom or something
@@ -391,6 +394,9 @@ class Reader:
 				else: # Symbol character
 					if case(ReaderState.Scanning) or case(ReaderState.Number):
 						s.reset(ReaderState.Symbol)
+					elif case(ReaderState.Backslash):
+						s.reset(ReaderState.Symbol)
+						s.finalExp().isEscaped = True
 
 				if case(ReaderState.Number):
 					s.finalExp().append(ch)
