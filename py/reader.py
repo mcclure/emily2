@@ -385,6 +385,10 @@ class Reader:
 						else:
 							# FIXME: This will ridiculously require 3..function to call a function on number
 							s.finalExp().dot = True # This is a decimal in a number
+					elif case(ReaderState.Backslash):
+						s.reset(ReaderState.Symbol)
+						s.finalExp().isAtom = True
+						s.finalExp().isEscaped = True
 					else:
 						s.reset(ReaderState.Dot)
 					break # Have consumed .. DONE
