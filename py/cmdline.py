@@ -100,7 +100,6 @@ try:
 		sys.exit(0)
 
 	# Interpreter init that is needed if we got past the reader
-	# parser.loadDefaultMacros() # TODO
 	if not flag('e'):
 		execution.setEntryFile(target)
 

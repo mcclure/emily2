@@ -61,7 +61,7 @@ class Parser(object):
 			s.macros = [MacroLevel(level.progress, list(level.contents)) for level in clone.macros]
 		else:
 			s.macros = []
-			s.loadAll(standard_macros)
+			s.loadAll(defaultMacros)
 
 	def _innerLoad(s, macro):
 		for existing in s.macros:
@@ -230,10 +230,14 @@ class MacroMacro(OneSymbolMacro):
 		if type(macroGroup) == reader.SymbolExp:
 			# TODO: Consider only allowing this if atom keys. TODO: Do something more sensible when this fails?
 			macroObject = m.process(right).eval(execution.profileScope)
-			if type(macroObject) != execution.ObjectValue:
-				return Error(node.loc, u"macro import path did not resolve to a valid module")
+			try:
+				macroList = macroObject.apply(execution.AtomLiteralExec(node.loc, execution.macroExportList))
+			except execution.InternalExecutionException as e:
+				raise execution.ExecutionException(macroGroup.loc, u"macro load", unicode(e))
+			if type(macroList) != list:
+				return Error(macroGroup.loc, u"macro import path did not resolve to a valid module")
 			else:
-				return ([], UserMacroList(node.loc, dict.get(macroObject.atoms, execution.macroExportList, []), export), [])
+				return ([], UserMacroList(node.loc, macroList, export), [])
 		elif type(macroGroup) == reader.ExpGroup:
 			if len(right) > 1:
 				return Error(node.loc, u"Stray garbage after \"macro (group)\"")
@@ -629,18 +633,18 @@ class ValueMacro(Macro):
 
 		return (left, node, right)
 
-standard_macros = [
-	MacroMacro(), ImportMacro(),
-	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
-	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),
+minimalMacros = [
 	SetMacro(),
 	ValueMacro()
 ]
 
-def loadDefaultMacros():
-	additional = execution.libraryPackage.lookup("emily").lookup("profile").lookup("default")
-	execution.debugPrint(additional)
-	execution.debugPrint(additional.lookup(execution.macroExportList))
+defaultMacros = [
+	MacroMacro(), ImportMacro(),
+	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
+	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),	
+] + minimalMacros
+
+experimentalMacros = []
 
 def exeFromAst(ast):
 	parser = Parser()

@@ -217,7 +217,7 @@ class PackageValue(EmilyValue):
 		s.loaded = {}
 
 	def apply(s, key):
-		if type(key) != AtomLiteralExec:
+		if type(key) != AtomLiteralExec or type(key.value) != unicode:
 			atomKeysOnly() # Raises
 		return s.lookup(key.value)
 
@@ -264,6 +264,42 @@ class PackageValue(EmilyValue):
 
 		s.loaded[key] = value
 		return value
+
+# An attempt to work around a corner I wrote myself into: these special objects do nothing except
+# consist of loaders for macros, which the system loads internally by calling lookup with a special key
+# This is done with special objects so that calculating the macro object value can be deferred.
+class LazyMacroLoader(EmilyValue):
+	def __init__(s):
+		s.cache = None
+
+	def apply(s, key):
+		if type(key) != AtomLiteralExec or key.value != macroExportList:
+			raise InternalExecutionException(u'Internal error: Bad lookup on macro object')
+		if not s.cache:
+			s.cache = s.value()
+		return s.cache
+
+class LazyMacroLambdaLoader(LazyMacroLoader):
+	def __init__(s, fn):
+		super(LazyMacroLambdaLoader, s).__init__()
+		s.fn = fn
+
+	def value(s):
+		cache = s.fn()
+		s.fn = None
+		return cache
+
+class PackageAliasValue(LazyMacroLoader):
+	def __init__(s, path):
+		super(PackageAliasValue, s).__init__()
+		s.path = path
+
+	def value(s):
+		cache = libraryPackage
+		for v in s.path:
+			cache = cache.lookup(v)
+		s.path = None
+		return cache
 
 # Small chunk of standard library: The array prototype
 
@@ -1019,6 +1055,10 @@ defaultScope.atoms['package'] = libraryPackage
 profileScope.atoms['package'] = libraryPackage
 defaultScope.atoms['project'] = ObjectValue()
 profileScope.atoms['project'] = defaultScope.atoms['project']
+
+profileScope.atoms['minimal'] = LazyMacroLambdaLoader(lambda: parser.minimalMacros)
+profileScope.atoms['default'] = LazyMacroLambdaLoader(lambda: parser.defaultMacros)
+profileScope.atoms['experimental'] = PackageAliasValue(["emily", "profile", "experimental", macroExportList])
 
 # TODO: directory
 
