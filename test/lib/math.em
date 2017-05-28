@@ -41,13 +41,14 @@ print
 	not null
 	ln
 
-# Expect: 4.0 1.0 1.0 6.0 2.0 2.0
+# Expect: 4.0 1.0 1.0 6.0 2.0 2.0 -2.0
 	+ 3 1
 	== 4 (+ 3 1)
 	- 3 2
 	* 3 2
 	/ 4 2
 	% 5 3
+	neg 2.0
 	ln
 
 # Expect: okayokay 1.0

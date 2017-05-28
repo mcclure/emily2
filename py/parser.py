@@ -444,41 +444,6 @@ class FunctionMacro(OneSymbolMacro):
 				args.append(stm.nodes[0].content)
 		return (left, execution.MakeFuncExec(node.loc, args, m.makeSequence(seq.loc, seq.statements, True)), right)
 
-class UserMacro(OneSymbolMacro):
-	def __init__(s, progress, symbol):
-		super(UserMacro, s).__init__(progress = progress)
-		s.symbolCache = symbol
-
-	def symbol(s):
-		return s.symbolCache
-
-class SplitMacro(UserMacro):
-	def __init__(s, progress, symbol):
-		super(SplitMacro, s).__init__(progress, symbol)
-
-	def apply(s, m, left, node, right, tracker):
-		return ([],
-			execution.ApplyExec(node.loc,
-				execution.ApplyExec(node.loc,
-						execution.VarExec(node.loc, s.symbolCache),
-						m.process(left)),
-				m.process(right, tracker)),
-			[])
-
-class UnaryMacro(UserMacro):
-	def __init__(s, progress, symbol):
-		super(UnaryMacro, s).__init__(progress, symbol)
-
-	def apply(s, m, left, node, right, tracker):
-		if not right:
-			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
-		capture = right.pop(0)
-		return (left,
-				execution.ApplyExec(node.loc,
-					execution.VarExec(node.loc, s.symbolCache),
-					m.process([capture])),
-			right)
-
 # match (matchbody)
 class MatchCase(object):
 	def __init__(s, targetExe, unpacks, statement):
@@ -639,6 +604,86 @@ class ValueMacro(Macro):
 
 		return (left, node, right)
 
+# "Nonstandard" macros
+
+# (left) && (right)
+
+class FancySplitterMacro(OneSymbolMacro):
+	def __init__(s, progress):
+		super(FancySplitterMacro, s).__init__(progress = progress)
+
+	def apply(s, m, left, node, right, _):
+		if not left:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (node.content))
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (node.content))
+		leftExe = m.process(left)
+		rightExe = m.process(right)
+		return s.expression(node.loc, leftExe, rightExe)
+
+class AndMacro(FancySplitterMacro):
+	def __init__(s):
+		super(AndMacro, s).__init__(progress = ProgressBase.Parser + 661)
+
+	def symbol(s):
+		return "&&"
+
+	def expression(s, loc, leftExe, rightExe):
+		return ([],
+			execution.IfExec(loc, False, leftExe, rightExe, execution.NullLiteralExec(loc)),
+			[])
+
+class OrMacro(FancySplitterMacro):
+	def __init__(s):
+		super(OrMacro, s).__init__(progress = ProgressBase.Parser + 663)
+
+	def symbol(s):
+		return "||"
+
+	def expression(s, loc, leftExe, rightExe):
+		return ([],
+			execution.IfExec(loc, False, leftExe, None, rightExe),
+			[])
+
+# (left) || (right)
+
+# User defined macro constructors
+class UserMacro(OneSymbolMacro):
+	def __init__(s, progress, symbol):
+		super(UserMacro, s).__init__(progress = progress)
+		s.symbolCache = symbol
+
+	def symbol(s):
+		return s.symbolCache
+
+class SplitMacro(UserMacro):
+	def __init__(s, progress, symbol):
+		super(SplitMacro, s).__init__(progress, symbol)
+
+	def apply(s, m, left, node, right, tracker):
+		return ([],
+			execution.ApplyExec(node.loc,
+				execution.ApplyExec(node.loc,
+						execution.VarExec(node.loc, s.symbolCache),
+						m.process(left)),
+				m.process(right, tracker)),
+			[])
+
+class UnaryMacro(UserMacro):
+	def __init__(s, progress, symbol):
+		super(UnaryMacro, s).__init__(progress, symbol)
+
+	def apply(s, m, left, node, right, tracker):
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
+		capture = right.pop(0)
+		return (left,
+				execution.ApplyExec(node.loc,
+					execution.VarExec(node.loc, s.symbolCache),
+					m.process([capture])),
+			right)
+
+
 minimalMacros = [
 	SetMacro(),
 	ValueMacro()
@@ -650,7 +695,7 @@ defaultMacros = [
 	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),	
 ] + minimalMacros
 
-experimentalMacros = []
+shortCircuitBooleanMacros = [OrMacro(), AndMacro()]
 
 def exeFromAst(ast):
 	parser = Parser()

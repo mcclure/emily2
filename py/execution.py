@@ -469,8 +469,13 @@ class IfExec(Executable):
 
 	def eval(s, scope):
 		if not s.loop:
-			if s.condClause.eval(scope):
-				return s.ifClause.eval(scope)
+			cond = s.condClause.eval(scope)
+			if cond:
+				if s.ifClause:
+					cond = None
+					return s.ifClause.eval(scope)
+				else:
+					return cond
 			if s.elseClause:
 				return s.elseClause.eval(scope)
 		else:
@@ -736,6 +741,7 @@ def toBool(x):
 	return 1.0 if x else None
 defaultScope.atoms['bool'] = PythonFunctionValue(1, toBool)
 defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBool(not x))
+defaultScope.atoms['neg'] = PythonFunctionValue(1, lambda x: -x)
 defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBool(x and y))
 defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
 defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBool(bool(x) != bool(y)))
@@ -1058,6 +1064,7 @@ profileScope.atoms['project'] = defaultScope.atoms['project']
 
 profileScope.atoms['minimal'] = LazyMacroLambdaLoader(lambda: parser.minimalMacros)
 profileScope.atoms['default'] = LazyMacroLambdaLoader(lambda: parser.defaultMacros)
+profileScope.atoms['shortCircuitBoolean'] = LazyMacroLambdaLoader(lambda: parser.shortCircuitBooleanMacros)
 profileScope.atoms['experimental'] = PackageAliasValue(["emily", "profile", "experimental", macroExportList])
 
 # TODO: directory
