@@ -55,13 +55,16 @@ class SequenceTracker(object):
 			raise StopIteration()   	
 
 class Parser(object):
-	def __init__(s, clone = None):
+	def __init__(s, clone = None, clear = False):
 		s.errors = clone.errors if clone else []
-		if clone:
-			s.macros = [MacroLevel(level.progress, list(level.contents)) for level in clone.macros]
-		else:
+		if clear:
 			s.macros = []
-			s.loadAll(defaultMacros)
+		else:
+			if clone:
+				s.macros = [MacroLevel(level.progress, list(level.contents)) for level in clone.macros]
+			else:
+				s.macros = []
+				s.loadAll(defaultMacros)
 
 	def _innerLoad(s, macro):
 		for existing in s.macros:
@@ -163,13 +166,14 @@ class Parser(object):
 		m = None
 		tracker = SequenceTracker(statements)
 		for stm in tracker:
-			exe = (m or s).process(stm.nodes, tracker)
+			currentParser = m or s
+			exe = currentParser.process(stm.nodes, tracker)
 			if type(exe) == UserMacroList: # Apply these macros to all following lines
-				if not m:
-					m = Parser(s)
+				if not m or exe.profile: # Instantiate parser on first custom macro, or any "profile" call
+					m = Parser(currentParser, exe.profile) # Inherit from existing parser, clear if this is a "profile"
 				m.loadAll(exe.contents)
 				if exe.export:
-					macros += exe.contents
+					macros += exe.contents # FIXME: This endures even after a "profile". Is that weird?
 			else:
 				execs.append(exe)
 
@@ -200,10 +204,11 @@ class OneSymbolMacro(Macro):
 
 # Macro for loading macros -- Can masquerade as an Executable
 class UserMacroList(execution.Executable):
-	def __init__(s, loc, contents, export):
+	def __init__(s, loc, contents, export, profile):
 		super(UserMacroList, s).__init__(loc)
 		s.contents = contents
 		s.export = export
+		s.profile = profile
 
 	def __unicode__(s):
 		return u"[Misplaced macro node]"
@@ -212,20 +217,21 @@ class UserMacroList(execution.Executable):
 		raise Exception("\"Macro\" statement in invalid place")
 
 class MacroMacro(OneSymbolMacro):
-	def __init__(s):
+	def __init__(s, profile):
 		super(MacroMacro, s).__init__(progress=ProgressBase.Parser + 10)
+		s.profile = profile
 
 	def symbol(s):
-		return u"macro"
+		return u"profile" if s.profile else u"macro"
 
 	def apply(s, m, left, node, right, _):
 		export = False
 		if left:
 			if not (len(left) == 1 and isSymbol(left[0], "export")):
-				return Error(node.loc, "Stray garbage before \"macro\"")
+				return Error(node.loc, "Stray garbage before \"%s\"" % s.symbol())
 			export = True
 		if not right:
-			return Error(node.loc, u"Emptiness after \"macro\"")
+			return Error(node.loc, u"Emptiness after \"%s\"" % s.symbol())
 		macroGroup = right[0]
 		if type(macroGroup) == reader.SymbolExp:
 			# TODO: Consider only allowing this if atom keys. TODO: Do something more sensible when this fails?
@@ -237,14 +243,14 @@ class MacroMacro(OneSymbolMacro):
 			if type(macroList) != list:
 				return Error(macroGroup.loc, u"macro import path did not resolve to a valid module")
 			else:
-				return ([], UserMacroList(node.loc, macroList, export), [])
+				return ([], UserMacroList(node.loc, macroList, export, s.profile), [])
 		elif type(macroGroup) == reader.ExpGroup:
 			if len(right) > 1:
-				return Error(node.loc, u"Stray garbage after \"macro (group)\"")
+				return Error(node.loc, u"Stray garbage after \"%s (group)\"" % s.symbol())
 			macros = m.makeArray(macroGroup)
-			return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros], export), [])
+			return ([], UserMacroList(node.loc, [ast.eval(execution.defaultScope) for ast in macros], export, s.profile), [])
 		else:
-			return Error(node.loc, u"Expected a path or a (group) after \"macro\"")
+			return Error(node.loc, u"Expected a path or a (group) after \"%s\"" % s.symbol())
 
 class ImportMacro(OneSymbolMacro):
 	def __init__(s):
@@ -639,7 +645,7 @@ minimalMacros = [
 ]
 
 defaultMacros = [
-	MacroMacro(), ImportMacro(),
+	MacroMacro(False), MacroMacro(True), ImportMacro(),
 	DoMacro(), IfMacro(False), IfMacro(True), FunctionMacro(), MatchMacro(),
 	ArrayMacro(), ObjectMacro(True), ObjectMacro(False),	
 ] + minimalMacros

@@ -36,7 +36,9 @@ macro/fail/importSingle.em
 macro/custom/splitter.em
 macro/custom/fail/let.em
 
+macro/profile/minimal.em
 macro/profile/experimental.em
+macro/profile/fail/minimal.em
 macro/profile/fail/package.em
 
 scope/letSequence.em

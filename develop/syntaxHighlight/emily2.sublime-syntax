@@ -18,7 +18,7 @@ contexts:
     - match: (\\|\.)(\w+|=)
 
     # Keywords
-    - match: (\b(let|method|field|export|do|while|if|elif|else|function|func|match|array|new|inherit|macro|import|from)\b|=)
+    - match: (\b(let|method|field|export|do|while|if|elif|else|function|func|match|array|new|inherit|macro|profile|import|from)\b|=)
       scope: keyword.control.emily2
 
     # Numbers
