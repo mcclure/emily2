@@ -1039,6 +1039,12 @@ defaultScope.atoms.set "and" (wrapBinaryBoolToBool and)
 defaultScope.atoms.set "or"  (wrapBinaryBoolToBool or)
 defaultScope.atoms.set "xor" (wrapBinaryBoolToBool xor)
 
+defaultScope.atoms.set "neg"
+	new LiteralFunctionValue
+		function (x)
+			new NumberValue(neg(x.value))
+		1
+
 defaultScope.atoms.set "bool"
 	new LiteralFunctionValue
 		function (x)
