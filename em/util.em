@@ -14,9 +14,9 @@ export lastFrom = function(a)
 export popLeft = function(a)
 	let left = a 0
 	let idx = 0
-	while (\< idx (\- (a.length) 1))
-		a idx = a (\+ idx 1)
-		idx = \+ idx 1
+	while (idx < a.length - 1)
+		a idx = a (idx + 1)
+		idx = idx + 1
 	a.pop
 	left
 
@@ -40,7 +40,7 @@ export catArray = function (a, b)
 export Linked = inherit Object
 	field value = null
 	field next = null # This looks like an iterator but is immutable. Is this bad
-	method more = (\!= (this.next) null)
+	method more = this.next != null
 
 export cloneLinked = function(list)
 	if (list)
@@ -55,19 +55,16 @@ export cloneLinked = function(list)
 		null
 
 export cmp = function (x, y)
-	if (\< x y)
+	if (x < y)
 		~1
-	elif (\> x y)
+	elif (x > y)
 		1
 	else
 		0
 
 export insertLinked = function(cmp, list, value)
 	let worse = function(node)
-		if (not node)
-			true
-		else
-			\> 0 (cmp value (node.value))
+		!node || 0 > cmp value (node.value)
 	let insert = new Linked(value)
 	if (worse list)
 		insert.next = list
@@ -75,7 +72,7 @@ export insertLinked = function(cmp, list, value)
 	else
 		let node = list
 		let done = false
-		while (and (not done) node)
+		while (!done && node)
 			if (worse (node.next))
 				insert.next = node.next
 				node.next = insert
@@ -85,7 +82,7 @@ export insertLinked = function(cmp, list, value)
 
 export foldl = function(default, f, ary)
 	let i = ary.iter
-	if (not (i.more))
+	if (!i.more)
 		default
 	else
 		let value = i.next
@@ -94,7 +91,7 @@ export foldl = function(default, f, ary)
 		value
 
 export checkErrors = function(errors)
-	if (\< 0 (errors.length))
+	if (0 < errors.length)
 		let i = errors.iter
 		stderr.println "Compilation failed:"
 		while (i.more)
@@ -113,23 +110,23 @@ export join = function(joiner)
 export nullJoin = join ""
 export startsWith = function(x, y)
 	let idx = 0
-	let valid = (\<= (y.length) (x.length)) # Don't bother if x is shorter
-	while (and valid (\< idx (y.length)))   # Iterate until difference found
-		if (\!= (x idx) (y idx))
+	let valid = y.length <= x.length # Don't bother if x is shorter
+	while (valid && idx < y.length)   # Iterate until difference found
+		if (x idx != y idx)
 			valid = false
-		idx = \+ idx 1
+		idx = idx + 1
 	valid
 
 export quotedString = function(s)
 	let result = "\""
 	let i = s.iter
 	while (i.more)
-		result = \+ result do
+		result = result + do
 			let ch = i.next
 			with (ch) match
 				"\n" = "\\n"
 				"\r" = "\\r"
 				"\"" = "\\\""
 				_ = ch
-	result = \+ result "\""
+	result = result + "\""
 	result
