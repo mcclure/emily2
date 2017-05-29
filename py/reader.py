@@ -140,6 +140,10 @@ def isCloseParen(ch):
 	return unicodedata.category(ch) == 'Pe'
 def isDigit(ch):
 	return ord(ch) >= ord(u'0') and ord(ch) <= ord(u'9')
+def isIdStart(ch): # FIXME: FOLLOW UAX 31
+	return unicodedata.category(ch)[0] == 'L' or ch=='_'
+def isIdContinue(ch):
+	return isIdStart(ch) or isDigit(ch)
 
 class Reader:
 	def __init__(s, filetag = None):
@@ -171,6 +175,7 @@ class Reader:
 	def reset(s, state, backslashed = False):
 		s.parserState = state
 		s.backslashed = backslashed
+		s.identifier = None
 		s.currentIndent = u''
 		for case in switch(state):
 			if case(ReaderState.Number):
@@ -395,7 +400,7 @@ class Reader:
 				elif isDigit(ch):
 					if case(ReaderState.Backslash):
 						s.error(u"Backslash cannot be followed by a number")
-					elif case(ReaderState.Scanning):
+					elif case(ReaderState.Scanning) or (case(ReaderState.Symbol) and s.identifier is False):
 						s.reset(ReaderState.Number)
 				else: # Symbol character
 					if case(ReaderState.Scanning) or case(ReaderState.Number):
@@ -409,6 +414,12 @@ class Reader:
 					break # Added to number. DONE
 
 				if case(ReaderState.Symbol):
+					if s.identifier is None:
+						s.identifier = isIdStart(ch)
+					else:
+						if (s.identifier and not isIdContinue(ch)) or (not s.identifier and isIdStart(ch)):
+							s.reset(ReaderState.Symbol)
+							s.identifier = isIdStart(ch)
 					s.finalExp().append(ch)
 					break # Added to symbol. DONE
 

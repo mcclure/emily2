@@ -4,9 +4,6 @@ parse/blank.em
 # Backslashes in quotes are not printed sensibly (otherwise works)
 parse/literals.em
 
-# a=3 is treated as one token
-parse/tokenize.em
-
 # . at end of program (or before comma) is allowed
 parse/fail/dotStray.em
 

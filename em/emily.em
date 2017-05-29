@@ -1,5 +1,7 @@
 # Self-hosting interpreter for e2
 
+profile experimental
+
 from project.util import *
 from project import (reader, parser, execution)
 
@@ -27,22 +29,22 @@ do
 			"--exported" =
 				cmdExported = true
 			"-e" = do
-				if (not (i.more))
+				if (!(i.more))
 					stderr.println "Missing argument for -e"
 					exit 2
 				cmdExecute = i.next
 			_ = do
-				if (== "-" (arg 0))
+				if ("-" == arg 0)
 					stderr.print "Unrecognized argument" arg ln
 					exit 2
 				cmdTarget = arg
 
-		if (or(cmdExecute, cmdTarget))
+		if (cmdExecute || cmdTarget)
 			while (i.more)
 				scriptArgv.append(i.next)
 			cmdValid = true
 
-if (not cmdValid)
+if (!cmdValid)
 	stderr.println "Must supply either file name or -e"
 	exit 2
 

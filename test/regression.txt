@@ -1,6 +1,7 @@
 # Tests expected to pass.
 
 parse/indent.em
+parse/tokenize.em
 parse/ambiguousIndent.em
 parse/unicode/utf8.em
 parse/unicode/utf8-bom.em

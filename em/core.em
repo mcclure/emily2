@@ -1,5 +1,7 @@
 # Shared classes used by all bits of the interpreter chain
 
+profile experimental
+
 from project.util import *
 
 # TODO: Important question to consider:
@@ -20,7 +22,7 @@ export Loc = inherit Object
 
 	method toString = nullJoin array
 		if (this.file)
-			+ (this.file) ", "
+			this.file + ", "
 		else
 			""
 		"line "
