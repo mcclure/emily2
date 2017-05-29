@@ -1,5 +1,7 @@
 # Execution tree classes, code for values and default scope
 
+profile experimental
+
 from project.util import *
 from project.core import *
 
@@ -38,7 +40,7 @@ export SequenceExec = inherit Executable
 		let result = null
 		while (i.more)
 			result = i.next.eval(scope)
-		if (!= exportList null)
+		if (exportList != null)
 			let i = exportList.iter
 			while (i.more)
 				let key = i.next
@@ -165,7 +167,7 @@ export SetExec = inherit Executable
 		this.setEval(scope, target, index)			
 		
 		if (this.isExport)
-			if (not (scope.atoms.has scopeExportList))
+			if (!(scope.atoms.has scopeExportList))
 				this.fail "\"export\" in unexpected place"
 			else
 				let exportList = scope.atoms.get scopeExportList
@@ -184,7 +186,7 @@ export ImportAllExec = inherit Executable
 	method setEval = function (scope, targetOverride, _)
 		let source = this.sourceClause.eval(scope)
 
-		if (not (is ObjectValue source))
+		if (!(is ObjectValue source))
 			this.fail "Attempted to import * from something other than an object"
 
 		let target = null
@@ -234,18 +236,18 @@ export MakeObjectExec = inherit Executable
 
 	method eval = function(scope)
 		let base = this.baseClause.eval(scope)
-		if (== base rootObject) # Tiny optimization: Don't actually inherit from Object
+		if (base == rootObject) # Tiny optimization: Don't actually inherit from Object
 			base = null
 		let infields = if (base) (base.fields) else (null)
 		let result = new ObjectValue(base)
-		if (and (this.isInstance) infields) # FIXME: This calls method fields even when not needed
+		if (this.isInstance && infields) # FIXME: This calls method fields even when not needed
 			let i = infields.iter
 			while (i.more)
 				let f = i.next
 				result.assign(true, f, base.apply(f))
 
 		if (
-				>
+				\>
 					if (this.values) (this.values.length) else (0) # FIXME: Wait, when will this ever happen?
 					if (infields) (infields.length) else (0)
 			)
@@ -256,7 +258,7 @@ export MakeObjectExec = inherit Executable
 		while (i.more)
 			let value = i.next.eval(scope)
 			result.atoms.set (infields(valueProgress).value) value
-			valueProgress = + valueProgress 1
+			valueProgress = valueProgress + 1
 
 		let i = this.assigns.iter
 		while (i.more)
@@ -265,15 +267,15 @@ export MakeObjectExec = inherit Executable
 			if (is SetExec exe)
 				index = exe.indexClause.eval(scope) # do this early for field handling
 				if (exe.isField)
-					if (not (is AtomLiteralExec index))
+					if (!(is AtomLiteralExec index))
 						this.fail "Objects have atom keys only"
-					if (not (result.fields))
+					if (!(result.fields))
 						result.fields = copyArgsWithAppend(infields, index)
 					else
 						result.fields.append(index)
 			exe.setEval(scope, result, index)
 
-		if (not (result.fields))
+		if (!(result.fields))
 			result.fields = infields
 
 		result
@@ -302,7 +304,7 @@ export MakeMatchExec = inherit Executable
 		let i = s.matches.iter
 		while (i.more)
 			let m = i.next
-			result = + result 
+			result = result +
 				nullJoin array
 					" [Case "
 					m.targetExe
@@ -311,7 +313,7 @@ export MakeMatchExec = inherit Executable
 					"] "
 					m.statement.toString
 					"]"
-		result = + result ("]")
+		result = result + "]"
 
 	method eval = function(scope)
 		new MatchFunctionValue(this.matches, scope)
@@ -330,13 +332,13 @@ export IfExec = inherit Executable
 		" "
 		this.ifClause
 		if (this.elseClause)
-			+ " " (this.elseClause.toString)
+			" " + (this.elseClause.toString)
 		else
 			""
 		"]"
 
 	method eval = function(scope)
-		if (not (this.loop))
+		if (!(this.loop))
 			if (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
 			elif (this.elseClause)
@@ -355,7 +357,7 @@ export UnitExec = NullLiteralExec # Just an alias
 # Util function
 export isTrue = match
 	NullValue = false
-	NumberValue v = (!= v 0)
+	NumberValue v = (v != 0)
 	_ = true
 
 # Util function
@@ -379,22 +381,22 @@ export toBoolValue = function(x)
 
 # Util function
 export isChild = function(parent,child)
-	if (== parent child)
+	if (parent == child)
 		true
 	elif (is NumberValue child)
-		== parent numberValuePrototype
+		parent == numberValuePrototype
 	elif (is StringValue child)
-		== parent stringValuePrototype
+		parent == stringValuePrototype
 	elif (is ArrayValue child)
-		== parent arrayValuePrototype
+		parent == arrayValuePrototype
 	elif (is ObjectValue child)
-		if (== parent rootObject)
+		if (parent == rootObject)
 			true
 		else
 			let result = false
-			while (and (not result) (child.parent))
+			while (!result && child.parent)
 				child = child.parent
-				if (== parent child)
+				if (parent == child)
 					result = true
 			result
 	else
@@ -438,7 +440,7 @@ export ObjectValue = inherit Value
 		elif (this.parent)
 			this.parent.innerAssign key value
 		else
-			fail (+ "Tried to assign nonexistent key " key)
+			fail ("Tried to assign nonexistent key " + key)
 
 	method key = function (value)
 		with value match
@@ -466,16 +468,16 @@ export FunctionValue = inherit Value
 	field args = null
 
 	method apply = function(value)
-		if (not (this.argNames.length))
+		if (!(this.argNames.length))
 			this.exe.eval(this.scope)
 		else
 			let newArgs = copyArgsWithAppend(this.args, value)
-			if (>= (newArgs.length) (this.argNames.length))
+			if (newArgs.length >= this.argNames.length)
 				let scope = new ObjectValue(this.scope)
 				let idx = 0
-				while (< idx (this.argNames.length))
+				while (idx < this.argNames.length)
 					scope.atoms.set(this.argNames idx, newArgs idx)
-					idx = + idx 1
+					idx = idx + 1
 				this.exe.eval(scope)
 			else
 				new FunctionValue(this.argNames, this.exe, this.scope, newArgs)
@@ -506,10 +508,10 @@ export LiteralFunctionValue = inherit LiteralValue
 	field count = 0
 	method apply = function(value)
 		let result = this.value value # Just killed tail recursion
-		if (< (this.count) 2)
+		if (this.count < 2)
 			result
 		else
-			new LiteralFunctionValue(result, - (this.count) 1)
+			new LiteralFunctionValue(result, this.count - 1)
 
 export StringValue = inherit LiteralValue
 	method apply = function(value)
@@ -568,7 +570,7 @@ export MatchFunctionValue = inherit Value
 	method apply = function(value)
 		let iMatch = this.matches.iter
 		let found = null
-		while (and (not found) (iMatch.more))
+		while (!found && iMatch.more)
 			let m = iMatch.next
 			if (
 				do # FIXME: IF I REMOVE THIS "DO" AND JUST SAY "IF", STUFF BREAKS. SOMETHING'S WRONG IN THE READER
@@ -578,7 +580,7 @@ export MatchFunctionValue = inherit Value
 							if (isChild(targetValue, value))
 								true
 							else
-								== (equalityFilter targetValue) (equalityFilter value)
+								equalityFilter targetValue == equalityFilter value
 					else
 						true
 			)
@@ -586,10 +588,10 @@ export MatchFunctionValue = inherit Value
 				if (m.unpacks)
 					scope = new ObjectValue(scope)
 					let unpackIdx = 0
-					while (< unpackIdx (m.unpacks.length))
+					while (unpackIdx < m.unpacks.length)
 						let atom = m.unpacks unpackIdx
 						scope.atoms.set (atom.value) (value.apply(new NumberValue(unpackIdx)))
-						unpackIdx = + unpackIdx 1
+						unpackIdx = unpackIdx + 1
 				# FIXME: Interesting little quirk here: if due to a bug elsewhere this eval
 				# returns a raw Python None or 0.0, very bad things will happen
 				found = m.statement.eval(scope)
@@ -610,16 +612,16 @@ export PackageValue = inherit Value
 			file.path.join(this.base, component)
 
 	method apply = function(key)
-		if (not (is AtomLiteralExec key))
+		if (!(is AtomLiteralExec key))
 			fail "Package has atom keys only"
 		key = key.value
 		if (this.loaded.has key)
 			this.loaded.get key
 		else
 			let isDir = false
-			let filename = this.subpath(+ key ".em")
+			let filename = this.subpath(key + ".em")
 
-			if (not (file.path.isFile filename))
+			if (!(file.path.isFile filename))
 				let dirname = this.subpath(key)
 				if (file.path.isDir dirname)
 					isDir = true
@@ -638,7 +640,7 @@ export PackageValue = inherit Value
 			if (globalPackageCache.has filename)
 				value = globalPackageCache.get filename
 
-				if (== value null)
+				if (value == null)
 					fail
 						nullJoin array
 							"File \""
@@ -751,14 +753,14 @@ iteratorPrototype.atoms.set "more"
 	literalMethod
 		function (this)
 			toBoolValue
-				< (this.idx) (this.source.length)
+				this.idx < this.source.length
 		1
 
 iteratorPrototype.atoms.set "next"
 	literalMethod
 		function (this)
 			let value = this.source.apply(new NumberValue(this.idx))
-			this.idx = + (this.idx) 1
+			this.idx = this.idx + 1
 			value
 		1
 
@@ -1014,24 +1016,24 @@ defaultScope.atoms.set "ln"     new StringValue(ln)
 defaultScope.atoms.set "+" 
 	new LiteralFunctionValue
 		function (x, y)
-			let v = + (x.value) (y.value)
+			let v = x.value + y.value
 			with x match
 				StringValue = new StringValue(v)
 				NumberValue = new NumberValue(v)
 		2
 
-defaultScope.atoms.set "-" (wrapBinaryNumber -)
-defaultScope.atoms.set "*" (wrapBinaryNumber *)
-defaultScope.atoms.set "/" (wrapBinaryNumber /)
-defaultScope.atoms.set "%" (wrapBinaryNumber %)
+defaultScope.atoms.set "-" (wrapBinaryNumber \-)
+defaultScope.atoms.set "*" (wrapBinaryNumber \*)
+defaultScope.atoms.set "/" (wrapBinaryNumber \/)
+defaultScope.atoms.set "%" (wrapBinaryNumber \%)
 
-defaultScope.atoms.set "<"  (wrapBinaryBool <)
-defaultScope.atoms.set "<=" (wrapBinaryBool <=)
-defaultScope.atoms.set ">"  (wrapBinaryBool >)
-defaultScope.atoms.set ">=" (wrapBinaryBool >=)
+defaultScope.atoms.set "<"  (wrapBinaryBool \<)
+defaultScope.atoms.set "<=" (wrapBinaryBool \<=)
+defaultScope.atoms.set ">"  (wrapBinaryBool \>)
+defaultScope.atoms.set ">=" (wrapBinaryBool \>=)
 
-defaultScope.atoms.set "==" (wrapBinaryEquality ==)
-defaultScope.atoms.set "!=" (wrapBinaryEquality !=)
+defaultScope.atoms.set "==" (wrapBinaryEquality \==)
+defaultScope.atoms.set "!=" (wrapBinaryEquality \!=)
 
 defaultScope.atoms.set "and" (wrapBinaryBoolToBool and)
 defaultScope.atoms.set "or"  (wrapBinaryBoolToBool or)

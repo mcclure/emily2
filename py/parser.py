@@ -672,6 +672,10 @@ class SplitMacro(UserMacro):
 		super(SplitMacro, s).__init__(progress, symbol)
 
 	def apply(s, m, left, node, right, tracker):
+		if not left: # Slight code redundancy with FancySplitter?
+			return Error(node.loc, u"Emptiness after \"%s\"" % (node.content))
+		if not right:
+			return Error(node.loc, u"Emptiness after \"%s\"" % (node.content))
 		return ([],
 			execution.ApplyExec(node.loc,
 				execution.ApplyExec(node.loc,

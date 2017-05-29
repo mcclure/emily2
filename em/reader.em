@@ -1,5 +1,7 @@
 # Reader: Turns unicode string iterator into parse tree
 
+profile experimental
+
 from project.util import *
 from project.core import *
 
@@ -13,9 +15,7 @@ export ExpGroup = inherit Node
 		"("
 		join(", ", this.statements)
 		")"
-	method empty = or
-		not (this.statements.length)
-		not (this.statements(0).nodes.length)
+	method empty = !(this.statements.length) || !(this.statements(0).nodes.length)
 
 export StringContentExp = inherit Node
 	field content = ""
@@ -23,7 +23,7 @@ export StringContentExp = inherit Node
 export SymbolExp = inherit StringContentExp
 	field isAtom = false
 
-	method toString = +
+	method toString = \+
 		if (this.isAtom) (".") else ("")
 		this.content
 
@@ -53,9 +53,9 @@ export Statement = inherit Object
 		let result = ""
 		let i = this.nodes.iter
 		while (i.more)
-			if (> (result.length) 0)
-				result = + result " "
-			result = + result (i.next.toString)
+			if (result.length > 0)
+				result = result + " "
+			result = result + i.next.toString
 		result
 
 export StatementKind = inherit Object
@@ -75,8 +75,8 @@ export makeAst = function(i, fileTag)
 	let appendExp = function (node)
 		finalGroup.finalStatement.nodes.append node
 	let appendGroup = function (statementKind)
-		let group = new ExpGroup(loc, == statementKind (StatementKind.Parenthesis))
-		if (!= statementKind (StatementKind.Outermost))
+		let group = new ExpGroup(loc, statementKind == StatementKind.Parenthesis)
+		if (statementKind != StatementKind.Outermost)
 			appendExp group
 		groupStack = new Linked(group, groupStack)
 	let appendStatement = function ()
@@ -102,10 +102,10 @@ export makeAst = function(i, fileTag)
 		state.enter()
 
 	let newline = function ()
-		lineAt = + lineAt 1
+		lineAt = lineAt + 1
 		charAt = 0
 	let handleLineSpace = function(ch)
-		if (== ch "\r")
+		if (ch == "\r")
 			nextState Cr
 		else
 			newline()
@@ -124,22 +124,22 @@ export makeAst = function(i, fileTag)
 			elif (char.isCloseParen ch)
 				let done = false
 				let node = groupStack
-				while (and (not done) node)
+				while (!done && node)
 					if (node.value.openedWithParenthesis)
 						done = true
 					node = node.next
 
-				if (not done)
+				if (!done)
 					error "Close parenthesis mismatched"
 				else
 					groupStack = node
 					nextState Scanning
-			elif (== ch ",")
+			elif (ch == ",")
 				appendStatement()
 				nextState Scanning
-			elif (== ch "#")
+			elif (ch == "#")
 				nextState Comment
-			elif (== ch "\"")
+			elif (ch == "\"")
 				nextState new Quote
 			else
 				this.subHandle ch
@@ -149,9 +149,9 @@ export makeAst = function(i, fileTag)
 			if (char.isDigit ch)
 				nextState Number
 				state.handle ch
-			elif (== ch ".")
+			elif (ch == ".")
 				nextState Dot
-			elif (not (char.isNonLineSpace ch))
+			elif (!(char.isNonLineSpace ch))
 				nextState Symbol
 				state.handle ch
 
@@ -159,7 +159,7 @@ export makeAst = function(i, fileTag)
 		handle = function(ch)
 			newline()
 			nextState new Indent
-			if (!= ch "\n") # Eat LFs, handle everything else
+			if (ch != "\n") # Eat LFs, handle everything else
 				state.handle ch
 
 	let Indent = inherit State
@@ -168,22 +168,22 @@ export makeAst = function(i, fileTag)
 			if (char.isLineSpace ch)
 				handleLineSpace ch
 			elif (char.isNonLineSpace ch)
-				this.current = + (this.current) ch
-			elif (== ch ",")
+				this.current = this.current + ch
+			elif (ch == ",")
 				error "Comma at start of line not understood"
 				nextState Scanning
-			elif (== ch "#")
+			elif (ch == "#")
 				nextState Comment
 			else # Non-whitespace content
 				if (char.isCloseParen ch)
 					1	# Do nothing-- just switch to scan
-				elif (== (finalGroup.indent) null) # First non-whitespace content of group
+				elif (finalGroup.indent == null) # First non-whitespace content of group
 					finalGroup.indent = this.current
 
-					if (> (finalGroup.finalStatement.nodes.length) 0)
+					if (finalGroup.finalStatement.nodes.length > 0)
 						appendStatement()
 						error "Indentation after ( is ambiguous; please add a , at the end of the previous line."
-				elif (== (this.current) (finalGroup.indent))
+				elif (this.current == finalGroup.indent)
 					appendStatement()
 				elif (startsWith (this.current) (finalGroup.indent)) # Added indentation
 					appendGroup (StatementKind.Indent)
@@ -192,8 +192,8 @@ export makeAst = function(i, fileTag)
 					let done = false
 					let parenthesisIssue = false
 					let node = groupStack
-					while (and (not done) node)
-						if (== (node.value.indent) (this.current))
+					while (!done && node)
+						if (node.value.indent == this.current)
 							done = true
 						elif (node.value.openedWithParenthesis)
 							parenthesisIssue = true
@@ -201,10 +201,10 @@ export makeAst = function(i, fileTag)
 						else
 							node = node.next
 
-					if (not done)
+					if (!done)
 						error "Indentation on this line doesn't match any previous one"
 					elif (parenthesisIssue)
-						error (+ "Indentation on this line doesn't match any since open parenthesis at " (finalGroup.loc.toString))
+						error ("Indentation on this line doesn't match any since open parenthesis at " + finalGroup.loc.toString)
 					else
 						groupStack = node
 						appendStatement()
@@ -228,10 +228,10 @@ export makeAst = function(i, fileTag)
 				state.handle ch
 			elif (char.isDigit ch)
 				if (e.dot)
-					e.decimal = + (e.decimal) ch
+					e.decimal = e.decimal + ch
 				else
-					e.integer = + (e.integer) ch
-			elif (and (not (e.dot)) (== ch "."))
+					e.integer = e.integer + ch
+			elif (!(e.dot) && ch == ".")
 				e.appendDot()
 			else
 				nextState Scanning
@@ -245,15 +245,15 @@ export makeAst = function(i, fileTag)
 			if (char.isSpace ch)
 				nextState Scanning
 				state.handle ch
-			elif (== ch ".")
+			elif (ch == ".")
 				nextState Dot
 			else
 				let e = lastExp
-				e.content = + (e.content) ch
+				e.content = e.content + ch
 
 	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
-			if (not (char.isNonLineSpace ch))
+			if (!(char.isNonLineSpace ch))
 				if (char.isDigit ch)
 					nextState Number
 					lastExp.appendDot()
@@ -286,7 +286,7 @@ export makeAst = function(i, fileTag)
 							"Unrecognized backslash sequence \"\\"
 							ch
 							"\""
-			elif (== ch "\\")
+			elif (ch == "\\")
 				this.backslash = true
 				trueCh = null
 			elif (char.isQuote ch)
@@ -294,7 +294,7 @@ export makeAst = function(i, fileTag)
 				trueCh = null
 			
 			if (trueCh)
-				lastExp.content = + (lastExp.content) trueCh
+				lastExp.content = lastExp.content + trueCh
 
 	state = new Indent
 	appendGroup (StatementKind.Outermost)
@@ -302,7 +302,7 @@ export makeAst = function(i, fileTag)
 	while (i.more)
 		let ch = i.next
 		state.handle ch
-		charAt = + charAt 1
+		charAt = charAt + 1
 
 	while (groupStack.more)
 		if (finalGroup.openedWithParenthesis)

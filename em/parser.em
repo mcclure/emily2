@@ -1,5 +1,7 @@
 # Parser: Transformations ("macros") applied to parse tree to gradually make it executable
 
+profile experimental
+
 from project.util import *
 from project.core import *
 from project.reader import
@@ -20,7 +22,7 @@ export insertMacro = insertLinked function(x,y)
 
 export isSymbol = function(node, goal)
 	with node match
-		SymbolExp = and (not (node.isAtom)) (== (node.content) goal)
+		SymbolExp = !(node.isAtom) && node.content == goal
 		_ = false
 
 export stripLeftSymbol = function(list, goal)
@@ -38,16 +40,16 @@ export SequenceTracker = inherit Object
 	field statements = null
 	field idx = 0
 
-	method more = > (this.statements.length) (this.idx)
+	method more = this.statements.length > this.idx
 	method next = do
 		let result = this.statements (this.idx)
-		this.idx = + (this.idx) 1
+		this.idx = this.idx + 1
 		result
 
 	method steal = function(symbol)
 		if (this.more)
 			let nodes = this.statements(this.idx).nodes
-			if (and nodes (isSymbol (nodes 0) symbol))
+			if (nodes && isSymbol (nodes 0) symbol)
 				this.next
 				nodes
 			else
@@ -58,18 +60,18 @@ export SequenceTracker = inherit Object
 export getNextExp = function(parser, loc, isExp, symbol, ary)
 	let failMsg = function(a) (parser.error(loc, nullJoin a))
 
-	if (not (ary.length))
+	if (!(ary.length))
 		failMsg array
 			"Emptiness after \""
 			symbol
 			"\""
-	elif (if isExp (not (is ExpGroup (ary 0))))
+	elif (isExp && !(is ExpGroup (ary 0)))
 		failMsg array
 			"Expected a (group) after \""
 			symbol
 			"\""
 	else
-		popLeft(ary)
+		popLeft ary
 
 # Macro classes
 
@@ -92,11 +94,11 @@ export SeqMacro = inherit OneSymbolMacro
 
 # from a import b
 export ImportMacro = inherit OneSymbolMacro
-	progress = + (ProgressBase.parser) 10
+	progress = ProgressBase.parser + 10
 	symbol = "import"
 
 	method generateSetExec = function(parser, loc, prefix, target)
-		if (not (target.length))
+		if (!(target.length))
 			parser.error(loc, "Missing target to import")
 		else
 			let error = null
@@ -112,12 +114,12 @@ export ImportMacro = inherit OneSymbolMacro
 				if (not error)
 					target = catArray prefix target
 
-			if (if (not error) (== (target.length) 1))
+			if (!error && target.length == 1)
 				error = parser.error(target(0).loc, "import expects either multiple symbols or a \"from\" clause")
 
 			if (not error)
 				let targetEnd = lastFrom target
-				if (if (is SymbolExp targetEnd) (not (targetEnd.isAtom)))
+				if (is SymbolExp targetEnd && !(targetEnd.isAtom))
 					error = parser.error(targetEnd.loc, "End of import path needs to be an atom")
 
 			if (error)
@@ -134,7 +136,7 @@ export ImportMacro = inherit OneSymbolMacro
 
 		if (left.length)
 			if (isSymbol(left 0, "from"))
-				if (== (left.length) 1)
+				if (left.length == 1)
 					error = parser.error(left(0).loc, "Expected symbols between \"from\" and \"import\"")
 				else
 					prefix = cloneArray left
@@ -147,18 +149,18 @@ export ImportMacro = inherit OneSymbolMacro
 		else
 			let result = null
 
-			if (if (== (right.length) 1) (is ExpGroup (right 0)))
+			if (right.length == 1 && is ExpGroup (right 0))
 				let setExecs = array()
 				let i = right(0).statements.iter
-				while (if (result) (false) else (i.more))
+				while (!result && i.more)
 					let setExec = this.generateSetExec(parser, node.loc, prefix, i.next.nodes)
 					if (is Error setExec)
 						result = setExec
 					else
 						setExecs.append setExec
-				if (not result)
+				if (!result)
 					result = new SequenceExec(node.loc, false, false, setExecs)
-			elif (if (== (right.length) 1) (isSymbol (right 0) "*"))
+			elif (right.length == 1 && isSymbol (right 0) "*")
 				result = new ImportAllExec(node.loc, parser.process(node.loc, prefix, null))
 			else
 				result = this.generateSetExec(parser, node.loc, prefix, right)
@@ -170,7 +172,7 @@ export ImportMacro = inherit OneSymbolMacro
 
 # a = b
 export SetMacro = inherit OneSymbolMacro
-	progress = + (ProgressBase.parser) 100
+	progress = ProgressBase.parser + 100
 	symbol = "="
 
 	method apply = function(parser, left, node, right, tracker) # DO I NEED TO COPY RIGHT?
@@ -189,9 +191,9 @@ export SetMacro = inherit OneSymbolMacro
 			else
 				pending = false
 
-		if (and (exec.isLet) (exec.isExport))
+		if (exec.isLet && exec.isExport)
 			parser.error(node.loc, "Cannot use \"let\" and \"export\" together")
-		if (not (left.length))
+		if (!(left.length))
 			parser.error(node.loc, "Missing name in =")
 		else
 			let process = parser.process(node.loc)
@@ -201,7 +203,7 @@ export SetMacro = inherit OneSymbolMacro
 				exec.targetClause = process(left, null) 
 				exec.indexClause = process(array (index), null)
 			else
-				if (if (is SymbolExp index) (not (index.isAtom)))
+				if (is SymbolExp index && !(index.isAtom))
 					exec.indexClause = new AtomLiteralExec(index.loc, index.content)
 				else
 					failedAt = index.loc
@@ -215,7 +217,7 @@ export SetMacro = inherit OneSymbolMacro
 
 # do (statements)
 export DoMacro = inherit SeqMacro
-	progress = + (ProgressBase.parser) 400
+	progress = ProgressBase.parser + 400
 	symbol = "do"
 
 	method construct = function(parser, seq)
@@ -223,7 +225,7 @@ export DoMacro = inherit SeqMacro
 
 # function(args) (body)
 export FunctionMacro = inherit OneSymbolMacro
-	progress = + (ProgressBase.parser) 400
+	progress = ProgressBase.parser + 400
 	symbol = "function"
 
 	method apply = function(parser, left, node, right, _)
@@ -233,13 +235,13 @@ export FunctionMacro = inherit OneSymbolMacro
 		if (is InvalidExec argExp)
 			argExp
 		else
-			let bodyExp = getNextGroup(+ (this.symbol) " (args)", right)
+			let bodyExp = getNextGroup(this.symbol + " (args)", right)
 			if (is InvalidExec bodyExp)
 				bodyExp
 			else
 				let args = array()
 				let argError = null
-				if (not (argExp.empty))
+				if (!(argExp.empty))
 					let i = argExp.statements.iter
 					while (and (not argError) (i.more))
 						let stm = i.next
@@ -254,11 +256,11 @@ export FunctionMacro = inherit OneSymbolMacro
 									" is "
 									reason
 
-						if (not (stm.nodes.length))
+						if (!(stm.nodes.length))
 							failBecause "blank"
-						elif (!= (stm.nodes.length) 1)
+						elif (stm.nodes.length !=  1)
 							failBecause "an expression"
-						elif (not (is SymbolExp (stm.nodes 0)))
+						elif (!(is SymbolExp (stm.nodes 0)))
 							failBecause "not a symbol"
 						else
 							args.append(stm.nodes(0).content)
@@ -277,7 +279,7 @@ export FunctionMacro = inherit OneSymbolMacro
 export IfMacro = inherit OneSymbolMacro
 	field loop = false
 	
-	progress = + (ProgressBase.parser) 400
+	progress = ProgressBase.parser + 400
 
 	method symbol = if (this.loop) ("while") else ("if")
 
@@ -288,7 +290,7 @@ export IfMacro = inherit OneSymbolMacro
 		if (is InvalidExec condExp)
 			condExp
 		else
-			let seqExp = getNext(true, + (this.symbol) " (group)", right)
+			let seqExp = getNext(true, this.symbol + " (group)", right)
 
 			if (is InvalidExec seqExp)
 				seqExp
@@ -298,9 +300,9 @@ export IfMacro = inherit OneSymbolMacro
 				let elseExec = null
 
 				if (not (this.loop))
-					if (and (not (nonempty right)) tracker)
+					if (!(nonempty right) && tracker)
 						right = tracker.steal "else"
-					if (and (not (nonempty right)) tracker)
+					if (!(nonempty right) && tracker)
 						right = tracker.steal "elif"
 					if (nonempty right)
 						if (isSymbol(right 0, "else"))
@@ -328,7 +330,7 @@ export MatchCase = inherit Object
 	field statement = null
 
 export MatchMacro = inherit OneSymbolMacro
-	progress = + (ProgressBase.parser) 400
+	progress = ProgressBase.parser + 400
 	symbol = "match"
 
 	method apply = function (parser, left, node, right, tracker)
@@ -362,9 +364,9 @@ export MatchMacro = inherit OneSymbolMacro
 						foundError = parser.error(stm.nodes(0).loc, "Match line does not have an =")
 					elif (not (eqLeft.length))
 						foundError = parser.error(eqNode.loc, "Left of = in match line is blank")
-					elif (> (eqLeft.length) 2)
+					elif (eqLeft.length > 2)
 						foundError = parser.error(eqLeft(2).loc, "Left of = in match line has too many symbols. Try adding parenthesis?")
-					elif (not (eqRight.length))
+					elif (!(eqRight.length))
 						foundError = parser.error(eqNode.loc, "Right of = in match line is blank")
 					else
 						let targetExp = popLeft eqLeft
@@ -380,38 +382,37 @@ export MatchMacro = inherit OneSymbolMacro
 									new AtomLiteralExec(unpacksExp.loc, unpacksExp.content)
 							elif (is ExpGroup unpacksExp)
 								let iUnpack = unpacksExp.statements.iter
-								while (and (not garbled) (iUnpack.more))
+								while (!garbled && iUnpack.more)
 									let unpackStatement = iUnpack.next
-									if (not (unpackStatement.nodes.length))
+									if (!(unpackStatement.nodes.length))
 										garbled = true
 									else
 										let unpackSymbol = unpackStatement.nodes 0
-										if (not (is SymbolExp unpackSymbol))
+										if (!(is SymbolExp unpackSymbol))
 											garbled = true
 										else
 											unpacks.append(new AtomLiteralExec(unpackSymbol.loc, unpackSymbol.content))
 							else
 								garbled = true # Technically redundant
 
-							if (or garbled (not (unpacks.length)))
+							if (garbled || !(unpacks.length))
 								foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list on left of = is garbled")
 
-						if (not foundError)
+						if (!foundError)
 							if (isSymbol targetExp "_")
 								if (unpacksExp)
 									foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list used with _")
 								else
 									targetExp = null # Null denotes wildcard match
 							elif (isSymbol targetExp "array")
-								if (not unpacksExp)
+								if (!unpacksExp)
 									foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list missing after \"array\"")
 								else
 									targetExp = null
 
-						if (not foundError)
+						if (!foundError)
 							let targetExec = 
-								if (targetExp)
-									parser.process (targetExp.loc, array (targetExp), null)
+								targetExp && parser.process (targetExp.loc, array (targetExp), null)
 							let tempStatement = parser.process(eqRight(0).loc, eqRight, tracker)
 							result.append(new MatchCase(targetExec, unpacks, tempStatement))
 
@@ -421,7 +422,7 @@ export MatchMacro = inherit OneSymbolMacro
 				new ProcessResult (left, new MakeMatchExec(node.loc, result), right)
 
 export ArrayMacro = inherit SeqMacro
-	progress = + (ProgressBase.parser) 500
+	progress = ProgressBase.parser + 500
 	symbol = "array"
 
 	method construct = function(parser, seq)
@@ -430,7 +431,7 @@ export ArrayMacro = inherit SeqMacro
 export ObjectMacro = inherit OneSymbolMacro
 	field instance = false
 
-	progress = + (ProgressBase.parser) 500
+	progress = ProgressBase.parser + 500
 	
 	method symbol = if (this.instance) ("new") else ("inherit")
 
@@ -442,10 +443,10 @@ export ObjectMacro = inherit OneSymbolMacro
 		else
 			let baseExec = parser.process(baseExp, array(baseExp), null)
 
-			let seqExp = if (not (right.length))
+			let seqExp = if (!(right.length))
 				new ExpGroup(baseExp.loc)
 			else
-				getNext(true, + (this.symbol) " [base]", right)
+				getNext(true, this.symbol + " [base]", right)
 
 			if (is InvalidExec seqExp)
 				seqExp
@@ -461,14 +462,14 @@ export ObjectMacro = inherit OneSymbolMacro
 				let foundError = null
 
 				let i = seq.iter
-				while (and (not foundError) (i.more))
+				while (!foundError && i.more)
 					let assign = i.next
 
 					if (is SetExec assign)
 						foundSet = true
 						if (assign.targetClause)
 							foundError = parser.error(assign.loc, "Assignment inside object literal was not of form key=value")
-						elif (or (assign.isLet) (assign.isExport))
+						elif (assign.isLet || assign.isExport)
 							foundError = parser.error(assign.loc, "Found a stray value expression inside an object literal")
 						else
 							assign.isLet = true
@@ -488,7 +489,7 @@ export ObjectMacro = inherit OneSymbolMacro
 					new ProcessResult(left, new MakeObjectExec(node.loc, baseExec, values, assigns, this.instance), right)
 
 export ValueMacro = inherit Macro
-	progress = + (ProgressBase.parser) 900
+	progress = ProgressBase.parser + 900
 
 	method matches = function(left, node, right)
 		with node match
@@ -503,9 +504,9 @@ export ValueMacro = inherit Macro
 			NumberExp(loc, integer, dot, decimal) = do
 				let value = integer
 				if (dot)
-					value = + value "."
+					value = value + "."
 				if (decimal)
-					value = + value decimal
+					value = value + decimal
 				new NumberLiteralExec(loc, value.toNumber)
 			SymbolExp(loc, content, isAtom) = do
 				if (isAtom)
@@ -555,7 +556,7 @@ export Parser = inherit Object
 
 			let exe = parser.process(loc, statement.nodes, tracker)
 			if (is UserMacroList exe)
-				if (not customMacros)   # TODO: Only dupe after descending levels
+				if (!customMacros)   # TODO: Only dupe after descending levels
 					parser = cloneParser(parser)
 					customMacros = true
 				m.loadAll(exe.contents)
@@ -563,16 +564,16 @@ export Parser = inherit Object
 				execs.append(exe)
 
 		let i = execs.iter
-		while (and (not hasLets) (i.more))
+		while (!hasLets && i.more)
 			let exe = i.next
-			if ( if (is SetExec exe) (or (exe.isLet) (exe.isExport)) ) # SHORT CIRCUITING "AND" NEEDED BADLY
+			if ( is SetExec exe && (exe.isLet || exe.isExport) )
 				hasLets = true
 
 		new SequenceExec(loc, shouldReturn, hasLets, execs)
 
 	method makeArray = function(expGroup)
 		let result = array()
-		if (not (expGroup.empty))
+		if (!(expGroup.empty))
 			let tracker = new SequenceTracker(expGroup.statements)
 			while (tracker.more)
 				let statement = tracker.next
@@ -591,20 +592,20 @@ export Parser = inherit Object
 		new InvalidExec(loc)
 
 	method checkComplete = function(node)
-		if (< (node.progress) (ProgressBase.executable))
+		if (node.progress < ProgressBase.executable)
 			this.error(node.loc, "Macro malfunctioned and left an unfinished node here at end of processing")
 		else
 			null
 
 	method process = function(loc, nodes, tracker)
 		# Callers must define the semantics of empty lists themselves.
-		if (== (nodes.length) 0)
+		if (nodes.length == 0)
 			this.error(loc, "Internal error: Parser attempted to evaluate an empty statement. This is a bug in the interpreter.")
 		else
 			# First, apply all macros to the statement.
 			let macroNode = this.macros
 			let foundError = null
-			while (and macroNode (not foundError))
+			while (macroNode && !foundError)
 				let m = macroNode.value
 				let left = array()
 				let right = nodes
@@ -612,19 +613,13 @@ export Parser = inherit Object
 				# One by one move the items out of right into left and macro-filter along the way
 				
 				while (
-						and
-							if (right) (right.length)
-							not foundError
+						(right && right.length) && !foundError # FIXME: shouldn't be needed with right associativity
 					)
 					let at = popLeft right
 
 					# FIXME: Need to bring in "macro levels" concept from parser.py
 					# So that same-priority keys get processed in a single sweep
-					if (
-							and 
-								<= (at.progress) (m.progress)
-								m.matches(left, at, right)
-						)
+					if (at.progress <= m.progress && m.matches(left, at, right))
 						# apply() returns either a ProcessResult so processing can continue,
 						# or a bare InvalidExec to signal that processing should short-circuit.
 						let result = m.apply(this, left, at, right, tracker)
@@ -638,7 +633,7 @@ export Parser = inherit Object
 								at = _at
 								right = _right
 
-						if (not left)
+						if (!left)
 							left = array()
 						if (at)
 							left.append at
@@ -651,7 +646,7 @@ export Parser = inherit Object
 
 			if (foundError)
 				foundError
-			elif (not (nodes.length))
+			elif (!(nodes.length))
 				# TODO: Try to figure out which macro? parser.py assumes "at" is the culprit...
 				this.error(loc, "Macro malfunctioned and produced an empty list")
 			else
@@ -665,7 +660,7 @@ export Parser = inherit Object
 					let firstNode = popLeft nodes
 					if (firstNode.empty)                   # ()
 						result = new UnitExec (firstNode.loc)
-					elif (== (firstNode.statements.length) 1) # (arg)
+					elif (firstNode.statements.length == 1) # (arg)
 						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
 					else                                   # (arg1, arg2, ...)
 						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
@@ -675,7 +670,7 @@ export Parser = inherit Object
 					resultError = this.checkComplete result # First write so this is safe
 
 				# For each item in the list, apply result = result(b)
-				while (and (not resultError) (nodes.length))
+				while (!resultError && nodes.length)
 					let arg = popLeft(nodes)
 
 					if (is ExpGroup arg)
@@ -686,8 +681,8 @@ export Parser = inherit Object
 							let tracker = new SequenceTracker(arg.statements)
 							while (tracker.more)
 								let statement = tracker.next
-								argIdx = + argIdx 1
-								if (not (statement.nodes.length))
+								argIdx = argIdx + 1
+								if (!(statement.nodes.length))
 									resultError = this.error
 										arg.loc
 										nullJoin array
@@ -698,7 +693,7 @@ export Parser = inherit Object
 									result = new ApplyExec(arg.loc, result, this.process(arg, statement.nodes, tracker))
 					else
 						resultError = this.checkComplete arg
-						if (not resultError)
+						if (!resultError)
 							result = new ApplyExec(arg.loc, result, arg)
 
 				if resultError
