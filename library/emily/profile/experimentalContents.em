@@ -7,9 +7,6 @@ export || = or
 export ^^ = xor
 
 export macro
-	unaryMacro(601, "!")
-	unaryMacro(601, "~")
-
 	splitMacro(611, "+")
 	splitMacro(611, "-")
 
@@ -26,5 +23,8 @@ export macro
 	splitMacro(641, "!=")
 
 	splitMacro(665, "^^")
+
+	unaryMacro(671, "!")
+	unaryMacro(671, "~")
 
 export macro shortCircuitBoolean # 661, 663

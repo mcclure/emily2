@@ -15,7 +15,7 @@ export ExpGroup = inherit Node
 		"("
 		join(", ", this.statements)
 		")"
-	method empty = !(this.statements.length) || !(this.statements(0).nodes.length)
+	method empty = !this.statements.length || !this.statements(0).nodes.length
 
 export StringContentExp = inherit Node
 	field content = ""
@@ -151,7 +151,7 @@ export makeAst = function(i, fileTag)
 				state.handle ch
 			elif (ch == ".")
 				nextState Dot
-			elif (!(char.isNonLineSpace ch))
+			elif (!char.isNonLineSpace ch)
 				nextState Symbol
 				state.handle ch
 
@@ -231,7 +231,7 @@ export makeAst = function(i, fileTag)
 					e.decimal = e.decimal + ch
 				else
 					e.integer = e.integer + ch
-			elif (!(e.dot) && ch == ".")
+			elif (!e.dot && ch == ".")
 				e.appendDot()
 			else
 				nextState Scanning
@@ -253,7 +253,7 @@ export makeAst = function(i, fileTag)
 
 	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
-			if (!(char.isNonLineSpace ch))
+			if (!char.isNonLineSpace ch)
 				if (char.isDigit ch)
 					nextState Number
 					lastExp.appendDot()

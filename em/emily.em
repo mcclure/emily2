@@ -29,7 +29,7 @@ do
 			"--exported" =
 				cmdExported = true
 			"-e" = do
-				if (!(i.more))
+				if (!i.more)
 					stderr.println "Missing argument for -e"
 					exit 2
 				cmdExecute = i.next

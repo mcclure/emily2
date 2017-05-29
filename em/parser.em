@@ -22,7 +22,7 @@ export insertMacro = insertLinked function(x,y)
 
 export isSymbol = function(node, goal)
 	with node match
-		SymbolExp = !(node.isAtom) && node.content == goal
+		SymbolExp = !node.isAtom && node.content == goal
 		_ = false
 
 export stripLeftSymbol = function(list, goal)
@@ -60,12 +60,12 @@ export SequenceTracker = inherit Object
 export getNextExp = function(parser, loc, isExp, symbol, ary)
 	let failMsg = function(a) (parser.error(loc, nullJoin a))
 
-	if (!(ary.length))
+	if (!ary.length)
 		failMsg array
 			"Emptiness after \""
 			symbol
 			"\""
-	elif (isExp && !(is ExpGroup (ary 0)))
+	elif (isExp && !is ExpGroup (ary 0))
 		failMsg array
 			"Expected a (group) after \""
 			symbol
@@ -98,7 +98,7 @@ export ImportMacro = inherit OneSymbolMacro
 	symbol = "import"
 
 	method generateSetExec = function(parser, loc, prefix, target)
-		if (!(target.length))
+		if (!target.length)
 			parser.error(loc, "Missing target to import")
 		else
 			let error = null
@@ -119,7 +119,7 @@ export ImportMacro = inherit OneSymbolMacro
 
 			if (not error)
 				let targetEnd = lastFrom target
-				if (is SymbolExp targetEnd && !(targetEnd.isAtom))
+				if (is SymbolExp targetEnd && !targetEnd.isAtom)
 					error = parser.error(targetEnd.loc, "End of import path needs to be an atom")
 
 			if (error)
@@ -193,7 +193,7 @@ export SetMacro = inherit OneSymbolMacro
 
 		if (exec.isLet && exec.isExport)
 			parser.error(node.loc, "Cannot use \"let\" and \"export\" together")
-		if (!(left.length))
+		if (!left.length)
 			parser.error(node.loc, "Missing name in =")
 		else
 			let process = parser.process(node.loc)
@@ -203,7 +203,7 @@ export SetMacro = inherit OneSymbolMacro
 				exec.targetClause = process(left, null) 
 				exec.indexClause = process(array (index), null)
 			else
-				if (is SymbolExp index && !(index.isAtom))
+				if (is SymbolExp index && !index.isAtom)
 					exec.indexClause = new AtomLiteralExec(index.loc, index.content)
 				else
 					failedAt = index.loc
@@ -241,7 +241,7 @@ export FunctionMacro = inherit OneSymbolMacro
 			else
 				let args = array()
 				let argError = null
-				if (!(argExp.empty))
+				if (!argExp.empty)
 					let i = argExp.statements.iter
 					while (and (not argError) (i.more))
 						let stm = i.next
@@ -256,11 +256,11 @@ export FunctionMacro = inherit OneSymbolMacro
 									" is "
 									reason
 
-						if (!(stm.nodes.length))
+						if (!stm.nodes.length)
 							failBecause "blank"
 						elif (stm.nodes.length !=  1)
 							failBecause "an expression"
-						elif (!(is SymbolExp (stm.nodes 0)))
+						elif (!is SymbolExp (stm.nodes 0))
 							failBecause "not a symbol"
 						else
 							args.append(stm.nodes(0).content)
@@ -300,9 +300,9 @@ export IfMacro = inherit OneSymbolMacro
 				let elseExec = null
 
 				if (not (this.loop))
-					if (!(nonempty right) && tracker)
+					if (!nonempty right && tracker)
 						right = tracker.steal "else"
-					if (!(nonempty right) && tracker)
+					if (!nonempty right && tracker)
 						right = tracker.steal "elif"
 					if (nonempty right)
 						if (isSymbol(right 0, "else"))
@@ -366,7 +366,7 @@ export MatchMacro = inherit OneSymbolMacro
 						foundError = parser.error(eqNode.loc, "Left of = in match line is blank")
 					elif (eqLeft.length > 2)
 						foundError = parser.error(eqLeft(2).loc, "Left of = in match line has too many symbols. Try adding parenthesis?")
-					elif (!(eqRight.length))
+					elif (!eqRight.length)
 						foundError = parser.error(eqNode.loc, "Right of = in match line is blank")
 					else
 						let targetExp = popLeft eqLeft
@@ -384,18 +384,18 @@ export MatchMacro = inherit OneSymbolMacro
 								let iUnpack = unpacksExp.statements.iter
 								while (!garbled && iUnpack.more)
 									let unpackStatement = iUnpack.next
-									if (!(unpackStatement.nodes.length))
+									if (!unpackStatement.nodes.length)
 										garbled = true
 									else
 										let unpackSymbol = unpackStatement.nodes 0
-										if (!(is SymbolExp unpackSymbol))
+										if (!is SymbolExp unpackSymbol)
 											garbled = true
 										else
 											unpacks.append(new AtomLiteralExec(unpackSymbol.loc, unpackSymbol.content))
 							else
 								garbled = true # Technically redundant
 
-							if (garbled || !(unpacks.length))
+							if (garbled || !unpacks.length)
 								foundError = parser.error(unpacksExp.loc, "In match line, variable unpack list on left of = is garbled")
 
 						if (!foundError)
@@ -443,7 +443,7 @@ export ObjectMacro = inherit OneSymbolMacro
 		else
 			let baseExec = parser.process(baseExp, array(baseExp), null)
 
-			let seqExp = if (!(right.length))
+			let seqExp = if (!right.length)
 				new ExpGroup(baseExp.loc)
 			else
 				getNext(true, this.symbol + " [base]", right)
@@ -573,7 +573,7 @@ export Parser = inherit Object
 
 	method makeArray = function(expGroup)
 		let result = array()
-		if (!(expGroup.empty))
+		if (!expGroup.empty)
 			let tracker = new SequenceTracker(expGroup.statements)
 			while (tracker.more)
 				let statement = tracker.next
@@ -646,7 +646,7 @@ export Parser = inherit Object
 
 			if (foundError)
 				foundError
-			elif (!(nodes.length))
+			elif (!nodes.length)
 				# TODO: Try to figure out which macro? parser.py assumes "at" is the culprit...
 				this.error(loc, "Macro malfunctioned and produced an empty list")
 			else
@@ -682,7 +682,7 @@ export Parser = inherit Object
 							while (tracker.more)
 								let statement = tracker.next
 								argIdx = argIdx + 1
-								if (!(statement.nodes.length))
+								if (!statement.nodes.length)
 									resultError = this.error
 										arg.loc
 										nullJoin array

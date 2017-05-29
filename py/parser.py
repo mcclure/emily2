@@ -691,11 +691,10 @@ class UnaryMacro(UserMacro):
 	def apply(s, m, left, node, right, tracker):
 		if not right:
 			return Error(node.loc, u"Emptiness after \"%s\"" % (s.symbol()))
-		capture = right.pop(0)
 		return (left,
 				execution.ApplyExec(node.loc,
 					execution.VarExec(node.loc, s.symbolCache),
-					m.process([capture])),
+					m.process(right)),
 			right)
 
 

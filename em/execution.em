@@ -167,7 +167,7 @@ export SetExec = inherit Executable
 		this.setEval(scope, target, index)			
 		
 		if (this.isExport)
-			if (!(scope.atoms.has scopeExportList))
+			if (!scope.atoms.has scopeExportList)
 				this.fail "\"export\" in unexpected place"
 			else
 				let exportList = scope.atoms.get scopeExportList
@@ -186,7 +186,7 @@ export ImportAllExec = inherit Executable
 	method setEval = function (scope, targetOverride, _)
 		let source = this.sourceClause.eval(scope)
 
-		if (!(is ObjectValue source))
+		if (!is ObjectValue source)
 			this.fail "Attempted to import * from something other than an object"
 
 		let target = null
@@ -267,15 +267,15 @@ export MakeObjectExec = inherit Executable
 			if (is SetExec exe)
 				index = exe.indexClause.eval(scope) # do this early for field handling
 				if (exe.isField)
-					if (!(is AtomLiteralExec index))
+					if (!is AtomLiteralExec index)
 						this.fail "Objects have atom keys only"
-					if (!(result.fields))
+					if (!result.fields)
 						result.fields = copyArgsWithAppend(infields, index)
 					else
 						result.fields.append(index)
 			exe.setEval(scope, result, index)
 
-		if (!(result.fields))
+		if (!result.fields)
 			result.fields = infields
 
 		result
@@ -338,7 +338,7 @@ export IfExec = inherit Executable
 		"]"
 
 	method eval = function(scope)
-		if (!(this.loop))
+		if (!this.loop)
 			if (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
 			elif (this.elseClause)
@@ -468,7 +468,7 @@ export FunctionValue = inherit Value
 	field args = null
 
 	method apply = function(value)
-		if (!(this.argNames.length))
+		if (!this.argNames.length)
 			this.exe.eval(this.scope)
 		else
 			let newArgs = copyArgsWithAppend(this.args, value)
@@ -612,7 +612,7 @@ export PackageValue = inherit Value
 			file.path.join(this.base, component)
 
 	method apply = function(key)
-		if (!(is AtomLiteralExec key))
+		if (!is AtomLiteralExec key)
 			fail "Package has atom keys only"
 		key = key.value
 		if (this.loaded.has key)
@@ -621,7 +621,7 @@ export PackageValue = inherit Value
 			let isDir = false
 			let filename = this.subpath(key + ".em")
 
-			if (!(file.path.isFile filename))
+			if (!file.path.isFile filename)
 				let dirname = this.subpath(key)
 				if (file.path.isDir dirname)
 					isDir = true
