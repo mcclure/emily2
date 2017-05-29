@@ -39,6 +39,8 @@ macro/custom/fail/let.em
 macro/profile/minimal.em
 macro/profile/experimental.em
 macro/profile/shortCircuitBoolean.em
+macro/profile/implicitImport.em
+macro/profile/implicitImport.2.em
 macro/profile/fail/minimal.em
 macro/profile/fail/package.em
 

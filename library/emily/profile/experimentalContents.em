@@ -1,4 +1,10 @@
-# Manually loaded from minimal profile
+# Manually loaded	 from minimal profile
+
+export ! = not
+export ~ = neg
+export && = and
+export || = or
+export ^^ = xor
 
 export macro
 	unaryMacro(601, "!")
@@ -19,8 +25,6 @@ export macro
 	splitMacro(641, "==")
 	splitMacro(641, "!=")
 
-	splitMacro(661, "&&")
-	splitMacro(663, "||")
 	splitMacro(665, "^^")
 
-export macro shortCircuitBoolean
+export macro shortCircuitBoolean # 661, 663

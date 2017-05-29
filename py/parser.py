@@ -174,6 +174,8 @@ class Parser(object):
 				m.loadAll(exe.contents)
 				if exe.export:
 					macros += exe.contents # FIXME: This endures even after a "profile". Is that weird?
+				if exe.payload:
+					execs.append(exe.payload)
 			else:
 				execs.append(exe)
 
@@ -204,11 +206,12 @@ class OneSymbolMacro(Macro):
 
 # Macro for loading macros -- Can masquerade as an Executable
 class UserMacroList(execution.Executable):
-	def __init__(s, loc, contents, export, profile):
+	def __init__(s, loc, contents, export, profile, payload = None):
 		super(UserMacroList, s).__init__(loc)
 		s.contents = contents
 		s.export = export
 		s.profile = profile
+		s.payload = payload # Executable to run after
 
 	def __unicode__(s):
 		return u"[Misplaced macro node]"
@@ -243,7 +246,15 @@ class MacroMacro(OneSymbolMacro):
 			if type(macroList) != list:
 				return Error(macroGroup.loc, u"macro import path did not resolve to a valid module")
 			else:
-				return ([], UserMacroList(node.loc, macroList, export, s.profile), [])
+				payload = None
+				importObject = macroObject
+				if isinstance(importObject, execution.LazyMacroLoader):
+					importObject = importObject.importObject()
+				if importObject:
+					payload = execution.ImportAllExec(node.loc, 
+						execution.StoredLiteralExec(node.loc, importObject),
+					export)
+				return ([], UserMacroList(node.loc, macroList, export, s.profile, payload), [])
 		elif type(macroGroup) == reader.ExpGroup:
 			if len(right) > 1:
 				return Error(node.loc, u"Stray garbage after \"%s (group)\"" % s.symbol())

@@ -279,6 +279,9 @@ class LazyMacroLoader(EmilyValue):
 			s.cache = s.value()
 		return s.cache
 
+	def importObject(s):
+		return None
+
 class LazyMacroLambdaLoader(LazyMacroLoader):
 	def __init__(s, fn):
 		super(LazyMacroLambdaLoader, s).__init__()
@@ -293,13 +296,21 @@ class PackageAliasValue(LazyMacroLoader):
 	def __init__(s, path):
 		super(PackageAliasValue, s).__init__()
 		s.path = path
+		s.objectCache = None
 
 	def value(s):
 		cache = libraryPackage
 		for v in s.path:
 			cache = cache.lookup(v)
 		s.path = None
+		s.objectCache = cache
+		cache = cache.lookup(macroExportList)
 		return cache
+
+	def importObject(s):
+		if not s.cache:
+			s.cache = s.value()
+		return s.objectCache
 
 # Small chunk of standard library: The array prototype
 
@@ -407,27 +418,24 @@ class LiteralExec(Executable):
 	def __init__(s, loc):
 		super(LiteralExec, s).__init__(loc)
 
-class StringLiteralExec(LiteralExec):
+class StoredLiteralExec(Executable):
 	def __init__(s, loc, value):
-		super(StringLiteralExec, s).__init__(loc)
+		super(StoredLiteralExec, s).__init__(loc)
 		s.value = value
 
+	def __unicode__(s):
+		return u"[InternalLiteral]"
+
+	def eval(s, scope):
+		return s.value
+
+class StringLiteralExec(StoredLiteralExec):
 	def __unicode__(s):
 		return u"[StringLiteral %s]" % (quotedString(s.value))
 
-	def eval(s, scope):
-		return s.value
-
-class NumberLiteralExec(LiteralExec):
-	def __init__(s, loc, value):
-		super(NumberLiteralExec, s).__init__(loc)
-		s.value = value
-
+class NumberLiteralExec(StoredLiteralExec):
 	def __unicode__(s):
 		return u"[NumberLiteral %s]" % (s.value)
-
-	def eval(s, scope):
-		return s.value
 
 class AtomLiteralExec(LiteralExec, EmilyValue):
 	def __init__(s, loc, value):
@@ -561,14 +569,21 @@ class SetExec(Executable):
 		return None
 
 class ImportAllExec(Executable):
-	def __init__(s, loc, sourceClause): # TODO: indexClauses
+	def __init__(s, loc, sourceClause, isExport = False): # TODO: indexClauses
 		super(ImportAllExec, s).__init__(loc)
 		s.sourceClause = sourceClause
-	
+		s.isExport = isExport
+
 	def __unicode__(s):
 		return u"[ImportAll %s]" % (unicode(s.sourceClause))
 
 	def eval(s, scope, targetOverride = None, indexOverride = None):
+		scopeExport = None
+		if s.isExport:
+			if scopeExportList not in scope.atoms:
+				raise ExecutionException(s.loc, u"Assignment", u"\"export\" in unexpected place")
+			scopeExport = scope.atoms[scopeExportList]
+
 		source = s.sourceClause.eval(scope)
 		if not isinstance(source, ObjectValue):
 			raise ExecutionException(s.loc, u"Import", u"Attempted to import * from something other than an object")
@@ -583,6 +598,8 @@ class ImportAllExec(Executable):
 				if key != macroExportList:
 					value = source.lookup(key)
 					target.innerAssign(True, key, value)
+					if scopeExport is not None:
+						scopeExport.add(key)
 		except InternalExecutionException as e:
 			raise ExecutionException(s.loc, u"Import", unicode(e))
 		except KeyboardInterrupt:
@@ -1065,7 +1082,7 @@ profileScope.atoms['project'] = defaultScope.atoms['project']
 profileScope.atoms['minimal'] = LazyMacroLambdaLoader(lambda: parser.minimalMacros)
 profileScope.atoms['default'] = LazyMacroLambdaLoader(lambda: parser.defaultMacros)
 profileScope.atoms['shortCircuitBoolean'] = LazyMacroLambdaLoader(lambda: parser.shortCircuitBooleanMacros)
-profileScope.atoms['experimental'] = PackageAliasValue(["emily", "profile", "experimental", macroExportList])
+profileScope.atoms['experimental'] = PackageAliasValue(["emily", "profile", "experimental"])
 
 # TODO: directory
 
