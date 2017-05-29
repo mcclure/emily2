@@ -7,24 +7,24 @@ export || = or
 export ^^ = xor
 
 export macro
-	splitMacro(611, "+")
-	splitMacro(611, "-")
+	unaryMacro(651, "!")
+	unaryMacro(651, "~")
 
-	splitMacro(621, "*")
-	splitMacro(621, "/")
-	splitMacro(621, "%")
+	splitMacro(641, "*")
+	splitMacro(641, "/")
+	splitMacro(641, "%")
 
-	splitMacro(631, "<")
-	splitMacro(631, ">")
-	splitMacro(631, "<=")
-	splitMacro(631, ">=")
+	splitMacro(631, "+")
+	splitMacro(631, "-")
 
-	splitMacro(641, "==")
-	splitMacro(641, "!=")
+	splitMacro(621, "<")
+	splitMacro(621, ">")
+	splitMacro(621, "<=")
+	splitMacro(621, ">=")
 
-	splitMacro(665, "^^")
+	splitMacro(611, "==")
+	splitMacro(611, "!=")
 
-	unaryMacro(671, "!")
-	unaryMacro(671, "~")
+	splitMacro(601, "^^")
 
-export macro shortCircuitBoolean # 661, 663
+export macro shortCircuitBoolean # 603, 605

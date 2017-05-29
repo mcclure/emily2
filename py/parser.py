@@ -54,6 +54,40 @@ class SequenceTracker(object):
 		else:
 			raise StopIteration()   	
 
+class BidiIterator(object):
+	def __init__(s, source, rightward):
+		if rightward:
+			s.left = source
+			s.right = []
+		else:
+			s.left = []
+			s.right = source
+		s.rightward = rightward
+
+	def source(s):
+		return s.left if s.rightward else s.right
+
+	def result(s):
+		return s.right if s.rightward else s.left
+
+	def push(s, v):
+		if s.rightward:
+			s.right.insert(0, v)
+		else:
+			s.left.append(v)
+
+	def pop(s):
+		if s.rightward:
+			return s.left.pop()
+		else:
+			return s.right.pop(0)
+
+	def replace(s, left, at, right):
+		s.left = left or []
+		s.right = right or []
+		if at:
+			s.push(at)
+
 class Parser(object):
 	def __init__(s, clone = None, clear = False):
 		s.errors = clone.errors if clone else []
@@ -99,12 +133,13 @@ class Parser(object):
 			raise Exception("Internal error: macro process() cannot work on an empty list")
 		try:
 			for level in s.macros:
-				left = []
-				right = nodes
-				while right:
-					at = right.pop(0)
+				i = BidiIterator(nodes, 1 == level.progress % 2)
+				while i.source():
+					at = i.pop()
+					left = i.left
+					right = i.right
 					if at.progress > level.progress:
-						left.append(at)
+						i.push(at)
 						continue
 					for macro in level.contents:
 						if macro.match(left, at, right):
@@ -115,9 +150,8 @@ class Parser(object):
 							else:
 								(left, at, right) = result
 							break
-					if at:
-						left.append(at)
-				nodes = left
+					i.replace(left, at, right)
+				nodes = i.result()
 		except MacroShortCircuit as e:
 			return s.errorAt( e.error.loc, e.error.msg )
 
@@ -634,7 +668,7 @@ class FancySplitterMacro(OneSymbolMacro):
 
 class AndMacro(FancySplitterMacro):
 	def __init__(s):
-		super(AndMacro, s).__init__(progress = ProgressBase.Parser + 661)
+		super(AndMacro, s).__init__(progress = ProgressBase.Parser + 605)
 
 	def symbol(s):
 		return "&&"
@@ -646,7 +680,7 @@ class AndMacro(FancySplitterMacro):
 
 class OrMacro(FancySplitterMacro):
 	def __init__(s):
-		super(OrMacro, s).__init__(progress = ProgressBase.Parser + 663)
+		super(OrMacro, s).__init__(progress = ProgressBase.Parser + 603)
 
 	def symbol(s):
 		return "||"
