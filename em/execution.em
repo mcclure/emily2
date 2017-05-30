@@ -573,16 +573,11 @@ export MatchFunctionValue = inherit Value
 		while (!found && iMatch.more)
 			let m = iMatch.next
 			if (
-				do # FIXME: IF I REMOVE THIS "DO" AND JUST SAY "IF", STUFF BREAKS. SOMETHING'S WRONG IN THE READER
-					if (m.targetExe)
-						do
-							let targetValue = m.targetExe.eval(this.scope)
-							if (isChild(targetValue, value))
-								true
-							else
-								equalityFilter targetValue == equalityFilter value
-					else
-						true
+				if (!m.targetExe)
+					true
+				else
+					let targetValue = m.targetExe.eval(this.scope)
+					isChild(targetValue, value) || equalityFilter targetValue == equalityFilter value
 			)
 				let scope = this.scope
 				if (m.unpacks)
