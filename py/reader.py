@@ -268,10 +268,10 @@ class Reader:
 									if unrollIdx < 0:
 										break
 									group = s.groupStack[unrollIdx]
+									if group.indent == s.currentIndent:
+										break
 									if group.openedWithParenthesis:
 										parenthesisIssue = True
-										break
-									if group.indent == s.currentIndent:
 										break
 
 							# Error

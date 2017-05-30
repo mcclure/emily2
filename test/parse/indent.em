@@ -1,5 +1,5 @@
 # Arg: --ast
-# Expect: (Zero, Zero, One two (three four (five), six), One two (three four (five, six)), One (two three) (four (five (six)) seven (eight nine), ten))
+# Expect: (Zero, Zero, One two (three four (five), six), One two (three four (five, six)), One (two three) (four (five (six)) seven (eight nine), ten), One (two (three), four (five)))
 
 Zero
 
@@ -21,3 +21,10 @@ five
 	) seven
 		eight nine
 	ten
+
+One (
+	two
+		three
+	four
+		five
+)
