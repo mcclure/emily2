@@ -1,13 +1,13 @@
 # Embarrassingly, doesn't work.
 parse/blank.em
 
-# Backslashes in quotes are not printed sensibly (otherwise works)
+# Backslashes in quotes are not printed sensibly (otherwise works) (works in selfhost)
 parse/literals.em
 
-# Backslash newline is not supported yet
+# Backslash newline is not supported yet (works in selfhost)
 parse/endBackslash.em
 
-# Both parsers get confused by lines which end with a comma
+# Both parsers get confused by lines which end with a comma, but in different ways
 parse/endComma.em
 
 # . at end of program (or before comma) is allowed

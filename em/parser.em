@@ -22,7 +22,7 @@ export insertMacro = insertLinked function(x,y)
 
 export isSymbol = function(node, goal)
 	with node match
-		SymbolExp = !node.isAtom && node.content == goal
+		SymbolExp = !node.isAtom && !node.isEscaped && node.content == goal
 		_ = false
 
 export stripLeftSymbol = function(list, goal)

@@ -114,6 +114,27 @@ export makeAst = function(i, fileTag)
 
 	# States-- see big diagram comment in reader.py
 
+	let Backslash = inherit State
+		handle = function(ch)
+			if (char.isLineSpace ch || ch == "#")
+				nextState Scanning
+			elif (ch == ".")
+				nextState new Symbol
+				lastExp.isEscaped = true
+				lastExp.isAtom = true
+			elif (char.isDigit ch)
+				error "Backslash cannot be followed by number"
+			elif (char.isParen ch || ch == "\\" || ch == ",")
+				error
+					nullJoin array
+						"Backslash cannot be followed by \""
+						ch
+						"\""
+			elif (!char.isSpace ch)
+				nextState new Symbol
+				lastExp.isEscaped = true
+				state.handle ch
+
 	let BasicState = inherit State
 		subHandle = nullfn
 		method handle = function(ch)
@@ -142,6 +163,8 @@ export makeAst = function(i, fileTag)
 				nextState Comment
 			elif (ch == "\"")
 				nextState new Quote
+			elif (ch == "\\")
+				nextState Backslash
 			else
 				this.subHandle ch
 
@@ -269,6 +292,12 @@ export makeAst = function(i, fileTag)
 	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
 			if (!char.isNonLineSpace ch)
+				if (ch == "\"")
+					error
+						nullJoin array
+							"\".\" was followed by special character \""
+							ch
+							"\""
 				if (char.isDigit ch)
 					nextState Number
 					lastExp.appendDot()
