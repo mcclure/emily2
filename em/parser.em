@@ -663,7 +663,10 @@ export Parser = inherit Object
 					elif (firstNode.statements.length == 1) # (arg)
 						result = this.process (firstNode.loc, firstNode.statements(0).nodes, null)
 					else                                   # (arg1, arg2, ...)
-						resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+						tracker = new SequenceTracker(firstNode.statements)
+						result = this.process (firstNode.loc, tracker.next.nodes, tracker)
+						if (tracker.more)
+							resultError = this.error (firstNode.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
 		
 				else
 					result = popLeft(nodes)

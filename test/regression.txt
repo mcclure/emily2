@@ -12,9 +12,9 @@ parse/fail/dot.em
 parse/fail/lparen.em
 parse/fail/parenDedent.em
 parse/fail/rparen.em
+macro/fail/startingGroup.em
 parse/fail/startingComma.em
 parse/fail/backslash.em
-parse/fail/backslashComma.em
 parse/fail/backslashNumber.em
 
 macro/null.em

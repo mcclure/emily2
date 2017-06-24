@@ -7,6 +7,9 @@ parse/literals.em
 # Backslash newline is not supported yet (works in selfhost)
 parse/endBackslash.em
 
+# Backslash comma is not properly caught as an error (works in selfhost)
+parse/fail/backslashComma.em
+
 # Both parsers get confused by lines which end with a comma, but in different ways
 parse/endComma.em
 

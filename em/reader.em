@@ -292,13 +292,13 @@ export makeAst = function(i, fileTag)
 	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
 			if (!char.isNonLineSpace ch)
-				if (ch == "\"")
+				if (ch == "\"") # FIXME: This is unreachable code, because handle eats it.
 					error
 						nullJoin array
 							"\".\" was followed by special character \""
 							ch
 							"\""
-				if (char.isDigit ch)
+				elif (char.isDigit ch)
 					nextState Number
 					lastExp.appendDot()
 				else
