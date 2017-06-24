@@ -22,6 +22,7 @@ export StringContentExp = inherit Node
 
 export SymbolExp = inherit StringContentExp
 	field isAtom = false
+	field isEscaped = false
 
 	method toString = \+
 		if (this.isAtom) (".") else ("")

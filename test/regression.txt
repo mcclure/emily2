@@ -14,6 +14,8 @@ parse/fail/parenDedent.em
 parse/fail/rparen.em
 parse/fail/startingComma.em
 parse/fail/backslash.em
+parse/fail/backslashComma.em
+parse/fail/backslashNumber.em
 
 macro/null.em
 macro/value.em

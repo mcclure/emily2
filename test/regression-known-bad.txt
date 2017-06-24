@@ -4,6 +4,9 @@ parse/blank.em
 # Backslashes in quotes are not printed sensibly (otherwise works)
 parse/literals.em
 
+# Backslash newline is not supported yet
+parse/endBackslash.em
+
 # Both parsers get confused by lines which end with a comma
 parse/endComma.em
 
