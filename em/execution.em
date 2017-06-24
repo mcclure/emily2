@@ -930,6 +930,8 @@ do
 		.isCloseParen
 		.isParen
 		.isDigit
+		.isIdStart
+		.isIdContinue
 
 	let iFn = charFunctions.iter
 	while (iFn.more)

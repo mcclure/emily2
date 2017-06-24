@@ -1021,6 +1021,8 @@ charObject.atoms['isOpenParen'] = PythonFunctionValue(1, toBoolWrap(reader.isOpe
 charObject.atoms['isCloseParen'] = PythonFunctionValue(1, toBoolWrap(reader.isCloseParen))
 charObject.atoms['isParen'] = PythonFunctionValue(1, toBoolWrap(lambda x: reader.isOpenParen(x) or reader.isCloseParen(x)))
 charObject.atoms['isDigit'] = PythonFunctionValue(1, toBoolWrap(reader.isDigit))
+charObject.atoms['isIdStart'] = PythonFunctionValue(1, toBoolWrap(reader.isIdStart))
+charObject.atoms['isIdContinue'] = PythonFunctionValue(1, toBoolWrap(reader.isIdContinue))
 
 # Numbers
 

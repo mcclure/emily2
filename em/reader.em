@@ -41,7 +41,7 @@ export NumberExp = inherit Node
 
 	method toString = nullJoin array
 		"#"
-		this.integer
+		if (this.integer != "") (this.integer) else ("0")
 		if (this.dot) (".") else ("")
 		if (this.decimal) (this.decimal) else ("")
 
@@ -152,7 +152,7 @@ export makeAst = function(i, fileTag)
 			elif (ch == ".")
 				nextState Dot
 			elif (!char.isNonLineSpace ch)
-				nextState Symbol
+				nextState new Symbol
 				state.handle ch
 
 	let Cr = inherit State
@@ -218,7 +218,7 @@ export makeAst = function(i, fileTag)
 				handleLineSpace ch
 
 	let Number = inherit BasicState
-		enter = function(ch)
+		enter = function()
 			appendExp
 				new NumberExp(loc)
 		subHandle = function(ch)
@@ -238,10 +238,11 @@ export makeAst = function(i, fileTag)
 				state.handle ch
 
 	let Symbol = inherit BasicState
-		enter = function(ch)
+		field identifier = null
+		enter = function()
 			appendExp
 				new SymbolExp(loc)
-		subHandle = function(ch)
+		method subHandle = function(ch)
 			if (char.isSpace ch)
 				nextState Scanning
 				state.handle ch
@@ -249,7 +250,20 @@ export makeAst = function(i, fileTag)
 				nextState Dot
 			else
 				let e = lastExp
-				e.content = e.content + ch
+				let replace = null
+				if (e.content == "")
+					this.identifier = char.isIdStart ch
+				else      # Check for boundary between two different kinds of symbol
+					# If this is an identifier, we should see identifier chars continue. If not, we should not see an identifier start.
+					if (!this.identifier && char.isDigit ch)
+						replace = new Number
+					elif (if (this.identifier) (!char.isIdContinue ch) else (char.isIdStart ch))
+						replace = new Symbol # Immediately fall through and push first char
+				if replace
+					nextState replace
+					replace.handle ch
+				else
+					e.content = e.content + ch
 
 	let Dot = inherit BasicState # Note: Do not ask to "handle" on switch when entering
 		subHandle = function(ch)
@@ -258,14 +272,14 @@ export makeAst = function(i, fileTag)
 					nextState Number
 					lastExp.appendDot()
 				else
-					nextState Symbol
+					nextState new Symbol
 					lastExp.isAtom = true
 				state.handle ch
 
 	let Quote = inherit State
 		field backslash = false
 
-		enter = function(ch)
+		enter = function()
 			appendExp
 				new QuoteExp(loc)
 		method handle = function(ch)
