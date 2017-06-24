@@ -71,6 +71,9 @@ export SequenceExec = inherit Executable
 
 export UserMacroList = inherit Executable
 	field contents = null
+	field \export = false
+	field \profile = false
+	field payload = null
 
 	toString = "[Misplaced macro node]"
 
@@ -177,6 +180,7 @@ export SetExec = inherit Executable
 
 export ImportAllExec = inherit Executable
 	field sourceClause = null
+	field isExport = false
 
 	method toString = nullJoin array
 		"[ImportAll "
@@ -668,6 +672,7 @@ export literalMethod = function(f, n)
 # Used by SequenceExec
 
 export scopeExportList = new ObjectValue
+export macroExportList = new ObjectValue
 
 # Stdlib: Builtin types
 
@@ -994,12 +999,14 @@ export wrapPrintRepeat = function(f)
 	repeat
 
 export setEntryFile = function(filename)
-	defaultScope.atoms.set "project"
-		new PackageValue("project", file.path.dir(file.path.normalize(filename)))
+	let libraryProject = new PackageValue("project", file.path.dir(file.path.normalize(filename)))
+	defaultScope.atoms.set "project" libraryProject
+	profileScope.atoms.set "project" libraryProject
 
 export rootObject = new ObjectValue
 
 export defaultScope = new ObjectValue
+export profileScope = new ObjectValue
 
 defaultScope.atoms.set "Object" rootObject
 defaultScope.atoms.set "String" stringValuePrototype
@@ -1095,8 +1102,15 @@ defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = 
 defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
 defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
 
-defaultScope.atoms.set "package" new ObjectValue()
-defaultScope.atoms.set "project" new ObjectValue()
+do
+	let libraryPackage = new ObjectValue()
+	let libraryProject = new ObjectValue()
+	defaultScope.atoms.set "package" libraryPackage
+	profileScope.atoms.set "package" libraryPackage
+	defaultScope.atoms.set "project" libraryProject
+	profileScope.atoms.set "project" libraryProject
+
+# TODO: Lazy macro loaders into profileScope
 
 # Dubious, intentionally "undocumented"
 defaultScope.atoms.set "DEBUG"

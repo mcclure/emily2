@@ -10,7 +10,7 @@ from project.execution import
 	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec
 	InvalidExec, VarExec, ApplyExec, SetExec, IfExec, SequenceExec, ImportAllExec
 	MakeFuncExec, MakeMatchExec, MakeArrayExec, MakeObjectExec
-	ObjectValue, UserMacroList
+	ObjectValue, UserMacroList, macroExportList, profileScope, defaultScope
 
 # Base/helper
 
@@ -81,6 +81,76 @@ export getNextExp = function(parser, loc, isExp, symbol, ary)
 export OneSymbolMacro = inherit Macro
 	method matches = function(left, node, right)
 		isSymbol(node, this.symbol)
+
+# User requesting macro load
+export MacroMacro = inherit OneSymbolMacro
+	field \profile = false
+	progress = ProgressBase.parser + 10
+
+	method symbol = if (this.profile) ("profile") else ("macro")
+
+	method apply = function(parser, left, node, right, _)
+		let isExport = false
+		let error = null
+
+		if (left.length)
+			if (!(left.length == 1) && isSymbol(left 0, "export"))
+				error = parser.error(node.loc, "Stray garbage before \"" + this.symbol + "\"")
+			isExport = true
+
+		if (!right.length)
+			error = parser.error(node.loc, "Emptiness after \"" + this.symbol + "\"")
+
+		if error
+			error
+		else
+			let macroGroup = right 0
+			let result = null
+
+			if (is SymbolExp macroGroup)
+				# TODO: Consider only allowing this if atom keys. TODO: Do something more sensible when this fails?
+				let macroObject = parser.process(node.loc, right, null).eval(profileScope)
+				# TODO: This can fail
+				let macroList = macroObject.apply(new AtomLiteralExec(node.loc, macroExportList))
+
+				if (!is Array macroList)
+					error = perser.error(macroGroup.loc, u"macro import path did not resolve to a valid module")
+				else
+					let payload = None
+					let importObject = macroObject
+
+					if (is LazyMacroLoader importObject)
+						importObject = importObject.importObject
+
+					if importObject
+						payload = new ImportAllExec
+							node.loc
+							new StoredLiteralExec(node.loc, importObject)
+							isExport
+
+					result = new ProcessResult
+							null
+							new UserMacroList(node.loc, macroList, isExport, this.profile, payload)
+							null
+
+			elif (is ExpGroup macroGroup)
+				if (right.length > 1)
+					error = parser.error(node.loc, "Stray garbage after \"" + this.symbol + " (group)\"")
+				let macroExecs = parser.makeArray(macroGroup)
+				let macroValues = array()
+				let i = macroExecs.iter
+				while (i.more)
+					macroValues.append
+						i.next.eval(defaultScope)
+				result = new ProcessResult
+					null
+					new UserMacroList(node.loc, macroValues, isExport, this.profile)
+					null
+
+			else
+				error = parser.error(node.loc, u"Expected a path or a (group) after \"" + this.symbol + "\"")
+
+			if error (error) else (result)
 
 # Abstract macro: Expects KNOWNSYMBOL (GROUP)
 export SeqMacro = inherit OneSymbolMacro
@@ -521,6 +591,8 @@ export ValueMacro = inherit Macro
 			new ProcessResult(left, node, right)
 
 export standardMacros = array
+	new MacroMacro (false)
+	new MacroMacro (true)
 	ImportMacro
 	SetMacro
 	DoMacro
