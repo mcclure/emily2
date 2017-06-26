@@ -283,7 +283,7 @@ class MacroMacro(OneSymbolMacro):
 			else:
 				payload = None
 				importObject = macroObject
-				if isinstance(importObject, execution.LazyMacroLoader):
+				if isinstance(importObject, execution.LazyMacroLoader): # TODO: What about module objects?
 					importObject = importObject.importObject()
 				if importObject:
 					payload = execution.ImportAllExec(node.loc, 

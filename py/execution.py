@@ -772,18 +772,20 @@ defaultScope.atoms['is'] = PythonFunctionValue(2, lambda x,y: toBool(isImpl(x,y)
 
 # Dubious, intentionally "undocumented"
 def debugPrint(obj):
-	print "----\nDEBUG: %s" % (type(obj))
-	print "Id: %s" % (id(obj))
+	print u"----\nDEBUG: %s" % (type(obj))
+	print u"Id: %s" % (id(obj))
+	if type(obj) == unicode or type(obj) == float:
+		print u"Value: %s" % obj
 	parent = getattr(obj, 'parent', None)
 	if parent:
-		print "Parent id: %s" % (id(parent))
+		print u"Parent id: %s" % (id(parent))
 	atoms = getattr(obj, 'atoms', None)
 	if atoms:
-		print "Atoms: %s" % atoms
+		print u"Atoms: %s" % atoms
 	values = getattr(obj, 'values', None)
 	if values:
-		print "Values: %s" % values
-	print "----"
+		print u"Values: %s" % values
+	print u"----"
 defaultScope.atoms['DEBUG'] = PythonFunctionValue(1, debugPrint)
 
 # Macro support
@@ -1008,6 +1010,8 @@ pathObject.atoms['normalize'] = PythonFunctionValue(1, os.path.realpath)
 pathObject.atoms['isFile'] = PythonFunctionValue(1, toBoolWrap(os.path.isfile))
 pathObject.atoms['isDir'] = PythonFunctionValue(1, toBoolWrap(os.path.isdir))
 pathObject.atoms['dir'] = PythonFunctionValue(1, os.path.dirname)
+pathObject.atoms['file'] = PythonFunctionValue(1, os.path.basename)
+pathObject.atoms['entryFile'] = None
 
 # String garbage
 
@@ -1070,6 +1074,7 @@ profileScope = ObjectValue()
 
 def setEntryFile(filename):
 	project = PackageValue("project", os.path.dirname(os.path.realpath(filename)))
+	pathObject.atoms['entryFile'] = unicode(filename)
 	defaultScope.atoms['project'] = project
 	profileScope.atoms['project'] = project
 

@@ -7,10 +7,10 @@ from project.core import *
 from project.reader import
 	SymbolExp, QuoteExp, NumberExp, ExpGroup
 from project.execution import
-	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec
+	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec, NullLiteralExec,
 	InvalidExec, VarExec, ApplyExec, SetExec, IfExec, SequenceExec, ImportAllExec
 	MakeFuncExec, MakeMatchExec, MakeArrayExec, MakeObjectExec
-	ObjectValue, UserMacroList, macroExportList, profileScope, defaultScope
+	ObjectValue, UserMacroList, LazyMacroLoader, macroExportList, profileScope, defaultScope
 
 # Base/helper
 
@@ -114,9 +114,9 @@ export MacroMacro = inherit OneSymbolMacro
 				let macroList = macroObject.apply(new AtomLiteralExec(node.loc, macroExportList))
 
 				if (!is Array macroList)
-					error = perser.error(macroGroup.loc, u"macro import path did not resolve to a valid module")
+					error = parser.error(macroGroup.loc, "macro import path did not resolve to a valid module")
 				else
-					let payload = None
+					let payload = null
 					let importObject = macroObject
 
 					if (is LazyMacroLoader importObject)
@@ -590,11 +590,45 @@ export ValueMacro = inherit Macro
 		else
 			new ProcessResult(left, node, right)
 
-export standardMacros = array
+export FancySplitterMacro = inherit OneSymbolMacro
+	method apply = function(parser, left, node, right, _)
+		if (!left)
+			parser.error(node.loc, "Emptiness after \"" + node.content + "\"")
+		elif (!right)
+			parser.error(node.loc, u"Emptiness after \"" + node.content + "\"")
+		else
+			let leftExe = parser.process left
+			let rightExe = parser.process right
+			this.expression(node.loc, leftExe, rightExe)
+
+export AndMacro = inherit FancySplitterMacro
+	progress = ProgressBase.parser + 605
+	symbol = "&&"
+
+	method expression = function(loc, leftExe, rightExe)
+		array
+			null
+			new IfExec(loc, false, leftExe, rightExe, new NullLiteralExec(loc))
+			null
+
+export OrMacro = inherit FancySplitterMacro
+	progress = ProgressBase.parser + 603
+	symbol = "||"
+
+	method expression = function(loc, leftExe, rightExe)
+		array
+			null
+			new IfExec(loc, false, leftExe, null, rightExe)
+			null
+
+export minimalMacros = array
+	SetMacro
+	ValueMacro
+
+export defaultMacros = catArray minimalMacros array
 	new MacroMacro (false)
 	new MacroMacro (true)
 	ImportMacro
-	SetMacro
 	DoMacro
 	FunctionMacro
 	new IfMacro( false )
@@ -603,7 +637,10 @@ export standardMacros = array
 	ArrayMacro
 	new ObjectMacro ( false )
 	new ObjectMacro ( true )
-	ValueMacro
+
+export shortCircuitBooleanMacros = array
+	OrMacro
+	AndMacro
 
 # Parser
 
@@ -631,7 +668,7 @@ export Parser = inherit Object
 				if (!customMacros)   # TODO: Only dupe after descending levels
 					parser = cloneParser(parser)
 					customMacros = true
-				m.loadAll(exe.contents)
+				parser.loadAll(exe.contents)
 			else
 				execs.append(exe)
 
@@ -781,7 +818,7 @@ export cloneParser = function(parser)
 
 export exeFromAst = function(ast)
 	let parser = new Parser
-	parser.loadAll standardMacros
+	parser.loadAll defaultMacros
 	let result = parser.makeSequence(ast.loc, ast.statements, false)
 
 	checkErrors(parser.errors)

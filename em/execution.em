@@ -663,6 +663,46 @@ export PackageValue = inherit Value
 			this.loaded.set key value
 			value
 
+# Special objects for use in "macro" statements. Designed so calculating the macro object can be deferred
+export LazyMacroLoader = inherit Value
+	field cache = null
+
+	method apply = function(key)
+		if (!is AtomLiteralExec key || key.value != macroExportList)
+			fail "Internal error: Bad lookup on macro object"
+		if (!this.cache)
+			this.cache = this.value
+		this.cache
+
+	importObject = null
+
+let LazyMacroLambdaLoader = inherit LazyMacroLoader
+	field fn = null
+
+	method value = do
+		let cache = this.fn()
+		this.fn = null
+		cache
+
+let PackageAliasValue = inherit LazyMacroLoader
+	field path = null
+	field objectCache = null
+	
+	method value = do
+		let cache = libraryPackage
+		let i = this.path.iter
+		while (i.more)
+			cache = cache.apply(new AtomLiteralExec(null, i.next))
+		this.path = null
+		this.objectCache = cache
+		cache = cache.lookup macroExportList
+		cache
+
+	method importObject = do
+		if (!this.cache)
+			this.cache = this.value()
+		this.objectCache
+
 # Stdlib
 
 # Util function
@@ -860,6 +900,8 @@ do
 	addWrapper .isFile toBoolValue
 	addWrapper .normalize newString
 	addWrapper .dir newString
+	addWrapper .file newString
+	pathObject.atoms.set "entryFile" NullValue
 
 # Stdlib: Dict
 
@@ -1000,6 +1042,7 @@ export wrapPrintRepeat = function(f)
 
 export setEntryFile = function(filename)
 	let libraryProject = new PackageValue("project", file.path.dir(file.path.normalize(filename)))
+	pathObject.atoms.set "entryFile" new StringValue(filename)
 	defaultScope.atoms.set "project" libraryProject
 	profileScope.atoms.set "project" libraryProject
 
@@ -1102,15 +1145,30 @@ defaultScope.atoms.set "stdout"  new FileObjectValue(outfilePrototype, handle = 
 defaultScope.atoms.set "stderr"  new FileObjectValue(outfilePrototype, handle = stderr)
 defaultScope.atoms.set "stdin"   new FileObjectValue(infilePrototype, handle = stdin)
 
+let libraryPackage = new PackageValue
+	"project"
+	file.path.normalize
+		file.path.join
+			file.path.join
+				file.path.dir(file.path.entryFile)
+				".."
+			"library"
 do
-	let libraryPackage = new ObjectValue()
 	let libraryProject = new ObjectValue()
 	defaultScope.atoms.set "package" libraryPackage
 	profileScope.atoms.set "package" libraryPackage
 	defaultScope.atoms.set "project" libraryProject
 	profileScope.atoms.set "project" libraryProject
 
-# TODO: Lazy macro loaders into profileScope
+profileScope.atoms.set "minimal" new LazyMacroLambdaLoader
+	fn = function() (project.parser.minimalMacros)
+profileScope.atoms.set "default" new LazyMacroLambdaLoader
+	fn = function() (project.parser.defaultMacros)
+profileScope.atoms.set "shortCircuitBoolean" new LazyMacroLambdaLoader
+	fn = function() (project.parser.shortCircuitBooleanMacros)
+profileScope.atoms.set "experimental" new PackageAliasValue
+	path = array("emily", "profile", "experimental")
+
 
 # Dubious, intentionally "undocumented"
 defaultScope.atoms.set "DEBUG"
