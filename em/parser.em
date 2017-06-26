@@ -621,6 +621,41 @@ export OrMacro = inherit FancySplitterMacro
 			new IfExec(loc, false, leftExe, null, rightExe)
 			null
 
+# User defined macro constructors
+export UserMacro = inherit OneSymbolMacro
+
+export SplitMacro = inherit UserMacro
+	method apply = function(parser, left, node, right, tracker)
+		if (!left.length) # Slight code redundancy with FancySplitter?
+			parser.error(node.loc, "Emptiness after \"" + node.content + "\"")
+		elif (!right.length)
+			parser.error(node.loc, "Emptiness after \"" + node.content + "\"")
+		else
+			new ProcessResult
+				null
+				new ApplyExec
+					node.loc
+					new ApplyExec
+						node.loc
+						new VarExec(node.loc, this.symbol)
+						parser.process(node.loc, left, null)
+					parser.process(node.loc, right, tracker)
+				null
+
+export UnaryMacro = inherit UserMacro
+	method apply = function(parser, left, node, right, tracker)
+		if (!right)
+			parser.error(node.loc, u"Emptiness after \"" + this.symbol + "\"")
+		else
+			new ProcessResult
+				left
+				new ApplyExec(node.loc,
+					execution.VarExec(node.loc, this.symbol),
+					parser.process(node.loc, right, tracker)),
+				null
+
+# Standard macro sets
+
 export minimalMacros = array
 	SetMacro
 	ValueMacro

@@ -729,9 +729,8 @@ class UnaryMacro(UserMacro):
 		return (left,
 				execution.ApplyExec(node.loc,
 					execution.VarExec(node.loc, s.symbolCache),
-					m.process(right)),
-			right)
-
+					m.process(right, tracker)),
+			[])
 
 minimalMacros = [
 	SetMacro(),

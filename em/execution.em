@@ -1169,6 +1169,25 @@ profileScope.atoms.set "shortCircuitBoolean" new LazyMacroLambdaLoader
 profileScope.atoms.set "experimental" new PackageAliasValue
 	path = array("emily", "profile", "experimental")
 
+# Macro support
+
+let makeMacroChecks = function(progress, symbol)
+	if (!is NumberValue progress)
+		fail "Macro progress must be a number"
+	if (progress.value < 0 || progress.value >= 1000)
+		fail "Macro progress must be between 0 and 999 inclusive"
+	if (!is StringValue symbol)
+		fail "Macro symbol is not a symbol"
+	
+let makeSplitMacro = function(progress, symbol)
+	makeMacroChecks(progress, symbol)
+	new (project.parser.SplitMacro)(progress = ProgressBase.parser + progress.value, symbol = symbol.value)
+defaultScope.atoms.set "splitMacro" new LiteralFunctionValue(makeSplitMacro, 2)
+
+let makeUnaryMacro = function(progress, symbol)
+	makeMacroChecks(progress, symbol)
+	new (project.parser.UnaryMacro)(progress = ProgressBase.parser + progress.value, symbol = symbol.value)
+defaultScope.atoms.set "unaryMacro" new LiteralFunctionValue(makeUnaryMacro, 2)
 
 # Dubious, intentionally "undocumented"
 defaultScope.atoms.set "DEBUG"
