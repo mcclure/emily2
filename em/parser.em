@@ -684,6 +684,39 @@ export ProcessResult = inherit Object
 	field at = null
 	field right = null
 
+# Used to manage Parser.process needing to be able to iterate both "left to right" and "right to left"
+let BidiIterator = inherit Object
+	method field source = array()
+	method field result = array()
+	field rightward = false
+
+	method left =  if (this.rightward) (this.source) else (this.result)
+	method right = if (this.rightward) (this.result) else (this.source)
+
+	method push = function(v)
+		if (this.rightward)
+			appendLeft(this.result, v)
+		else
+			this.result.append(v)
+
+	method pop = do
+		if (this.rightward)
+			this.source.pop()
+		else
+			popLeft(this.source)
+
+	method replace = function(left, at, right)
+		if (!left)  (left = array())
+		if (!right) (right = array())
+		if (this.rightward)
+			this.source = left
+			this.result = right
+		else
+			this.source = right
+			this.result = left
+		if (at)
+			this.push(at)
+
 export Parser = inherit Object
 	field macros = null # Linked[Macro]
 	field errors = array()
@@ -749,44 +782,56 @@ export Parser = inherit Object
 			# First, apply all macros to the statement.
 			let macroNode = this.macros
 			let foundError = null
+
 			while (macroNode && !foundError)
-				let m = macroNode.value
-				let left = array()
-				let right = nodes
-
-				# One by one move the items out of right into left and macro-filter along the way
+				let levelProgress = macroNode.value.progress
+				let i = new BidiIterator(nodes, rightward = (1 == levelProgress % 2))
 				
-				while (
-						(right && right.length) && !foundError # FIXME: shouldn't be needed with right associativity
-					)
-					let at = popLeft right
+				# Iterate over tokens in BidiIterator and macro-filter on the way
+				while (i.source.length && !foundError)
+					let at = i.pop
+					let left = i.left
+					let right = i.right
+					
+					# All the macros of this "level" will be evaluated together for this token.
+					let matched = false # Did anything happen this level?
 
-					# FIXME: Need to bring in "macro levels" concept from parser.py
-					# So that same-priority keys get processed in a single sweep
-					if (at.progress <= m.progress && m.matches(left, at, right))
-						# apply() returns either a ProcessResult so processing can continue,
-						# or a bare InvalidExec to signal that processing should short-circuit.
-						let result = m.apply(this, left, at, right, tracker)
+					if (at.progress <= levelProgress) # Don't even bother if this symbol is already progressed
+						let levelMacroNode = macroNode
 
-						# Unpack
-						with result match
-							InvalidExec =
-								foundError = result
-							ProcessResult(_left, _at, _right) = do
-								left = _left
-								at = _at
-								right = _right
+						# Iterate over the sub-portion of the macro list with this level
+						while (!matched && levelMacroNode && levelMacroNode.value.progress == levelProgress)
+							let m = levelMacroNode.value # Macro to test
 
-						if (!left)
-							left = array()
-						if (at)
-							left.append at
-					else
-						left.append at
+							if ( m.matches(left, at, right) )
+								matched = true # Don't match this macro level further
 
-					nodes = left
+								# apply() returns either a ProcessResult so processing can continue,
+								# or a bare InvalidExec to signal that processing should short-circuit.
+								let result = m.apply(this, left, at, right, tracker)
 
-				macroNode = macroNode.next
+								# Unpack
+								with result match
+									InvalidExec =
+										foundError = result
+									ProcessResult(_left, _at, _right) = do
+										left = _left
+										at = _at
+										right = _right
+
+								i.replace(left, at, right)
+
+							levelMacroNode = levelMacroNode.next
+
+					if (!matched)
+						i.push at
+
+				# Step forward past this macro level
+				if (!foundError)
+					while (macroNode && macroNode.value.progress == levelProgress)
+						macroNode = macroNode.next
+
+					nodes = i.result # Done with BidiIterator
 
 			if (foundError)
 				foundError

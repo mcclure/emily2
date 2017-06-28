@@ -20,6 +20,19 @@ export popLeft = function(a)
 	a.pop
 	left
 
+export appendLeft = function(a, item)
+	let idx = a.length
+	if (idx == 0)
+		a.append item
+	else
+		idx = idx - 1
+		a.append(a idx)
+		while (idx > 0)
+			let idx2 = idx - 1
+			a idx = a idx2
+			idx = idx2
+		a 0 = item
+
 export appendArray = function (a, b)
 	let i = b.iter
 	while (i.more)
