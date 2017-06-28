@@ -20,6 +20,8 @@ class ExecutionException(EmilyException):
 		s.msg = msg
 		s.stack = []
 		s.push(loc, what)
+		for f in reversed(emilyDebugStack):
+			s.stack.append(f)
 
 	def push(s, loc, what):
 		s.stack.append( ExecutionExceptionFrame(loc, what) )
@@ -53,6 +55,9 @@ macroExportList = object()
 class EmilyValue(object):
 	pass
 
+# I hate this! It's not threadsafe, it's not... anything-safe. It's inefficient.
+emilyDebugStack = []
+
 class PythonFunctionValue(EmilyValue):
 	def __init__(s, argCount, fn, startingArgs = []): # Takes ownership of startingArgs
 		s.argCount = argCount
@@ -77,7 +82,11 @@ class FunctionValue(EmilyValue):
 
 	def apply(s, value):
 		if not s.argNames:
-			return s.exe.eval(s.scope)
+			try:
+				emilyDebugStack.append(ExecutionExceptionFrame(s.exe.loc, "Function call"))
+				return s.exe.eval(s.scope)
+			finally:
+				emilyDebugStack.pop()
 		newArgs = s.args + [value]
 		if len(newArgs) >= len(s.argNames):
 			scope = ObjectValue(s.scope)
@@ -145,14 +154,17 @@ class MethodPseudoValue(EmilyValue):
 
 	def call(s, target):
 		if s.pythonFunction:
-
 			return s.pythonFunction.apply(target)
 		else:
 			scope = ObjectValue(s.scope)
 			scope.atoms['this'] = target
 			scope.atoms['current'] = s.owner
 			scope.atoms['super'] = SuperValue(s.owner.parent, target)
-			return s.exe.eval(scope)
+			try:
+				emilyDebugStack.append(ExecutionExceptionFrame(s.exe.loc, "Method call"))
+				return s.exe.eval(scope)
+			finally:
+				emilyDebugStack.pop()
 
 	@staticmethod
 	def fetch(source, key, this):
@@ -258,7 +270,11 @@ class PackageValue(EmilyValue):
 
 				ast = parser.exeFromAst(ast)
 				value = ObjectValue()
-				ast.eval(defaultScope, value)
+				try:
+					emilyDebugStack.append(ExecutionExceptionFrame(ast.loc, "Package load"))
+					ast.eval(defaultScope, value)
+				finally:
+					emilyDebugStack.pop()
 
 			globalPackageCache[filename] = value
 
