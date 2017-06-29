@@ -402,7 +402,7 @@ class SequenceExec(Executable):
 	def __init__(s, loc, shouldReturn, hasScope, execs, macros = None):
 		super(SequenceExec, s).__init__(loc)
 		s.shouldReturn = shouldReturn
-		s.hasScope = hasScope
+		s.hasScope = hasScope or bool(macros)
 		s.execs = execs
 		s.macros = macros
 

@@ -7,7 +7,7 @@ from project.core import *
 from project.reader import
 	SymbolExp, QuoteExp, NumberExp, ExpGroup
 from project.execution import
-	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec, NullLiteralExec,
+	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec, NullLiteralExec, StoredLiteralExec
 	InvalidExec, VarExec, ApplyExec, SetExec, IfExec, SequenceExec, ImportAllExec
 	MakeFuncExec, MakeMatchExec, MakeArrayExec, MakeObjectExec
 	ObjectValue, UserMacroList, LazyMacroLoader, macroExportList, profileScope, defaultScope
@@ -84,10 +84,10 @@ export OneSymbolMacro = inherit Macro
 
 # User requesting macro load
 export MacroMacro = inherit OneSymbolMacro
-	field \profile = false
+	field isProfile = false
 	progress = ProgressBase.parser + 10
 
-	method symbol = if (this.profile) ("profile") else ("macro")
+	method symbol = if (this.isProfile) ("profile") else ("macro")
 
 	method apply = function(parser, left, node, right, _)
 		let isExport = false
@@ -130,7 +130,7 @@ export MacroMacro = inherit OneSymbolMacro
 
 					result = new ProcessResult
 							null
-							new UserMacroList(node.loc, macroList, isExport, this.profile, payload)
+							new UserMacroList(node.loc, macroList, isExport, this.isProfile, payload)
 							null
 
 			elif (is ExpGroup macroGroup)
@@ -606,7 +606,7 @@ export AndMacro = inherit FancySplitterMacro
 	symbol = "&&"
 
 	method expression = function(loc, leftExe, rightExe)
-		array
+		new ProcessResult
 			null
 			new IfExec(loc, false, leftExe, rightExe, new NullLiteralExec(loc))
 			null
@@ -616,7 +616,7 @@ export OrMacro = inherit FancySplitterMacro
 	symbol = "||"
 
 	method expression = function(loc, leftExe, rightExe)
-		array
+		new ProcessResult
 			null
 			new IfExec(loc, false, leftExe, null, rightExe)
 			null
@@ -701,7 +701,7 @@ let BidiIterator = inherit Object
 
 	method pop = do
 		if (this.rightward)
-			this.source.pop()
+			this.source.pop
 		else
 			popLeft(this.source)
 
@@ -723,6 +723,7 @@ export Parser = inherit Object
 
 	method makeSequence = function(loc, statements, shouldReturn)
 		let execs = array()
+		let macros = null
 		let tracker = new SequenceTracker(statements)
 		let parser = this
 		let customMacros = false
@@ -733,10 +734,16 @@ export Parser = inherit Object
 
 			let exe = parser.process(loc, statement.nodes, tracker)
 			if (is UserMacroList exe)
-				if (!customMacros)   # TODO: Only dupe after descending levels
-					parser = cloneParser(parser)
+				if (!customMacros || exe.isExport)   # Instantiate parser on first custom macro, or any "profile" call
+					parser = cloneParser(parser, exe.isProfile)
 					customMacros = true
 				parser.loadAll(exe.contents)
+				if (exe.isExport)
+					if (!macros)
+						macros = array()
+					appendArray(macros, exe.contents)
+				if (exe.payload)
+					execs.append(exe.payload)
 			else
 				execs.append(exe)
 
@@ -746,7 +753,7 @@ export Parser = inherit Object
 			if ( is SetExec exe && (exe.isLet || exe.isExport) )
 				hasLets = true
 
-		new SequenceExec(loc, shouldReturn, hasLets, execs)
+		new SequenceExec(loc, shouldReturn, hasLets, execs, macros)
 
 	method makeArray = function(expGroup)
 		let result = array()
@@ -893,8 +900,10 @@ export Parser = inherit Object
 				else
 					result
 
-export cloneParser = function(parser)
-	new Parser(cloneLinked (parser.macros), parser.errors)
+export cloneParser = function(parser, reset)
+	new Parser
+		if (!reset) (cloneLinked (parser.macros))
+		parser.errors
 
 export exeFromAst = function(ast)
 	let parser = new Parser

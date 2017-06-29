@@ -28,10 +28,11 @@ export SequenceExec = inherit Executable
 	field shouldReturn = false
 	field hasScope = false
 	field method execs = array()
+	field macros = null
 
 	method evalSequence = function (scope, exportScope)
 		let exportList = null
-		if (this.hasScope)
+		if (this.hasScope || this.macros)
 			scope = new ObjectValue(scope)
 			if exportScope
 				exportList = array()
@@ -45,6 +46,8 @@ export SequenceExec = inherit Executable
 			while (i.more)
 				let key = i.next
 				exportScope.atoms.set key (scope.atoms.get key)
+			if (this.macros)
+				exportScope.atoms.set macroExportList (this.macros)
 		if (this.shouldReturn)
 			result
 		else
@@ -71,14 +74,20 @@ export SequenceExec = inherit Executable
 
 export UserMacroList = inherit Executable
 	field contents = null
-	field \export = false
-	field \profile = false
+	field isExport = false
+	field isProfile = false
 	field payload = null
 
 	toString = "[Misplaced macro node]"
 
 export LiteralExec = inherit Executable
 	field value = null
+
+export StoredLiteralExec = inherit LiteralExec
+	toString = "[InternalLiteral]"
+
+	method eval = function (scope)
+		this.value
 
 export StringLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[StringLiteral ", quotedString(this.value), "]")
@@ -203,7 +212,8 @@ export ImportAllExec = inherit Executable
 		while (i.more)
 			let key = i.next
 			let value = source.lookup(key)
-			target.atoms.set key value # FIXME: Should this be done via a method on target?
+			if (key != macroExportList)
+				target.atoms.set key value # FIXME: Should this be done via a method on target?
 
 		NullValue
 
@@ -700,7 +710,7 @@ let PackageAliasValue = inherit LazyMacroLoader
 
 	method importObject = do
 		if (!this.cache)
-			this.cache = this.value()
+			this.cache = this.value
 		this.objectCache
 
 # Stdlib
