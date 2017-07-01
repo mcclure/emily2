@@ -62,7 +62,8 @@ export cloneLinked = function(list)
 		while (list)
 			let next = new Linked(list.value)
 			node.next = next
-			list = list.next
+			node = next      # Move copy list forward
+			list = list.next # Move to-copy list forward
 		head.next
 	else
 		null
