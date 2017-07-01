@@ -198,6 +198,13 @@ export ImportAllExec = inherit Executable
 
 	method setEval = function (scope, targetOverride, _)
 		let source = this.sourceClause.eval(scope)
+		let exportList = null
+
+		if (this.isExport)
+			if (!scope.atoms.has scopeExportList)
+				this.fail "\"export\" in unexpected place"
+			else
+				exportList = scope.atoms.get scopeExportList
 
 		if (!is ObjectValue source)
 			this.fail "Attempted to import * from something other than an object"
@@ -214,6 +221,8 @@ export ImportAllExec = inherit Executable
 			let value = source.lookup(key)
 			if (key != macroExportList)
 				target.atoms.set key value # FIXME: Should this be done via a method on target?
+				if (exportList != null)
+					exportList.append(key)
 
 		NullValue
 
