@@ -353,8 +353,13 @@ export IfExec = inherit Executable
 
 	method eval = function(scope)
 		if (!this.loop)
-			if (isTrue(this.condClause.eval(scope)))
-				this.ifClause.eval(scope)
+			let cond = this.condClause.eval(scope)
+			if (isTrue(cond))
+				if (this.ifClause)
+					cond = null
+					this.ifClause.eval(scope)
+				else
+					cond
 			elif (this.elseClause)
 				this.elseClause.eval(scope)
 			else

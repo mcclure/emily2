@@ -144,7 +144,7 @@ export MacroMacro = inherit OneSymbolMacro
 						i.next.eval(defaultScope)
 				result = new ProcessResult
 					null
-					new UserMacroList(node.loc, macroValues, isExport, this.profile)
+					new UserMacroList(node.loc, macroValues, isExport, this.isProfile)
 					null
 
 			else
@@ -591,14 +591,14 @@ export ValueMacro = inherit Macro
 			new ProcessResult(left, node, right)
 
 export FancySplitterMacro = inherit OneSymbolMacro
-	method apply = function(parser, left, node, right, _)
+	method apply = function(parser, left, node, right, tracker)
 		if (!left)
 			parser.error(node.loc, "Emptiness after \"" + node.content + "\"")
 		elif (!right)
 			parser.error(node.loc, u"Emptiness after \"" + node.content + "\"")
 		else
-			let leftExe = parser.process left
-			let rightExe = parser.process right
+			let leftExe = parser.process(node.loc, left, null)
+			let rightExe = parser.process(node.loc, right, tracker)
 			this.expression(node.loc, leftExe, rightExe)
 
 export AndMacro = inherit FancySplitterMacro
@@ -650,7 +650,7 @@ export UnaryMacro = inherit UserMacro
 			new ProcessResult
 				left
 				new ApplyExec(node.loc,
-					execution.VarExec(node.loc, this.symbol),
+					new VarExec(node.loc, this.symbol),
 					parser.process(node.loc, right, tracker)),
 				null
 
