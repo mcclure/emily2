@@ -1115,7 +1115,7 @@ def debugScopeDump(obj):
 	for key in sorted(obj.atoms.keys()):
 		value = obj.atoms[key]
 		if key == macroExportList:
-			print "[Macros: %d]" % (len(value))
+			print "[Macros: %s]" % (float(len(value)))
 		else:
 			if type(value) == MethodPseudoValue:
 				value = "[Method]"

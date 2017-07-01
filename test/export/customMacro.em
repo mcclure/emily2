@@ -2,7 +2,7 @@
 # Arg: --exported
 # Expect:
 # Printed
-# [Macros: 1]
+# [Macros: 1.0]
 # w: 2.0
 
 export w = 2

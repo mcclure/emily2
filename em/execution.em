@@ -1225,11 +1225,17 @@ export debugScopeDump = function(obj)
 	while (i.more)
 		let key = i.next
 		let value = obj.atoms.get key
-		stdout.write
-			key
-			": "
-			if (is MethodPseudoValue value)
-				"[Method]"
-			else
-				printable value
-			ln
+		if (key == macroExportList)
+			stdout.write
+				"[Macros: "
+				value.length
+				"]"
+		else
+			stdout.write
+				key
+				": "
+				if (is MethodPseudoValue value)
+					"[Method]"
+				else
+					printable value
+		stdout.write(ln)
