@@ -649,9 +649,10 @@ export UnaryMacro = inherit UserMacro
 		else
 			new ProcessResult
 				left
-				new ApplyExec(node.loc,
-					new VarExec(node.loc, this.symbol),
-					parser.process(node.loc, right, tracker)),
+				new ApplyExec
+					node.loc
+					new VarExec(node.loc, this.symbol)
+					parser.process(node.loc, right, tracker)
 				null
 
 # Standard macro sets
