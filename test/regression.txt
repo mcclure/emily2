@@ -1,51 +1,51 @@
 # Tests expected to pass.
 
-parse/indent.em
-parse/tokenize.em
-parse/ambiguousIndent.em
-parse/unicode/utf8.em
-parse/unicode/utf8-bom.em
+reader/indent.em
+reader/tokenize.em
+reader/ambiguousIndent.em
+reader/unicode/utf8.em
+reader/unicode/utf8-bom.em
 
-parse/fail/ambiguousIndent.em
-parse/fail/cmdline.em
-parse/fail/dot.em
-parse/fail/lparen.em
-parse/fail/parenDedent.em
-parse/fail/rparen.em
-macro/fail/startingGroup.em
-parse/fail/startingComma.em
-parse/fail/backslash.em
-parse/fail/backslashNumber.em
+reader/fail/ambiguousIndent.em
+reader/fail/cmdline.em
+reader/fail/dot.em
+reader/fail/lparen.em
+reader/fail/parenDedent.em
+reader/fail/rparen.em
+reader/fail/startingComma.em
+reader/fail/backslash.em
+reader/fail/backslashNumber.em
 
-macro/null.em
-macro/value.em
-macro/set.em
-macro/steal.em
-macro/backslash.em
-macro/scopedSequence.em
-macro/import.em
+parser/null.em
+parser/value.em
+parser/set.em
+parser/steal.em
+parser/backslash.em
+parser/scopedSequence.em
+parser/import.em
 
-macro/fail/setCount.em
-macro/fail/setType.em
-macro/fail/setType2.em
-macro/fail/setInvalid.em
-macro/fail/emptyComma.em
-macro/fail/importAtom.em
-macro/fail/importBlankFrom.em
-macro/fail/importBlankTarget.em
-macro/fail/importNoAtom.em
-macro/fail/importSingle.em
+parser/fail/setCount.em
+parser/fail/setType.em
+parser/fail/setType2.em
+parser/fail/setInvalid.em
+parser/fail/emptyComma.em
+parser/fail/importAtom.em
+parser/fail/importBlankFrom.em
+parser/fail/importBlankTarget.em
+parser/fail/importNoAtom.em
+parser/fail/importSingle.em
+parser/fail/startingGroup.em
 
-macro/custom/splitter.em
-macro/custom/fail/let.em
+parser/custom/splitter.em
+parser/custom/fail/let.em
 
-macro/profile/minimal.em
-macro/profile/experimental.em
-macro/profile/shortCircuitBoolean.em
-macro/profile/implicitImport.em
-macro/profile/implicitImport.2.em
-macro/profile/fail/minimal.em
-macro/profile/fail/package.em
+parser/profile/minimal.em
+parser/profile/experimental.em
+parser/profile/shortCircuitBoolean.em
+parser/profile/implicitImport.em
+parser/profile/implicitImport.2.em
+parser/profile/fail/minimal.em
+parser/profile/fail/package.em
 
 scope/letSequence.em
 scope/closure.em

@@ -1,24 +1,24 @@
 # Embarrassingly, doesn't work.
-parse/blank.em
+reader/blank.em
 
 # Backslashes in quotes are not printed sensibly (otherwise works) (works in selfhost)
-parse/literals.em
+reader/literals.em
 
 # Backslash newline is not supported yet (works in selfhost)
-parse/endBackslash.em
+reader/endBackslash.em
 
 # Backslash comma is not properly caught as an error (works in selfhost)
-parse/fail/backslashComma.em
+reader/fail/backslashComma.em
 
-# Both parsers get confused by lines which end with a comma, but in different ways
-parse/endComma.em
+# Both readerrs get confused by lines which end with a comma, but in different ways
+reader/endComma.em
 
 # . at end of program (or before comma) is allowed
-parse/fail/dotStray.em
+reader/fail/dotStray.em
 
 # regression.py doesn't load these correctly
-parse/unicode/utf16le.em
-parse/unicode/utf16be.em
+reader/unicode/utf16le.em
+reader/unicode/utf16be.em
 
 # This ought to fail, but succeeds, becuase stealing works across commas
-macro/fail/steal.em
+parser/fail/steal.em
