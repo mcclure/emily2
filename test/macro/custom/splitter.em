@@ -1,9 +1,9 @@
 # Test user-defined operators
 # Expect:
-# 24.0
-# 24.0
-# -9.0
-# 5.0
+# 24
+# 24
+# -9
+# 5
 
 let add = \+
 let subtract = \-

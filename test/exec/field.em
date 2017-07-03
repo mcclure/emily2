@@ -2,8 +2,8 @@
 
 # Basic fields and scoping
 # Expect:
-# 1.0 2.0 3.0 4.0 5.0 10.0 3.0
-# 1.0 7.0 9.0 4.0 8.0 10.0 9.0
+# 1 2 3 4 5 10 3
+# 1 7 9 4 8 10 9
 
 let a = inherit Object
 	field a = 1
@@ -32,7 +32,7 @@ print
 	ln
 
 # Numeric key aliases
-# Expect: 3.0 100.0
+# Expect: 3 100
 print
 	a 2
 
@@ -42,8 +42,8 @@ print
 	a 2
 	ln
 
-# Positional key assignment (Notice: 100.0 as a leftover effect of key alias test)
-# Expect: 201.0 203.0 100.0
+# Positional key assignment (Notice: 100 as a leftover effect of key alias test)
+# Expect: 201 203 100
 
 let c = new a
 	201
@@ -56,7 +56,7 @@ print
 	ln
 
 # Quirks: The self-hosted interpreter choked on this once because it wasn't properly copying things.
-# Expect: 1.0
+# Expect: 1
 let A = inherit Object
 
 let B = inherit A

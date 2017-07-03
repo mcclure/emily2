@@ -1,9 +1,9 @@
 # Test stdout/stderr
 
 # Expect:
-# 1.0 2.0 3.0 4.0 5.0
+# 1 2 3 4 5
 # Next writing
-# 6.07.08.0
+# 678
 
 print 1 2
 stdout.print 3 4

@@ -1,7 +1,7 @@
 # Test methods on objects
 
 # Test 'this' mutation
-# Expect: 30.0 30.0
+# Expect: 30 30
 
 let total = inherit Object
 	value = 0
@@ -19,7 +19,7 @@ print
 	total.value, total.valueProperty, ln
 
 # Test inheritance with 'this' (child calls parent)
-# Expect: 31.0
+# Expect: 31
 
 let totalShadow = inherit total
 	method valuePlusOne =
@@ -36,16 +36,16 @@ let totalMirror = inherit totalShadow
 	value = 100
 
 # Expect:
-# 30.0 30.0
-# 100.0 100.0 101.0
+# 30 30
+# 100 100 101
 
 print
 	total.value,       total.valueProperty,                                 ln
 	totalMirror.value, totalMirror.valueProperty, totalMirror.valuePlusOne, ln
 
 # Expect:
-# 30.0 30.0
-# 110.0 110.0 111.0
+# 30 30
+# 110 110 111
 
 totalMirror.increment 10
 
@@ -59,12 +59,12 @@ let x = 3
 let method xPlusThree =
 	+ x 3
 
-# Expect: 3.0
+# Expect: 3
 println x
 
-# Expect: 6.0
+# Expect: 6
 println xPlusThree
 
-# Expect: 13.0
+# Expect: 13
 x = 10
 println xPlusThree

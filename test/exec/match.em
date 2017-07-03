@@ -37,9 +37,9 @@ print
 
 # Complex unpack
 # Expect:
-# 4.0 5.0 6.0
-# 4.0
-# 4.0 5.0 6.0
+# 4 5 6
+# 4
+# 4 5 6
 
 let Vector3 = inherit Object
 	field x = null
@@ -63,8 +63,8 @@ with p match # Unpack untyped
 
 # Closure
 # Expect:
-# VALUE IS: 3.0
-# VALUE IS: 2.0
+# VALUE IS: 3
+# VALUE IS: 2
 # NO VALUE
 
 let maybeClosure = do
@@ -87,8 +87,8 @@ maybeClosure
 
 # Test is
 # Expect:
-# 1.0 null 1.0 null 1.0 1.0
-# null 1.0 null 1.0
+# 1 null 1 null 1 1
+# null 1 null 1
 
 let q = inherit None
 

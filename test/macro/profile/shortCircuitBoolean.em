@@ -10,17 +10,17 @@
 # null
 # GET TRUE
 # GET TRUE
-# 1.0
+# 1
 # GET FALSE
 # GET FALSE
 # null
 # GET FALSE
 # GET TRUE
-# 1.0
+# 1
 # GET TRUE
-# 1.0
+# 1
 # GET TRUE
-# 1.0
+# 1
 
 macro shortCircuitBoolean
 

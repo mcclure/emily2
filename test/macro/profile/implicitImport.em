@@ -2,7 +2,7 @@
 
 profile experimental
 
-# Expect: null null -3.0
+# Expect: null null -3
 
 print
 	1.0 && null

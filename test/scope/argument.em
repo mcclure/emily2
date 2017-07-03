@@ -1,8 +1,8 @@
 # Test function argument scope treatment
 
 # Expect:
-# 3.0
-# 6.0
+# 3
+# 6
 
 let y = 6
 let q = 7

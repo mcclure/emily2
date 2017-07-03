@@ -1,6 +1,6 @@
 # Test iterators
 
-# Expect: 1.0 2.0 3.0
+# Expect: 1 2 3
 
 let x = array
 	1

@@ -1,7 +1,7 @@
 # Test Object super-- sort of a scope test
 
 # Basic super test
-# Expect: 10.0 12.0 15.0
+# Expect: 10 12 15
 
 let obj1 = inherit Object
 	v = 1
@@ -32,7 +32,7 @@ print
 	ln
 
 # Same test, but have the method use this
-# Expect: 1.0 20.0 210.0
+# Expect: 1 20 210
 
 let obj4 = inherit Object
 	v = 1

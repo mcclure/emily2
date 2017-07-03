@@ -4,7 +4,7 @@ profile experimental
 
 let true = 1
 
-# Expect: null 1.0 1.0 null 1.0 null null null null null
+# Expect: null 1 1 null 1 null null null null null
 
 print
 	null && true
@@ -19,7 +19,7 @@ print
 	!null && !true || true ^^ true
 	ln
 
-# Expect: 7.0 12.0 23.0 4.0 -19.0 2.0
+# Expect: 7 12 23 4 -19 2
 
 print
 	3 + 4
@@ -30,7 +30,7 @@ print
 	~3 * ~4 % 5
 	ln
 
-# Expect: 1.0 null 1.0 null 1.0 null
+# Expect: 1 null 1 null 1 null
 
 print
 	4 - 3 < 2 + 3     # 4-3 < 2+3 : 1 < 5 : true
@@ -41,7 +41,7 @@ print
 	3 * 4  ==  3 + 4  # 3*4 == 3+4 : 12 == 7 : null
 	ln
 
-# Expect: null 1.0 1.0
+# Expect: null 1 1
 
 print
 	4 - 3 < 2 + 3     && 2 * 4 > 18 / 2
@@ -50,7 +50,7 @@ print
 	ln
 
 # Whatever the ! grouping behavior is, verify it hasn't changed:
-# Expect: 1.0
+# Expect: 1
 
 println
 	! not 1
@@ -58,13 +58,13 @@ println
 # Associativity/chaining
 
 # Expect:
-# 3.0
-# 5.0
-# 7.0
-# 5.0
+# 3
+# 5
+# 7
+# 5
 # -
-# 1.0
-# 2.0
+# 1
+# 2
 # null
 # null
 # -

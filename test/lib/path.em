@@ -3,7 +3,7 @@
 let myDir = file.path.join "test" "lib"
 let myFile = file.path.join myDir "path.em"
 
-# Expect: 1.0 null null 1.0
+# Expect: 1 null null 1
 
 print
 	file.path.isDir  myDir
@@ -18,7 +18,7 @@ let normalizeMyFile = file.path.normalize myFile
 let weirdDir = file.path.join myDir ".."
 weirdDir = file.path.join weirdDir "lib"
 
-# Expect: null 1.0 1.0 1.0 1.0
+# Expect: null 1 1 1 1
 
 print
 	== normalizeMyDir ""

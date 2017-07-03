@@ -4,7 +4,7 @@ let x = "one two three"
 
 let i = x.iter
 
-# Expect: n o n null 13.0 3.0q 4.0 atom
+# Expect: n o n null 13 3q 4 atom
 
 print
 	x 1

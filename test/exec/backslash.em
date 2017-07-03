@@ -1,8 +1,8 @@
 # Just totally nail down that the backslash parser acts as expected
 # Expect:
-# 3.0
-# 5.0
-# 5.0
+# 3
+# 5
+# 5
 
 let \method = 3
 
@@ -18,8 +18,8 @@ println
 
 # Test import specially
 # Expect:
-# 5.0
-# 3.0
+# 5
+# 3
 
 let z = inherit Object
 	\* = 5

@@ -2,8 +2,8 @@
 # Arg: --exported
 # Expect:
 # Printed
-# [Macros: 1.0]
-# w: 2.0
+# [Macros: 1]
+# w: 2
 
 export w = 2
 

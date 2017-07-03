@@ -1,5 +1,5 @@
 # Test minimal profile can assign and execute
-# Expect: 3.0
+# Expect: 3
 
 profile minimal
 

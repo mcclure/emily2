@@ -451,7 +451,7 @@ class StringLiteralExec(StoredLiteralExec):
 
 class NumberLiteralExec(StoredLiteralExec):
 	def __unicode__(s):
-		return u"[NumberLiteral %s]" % (s.value)
+		return u"[NumberLiteral %s]" % (numberToString(s.value))
 
 class AtomLiteralExec(LiteralExec, EmilyValue):
 	def __init__(s, loc, value):
@@ -877,7 +877,7 @@ infileObjectPrototype = ObjectValue()
 outfileObjectPrototype = ObjectValue()
 
 def printable(x):
-	return streamable( unicode(x) if x is not None else "null" )
+	return streamable( unicode(int(x) if type(x) == float and int(x) == x else x) if x is not None else "null" )
 
 def setLooper(into, key, fn):
 	looperValue = None
@@ -1117,7 +1117,7 @@ def debugScopeDump(obj):
 	for key in sorted(obj.atoms.keys()):
 		value = obj.atoms[key]
 		if key == macroExportList:
-			print "[Macros: %s]" % (float(len(value)))
+			print "[Macros: %s]" % (len(value))
 		else:
 			if type(value) == MethodPseudoValue:
 				value = "[Method]"

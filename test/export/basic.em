@@ -3,7 +3,7 @@
 # Expect:
 # Printed
 # w: Cheats
-# x: 4.0
+# x: 4
 # y: yes
 # z: [Method]
 

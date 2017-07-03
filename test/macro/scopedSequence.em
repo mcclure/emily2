@@ -4,7 +4,7 @@
 
 # Arg: --ast2
 
-# Expect: [Sequence [Sequence(Scoped, Returning) [Let Scope [AtomLiteral x] [NumberLiteral 3.0]]] [Sequence(Returning) [Set Scope [AtomLiteral y] [NumberLiteral 4.0]]] [Sequence(Scoped, Returning) [Export Scope [AtomLiteral z] [NumberLiteral 5.0]]]]
+# Expect: [Sequence [Sequence(Scoped, Returning) [Let Scope [AtomLiteral x] [NumberLiteral 3]]] [Sequence(Returning) [Set Scope [AtomLiteral y] [NumberLiteral 4]]] [Sequence(Scoped, Returning) [Export Scope [AtomLiteral z] [NumberLiteral 5]]]]
 
 do
 	let x = 3

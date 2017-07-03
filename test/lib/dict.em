@@ -4,11 +4,11 @@
 # null
 # null
 # null
-# 1.0
-# 5.0
-# 1.0
+# 1
+# 5
+# 1
 # word
-# 3.0 ok
+# 3 ok
 # null
 # null
 

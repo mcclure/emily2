@@ -11,7 +11,7 @@ let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
-let cmdDriver = "interpret"
+let cmdDriver = "interpreter"
 
 let scriptArgv = array()
 

@@ -1,6 +1,6 @@
 # Test import * behaves as expected
 
-# Expect: 3.0 30.0 3.0 20.0 3.0 20.0
+# Expect: 3 30 3 20 3 20
 
 let z = 10
 
@@ -27,7 +27,7 @@ print
 	ln
 
 # Test packages in addition to objects
-# Expect: 103.0 105.0
+# Expect: 103 105
 
 from project.fail.localPackage.includeMe import *
 

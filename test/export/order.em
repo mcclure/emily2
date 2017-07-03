@@ -3,7 +3,7 @@
 # Expect:
 # Running 'talkyInclude'
 # Running 'talkyInclude2'
-# 5.0 5.0 3.0
+# 5 5 3
 
 print
 	project.talkyInclude2.y

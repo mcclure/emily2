@@ -1,7 +1,7 @@
 # Test importing macros
 # Expect:
 # Printed
-# 7.0
+# 7
 
 let add = \+
 

@@ -1,6 +1,6 @@
 # Test importing macros from a module which exports nothing else
 # Expect:
-# 9.0
+# 9
 
 let add = \+
 

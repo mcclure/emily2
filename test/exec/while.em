@@ -1,6 +1,6 @@
 # Test loop
 
-# Expect: 3628800.0
+# Expect: 3628800
 
 let x = 10
 let y = 1

@@ -1,5 +1,5 @@
 # Load and test experimental profile
-# Expect: 10.0
+# Expect: 10
 
 macro experimental
 

@@ -2,9 +2,9 @@
 
 # Test object creation
 # Expect:
-# 3.0
-# 4.0
-# 5.0
+# 3
+# 4
+# 5
 
 let obj1 = inherit Object
 	a = 1
@@ -22,10 +22,10 @@ println
 
 # Test object creation with dynamic values
 # Expect:
-# 3.0
-# 10.0
-# 3.0
-# 20.0
+# 3
+# 10
+# 3
+# 20
 
 let counter = 0
 while (< counter 2)
@@ -40,8 +40,8 @@ while (< counter 2)
 
 # Test object key assignment
 # Expect:
-# 10.0
-# 11.0
+# 10
+# 11
 
 obj2.c = 10
 let obj1.e = 11
@@ -52,8 +52,8 @@ println
 
 # Test object key assignment with dynamic keys
 # Expect:
-# 20.0
-# 21.0
+# 20
+# 21
 
 let key = if 1 (.c) else (.d)
 obj2 key = 20.0
@@ -65,7 +65,7 @@ println
 
 # Test nested assignment. While we're at it test creation of an empty object
 # Expect:
-# 30.0
+# 30
 
 obj2.c = inherit Object
 	x = inherit Object
@@ -81,7 +81,7 @@ println
 
 # Test nested, dynamic key assignment. I acknowledge this section is gross
 # Expect:
-# 40.0
+# 40
 
 key = .y
 obj2.c.x key .z.w = 40.0
