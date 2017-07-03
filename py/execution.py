@@ -1047,7 +1047,9 @@ charObject.atoms['isIdContinue'] = PythonFunctionValue(1, toBoolWrap(reader.isId
 # Numbers
 
 numberPrototype = ObjectValue()
-numberPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:unicode(x)))
+def numberToString(x):
+	return unicode(int(x) if x == int(x) else x)
+numberPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, numberToString))
 numberPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
 
 defaultScope.atoms['Number'] = numberPrototype

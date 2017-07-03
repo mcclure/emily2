@@ -164,10 +164,11 @@ let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 
 export build = function(exe)
 	join "\n" array
+		"using System;"
 		"public class Program"
 		"{"
-		"    public static void Println(float x) { Console.WriteLine(x); }\n"
-		"    public static void Add(float x, float y) { return x + y }\n"
+		"    public static void Println(double x) { Console.WriteLine(x); }\n"
+		"    public static double Add(double x, double y) { return x + y; }\n"
 		"    public static void Main()"
 		"    {"
 		buildFrame exe 0 null null
