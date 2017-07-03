@@ -162,10 +162,12 @@ class Parser(object):
 			if not nodes[0].nonempty():
 				result = s.makeUnit(nodes.pop(0))
 			else:
-				tracker = SequenceTracker(nodes.pop(0).statements)
+				nodes0 = nodes.pop(0)
+				tracker = SequenceTracker(nodes0.statements)
 				result = s.process(next(tracker).nodes, tracker)
 				if tracker.more(): # Wait. There's more?
-					return s.errorAt(nodes[0].loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+					return s.errorAt(nodes0.loc, "Line started with a multiline parenthesis group. Did you mean to use \"do\"?")
+				nodes0 = None
 		else:
 			result = nodes.pop(0)
 			completenessError = s.checkComplete(result)

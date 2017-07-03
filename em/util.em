@@ -104,6 +104,14 @@ export foldl = function(default, f, ary)
 			value = f(value, i.next)
 		value
 
+export map = function(f, ary)
+	let i = ary.iter
+	let result = array()
+	while (i.more)
+		result.append
+			f(i.next)
+	result
+
 export checkErrors = function(errors)
 	if (0 < errors.length)
 		let i = errors.iter
@@ -117,10 +125,23 @@ export checkErrors = function(errors)
 export nonempty = function (ary)
 	if ary (ary.length)
 
+# Dict
+
+export cloneDict = function(dict)
+	let result = new Dict
+	let i = dict.iter
+	while (i.more)
+		let key = i.next
+		result.set (key) (dict key)
+	result
+
 # String ops
 
-export join = function(joiner)
-	foldl "" function (x,y) ( \+( \+(x.toString, joiner), y.toString) )
+export join = function(joiner, ary)
+	if (ary.length == 1)
+		ary(0).toString
+	else
+		foldl "" function (x,y) ( \+( \+(x.toString, joiner), y.toString) ) ary
 export nullJoin = join ""
 export startsWith = function(x, y)
 	let idx = 0

@@ -3,7 +3,7 @@
 profile experimental
 
 from project.util import *
-from project import (reader, parser, execution)
+from project import (reader, parser, execution, compiler)
 
 let cmdAst = false
 let cmdAst2 = false
@@ -11,6 +11,7 @@ let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
+let cmdDriver = "interpret"
 
 let scriptArgv = array()
 
@@ -33,6 +34,11 @@ do
 					stderr.println "Missing argument for -e"
 					exit 2
 				cmdExecute = i.next
+			"-d" = do # TODO: Or "driver"
+				if (!i.more)
+					stderr.println "Missing argument for -d"
+					exit 2
+				cmdDriver = i.next
 			_ = do
 				if ("-" == arg 0)
 					stderr.print "Unrecognized argument" arg ln
@@ -70,18 +76,24 @@ else
 	if cmdAst2
 		println (exe.toString)
 	else
-		from execution import (ObjectValue, StringValue, ArrayValue, defaultScope)
-		let scope = new ObjectValue(defaultScope)
+		with cmdDriver match
+			"interpreter" = do
+				from execution import (ObjectValue, StringValue, ArrayValue, defaultScope)
+				let scope = new ObjectValue(defaultScope)
 
-		let scriptArgvValue = array()
-		let i = scriptArgv.iter
-		while (i.more)
-			scriptArgvValue.append (new StringValue(i.next))
-		scope.atoms.set "argv" (new ArrayValue(scriptArgvValue))
-		
-		let exportScope = new ObjectValue
+				let scriptArgvValue = array()
+				let i = scriptArgv.iter
+				while (i.more)
+					scriptArgvValue.append (new StringValue(i.next))
+				scope.atoms.set "argv" (new ArrayValue(scriptArgvValue))
+				
+				let exportScope = new ObjectValue
 
-		exe.evalSequence(scope, exportScope)
+				exe.evalSequence(scope, exportScope)
 
-		if cmdExported
-			execution.debugScopeDump(exportScope)
+				if cmdExported
+					execution.debugScopeDump(exportScope)
+			"cs" = do
+				let x = compiler.build exe
+
+				println x
