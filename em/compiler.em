@@ -4,7 +4,10 @@ profile experimental
 
 from project.util import *
 from project.execution import
-	SequenceExec, SetExec, VarExec, ApplyExec, LiteralExec, AtomLiteralExec, ImportAllExec
+	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec
+	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
+
+# Helpers
 
 let indent = function (count)
 	let prefix = ""
@@ -15,6 +18,8 @@ let indent = function (count)
 		prefix + (s.toString)
 
 let arrayIndented = function (a, i) (join "\n" (indent i a))
+
+# Building blocks
 
 let Var = inherit Object
 	field num = 0
@@ -28,6 +33,9 @@ let Var = inherit Object
 		";"
 
 let Exp = inherit Object
+
+# Types of expression, statement etc
+# String generation for individual items goes here
 
 let ValueExp = inherit Exp
 	field value = null
@@ -75,6 +83,45 @@ let SeqStatement = inherit Statement
 
 	method toString = "{\n" + this.frame.toString + "\n}"
 
+let IfBase = inherit SeqStatement # Note argument order is like: x if y else z
+	field condExp = null
+	field nextExp = null
+
+let IfExp = inherit IfBase
+	method toString = nullJoin array
+		"("
+		this.condExp
+		" ? "
+		this.frame # Note: Type of frame overloaded/broken here
+		" : "
+		this.nextExp
+		")"
+
+let IfStatement = inherit IfBase
+	method toString = nullJoin array
+		"if ("
+		this.condExp
+		") "
+		this.frame
+		if (this.nextExp)
+			" else " + this.nextExp.toString
+		else
+			""
+
+let WhileStatement = inherit SeqStatement
+	field condExp = null
+
+	method toString = nullJoin array
+		"while (true) {\n"
+		"    if (!("
+		this.condExp
+		"))\n"
+		"        break;\n"
+		this.frame
+		"}"
+
+# Code generator driver
+
 let NumGenerator = inherit Object
 	field generator = 0
 
@@ -82,6 +129,7 @@ let NumGenerator = inherit Object
 		this.generator = this.generator + 1
 		this.generator
 
+# Track a { } here
 let Frame = inherit Object
 	field nested = 0
 	field method vars = array()
@@ -94,17 +142,26 @@ let Frame = inherit Object
 			join "\n" (indent (this.indent) (this.vars))
 			join "\n" (indent (this.indent) (this.statements))
 
+
+# Turn expression Execs to Exps here
 let buildExp = function(exe, names)
 	with exe match
 		VarExec = do
 			let symbol = exe.symbol
 			with symbol match
 				"+" = "Add"
+				"%" = "Mod"
+				"==" = "Eq"
+				"<=" = "Geq"
 				"println" = "Println"
 				_ = new VarExp
 					names.get symbol
+		StringLiteralExec = new ValueExp
+			"\"" + exe.value + "\""
 		LiteralExec = new ValueExp
 			exe.value
+		NullLiteralExec = new ValueExp
+			"false"
 		ApplyExec = do
 			let fnExp = buildExp(exe.fn, names)
 			let exeExp = buildExp (exe.arg, names)
@@ -115,9 +172,17 @@ let buildExp = function(exe, names)
 				new ApplyExp
 					fnExp
 					array (exeExp)
+		IfExec = new IfExp
+			buildExp (exe.ifClause) names
+			buildExp (exe.condClause) names
+			if (exe.elseClause)
+				buildExp (exe.elseClause) names
+			else
+				new ValueExp ("false")
 		_ = fail
 			"Unrecognized execution node: " + exe.toString
 
+# Turn statement Execs to Statements here
 let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 	let frame = new Frame
 	let numGenerator = parentNumGenerator || new NumGenerator
@@ -127,6 +192,9 @@ let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 	let i = seqExe.execs.iter
 	while (i.more)
 		let exe = i.next
+		let buildLocalFrame = function(exe)
+			buildFrame
+				exe, nested+1, numGenerator, names
 
 		with exe match
 			SequenceExec(_, shouldReturn, hasScope) = do
@@ -135,8 +203,7 @@ let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 				if (!hasScope)
 					fail "Can't handle scopeless sequences"
 				frame.statements.append
-					buildFrame
-						exe, nested+1, numGenerator, names
+					buildFrame exe
 			SetExec(_, isLet) = do
 				let var = null
 				let name = if (exe.targetClause || !is AtomLiteralExec (exe.indexClause))
@@ -149,7 +216,7 @@ let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 					frame.vars.append var
 					names.set name var
 				else
-					var = names.get var
+					var = names.get name
 
 				frame.statements.append
 					new AssignStatement(var, buildExp (exe.valueClause, names))
@@ -157,6 +224,18 @@ let buildFrame = function(seqExe, nested, parentNumGenerator, parentNames)
 				frame.statements.append
 					new ExpStatement
 						buildExp exe names
+			IfExec =
+				frame.statements.append
+					if (exe.loop)
+						new WhileStatement
+							buildLocalFrame (exe.ifClause)
+							buildExp (exe.condClause) names
+					else
+						new IfStatement
+							buildLocalFrame (exe.ifClause)
+							buildExp (exe.condClause) names
+							if (exe.elseClause)
+								buildLocalFrame (exe.elseClause)
 			ImportAllExec = () # TODO
 			_ = fail
 				"Unrecognized statement node: " + exe.toString
@@ -167,8 +246,11 @@ export build = function(exe)
 		"using System;"
 		"public class Program"
 		"{"
-		"    public static void Println(double x) { Console.WriteLine(x); }\n"
+		"    public static void Println<T>(T x) { Console.WriteLine(x); }\n"
 		"    public static double Add(double x, double y) { return x + y; }\n"
+		"    public static double Mod(double x, double y) { return x % y; }\n"
+		"    public static bool Eq (double x, double y) { return x == y; }\n"
+		"    public static bool Geq(double x, double y) { return x <= y; }\n"
 		"    public static void Main()"
 		"    {"
 		buildFrame exe 0 null null

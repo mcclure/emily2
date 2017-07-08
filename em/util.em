@@ -132,7 +132,7 @@ export cloneDict = function(dict)
 	let i = dict.iter
 	while (i.more)
 		let key = i.next
-		result.set (key) (dict key)
+		result.set (key) (dict.get key)
 	result
 
 # String ops

@@ -342,7 +342,7 @@ export MakeMatchExec = inherit Executable
 		new MatchFunctionValue(this.matches, scope)
 
 export IfExec = inherit Executable
-	field loop = false
+	field loop = false # todo isLoop
 	field condClause = null
 	field ifClause = null
 	field elseClause = null

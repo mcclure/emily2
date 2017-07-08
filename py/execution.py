@@ -92,7 +92,11 @@ class FunctionValue(EmilyValue):
 			scope = ObjectValue(s.scope)
 			for idx in range(len(s.argNames)):
 				scope.atoms[s.argNames[idx]] = newArgs[idx]
-			return s.exe.eval(scope)
+			try:
+				emilyDebugStack.append(ExecutionExceptionFrame(s.exe.loc, "Function call"))
+				return s.exe.eval(scope)
+			finally:
+				emilyDebugStack.pop()
 		return FunctionValue(s.argNames, s.exe, s.scope, newArgs)
 
 def isImpl(parent, child):
@@ -131,7 +135,11 @@ class MatchFunctionValue(EmilyValue):
 						except LookupException:
 							raise InternalExecutionException("Match error: Unpack specification has too many values")
 						unpackIdx += 1
-				return m.statement.eval(scope)
+				try:
+					emilyDebugStack.append(ExecutionExceptionFrame(m.statement.loc, "Match"))
+					return m.statement.eval(scope)
+				finally:
+					emilyDebugStack.pop() 
 		raise InternalExecutionException("No match clause was met")
 
 class SuperValue(EmilyValue):
