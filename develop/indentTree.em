@@ -22,7 +22,7 @@ with (stdin.peek) match
 			ln
 		exit 1
 
-let Linked = inherit object
+let Linked = inherit Object
 	field value = null
 	field next = null
 	method more = (!= (this.next) null)
