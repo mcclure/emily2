@@ -88,3 +88,17 @@ obj2.c.x key .z.w = 40.0
 key = .x
 println
 	obj2.c key .y.z.w
+
+# Test current
+# Expect:
+# 4 6
+
+let obj3 = inherit Object
+	x = 3
+	y = + (current.x) 1
+	method z = + (current.y) 2
+
+let obj4 = inherit obj3
+	y = 10
+
+print(obj3.y, obj4.z, ln)

@@ -263,6 +263,9 @@ export MakeObjectExec = inherit Executable
 			base = null
 		let infields = if (base) (base.fields) else (null)
 		let result = new ObjectValue(base)
+		let innerScope = new ObjectValue(scope)
+		innerScope.atoms.set "current" result
+
 		if (this.isInstance && infields) # FIXME: This calls method fields even when not needed
 			let i = infields.iter
 			while (i.more)
@@ -279,7 +282,7 @@ export MakeObjectExec = inherit Executable
 		let valueProgress = 0
 		let i = this.values.iter
 		while (i.more)
-			let value = i.next.eval(scope)
+			let value = i.next.eval(innerScope)
 			result.atoms.set (infields(valueProgress).value) value
 			valueProgress = valueProgress + 1
 
@@ -288,7 +291,7 @@ export MakeObjectExec = inherit Executable
 			let exe = i.next
 			let index = null
 			if (is SetExec exe)
-				index = exe.indexClause.eval(scope) # do this early for field handling
+				index = exe.indexClause.eval(innerScope) # do this early for field handling
 				if (exe.isField)
 					if (!is AtomLiteralExec index)
 						this.fail "Objects have atom keys only"
@@ -296,7 +299,7 @@ export MakeObjectExec = inherit Executable
 						result.fields = copyArgsWithAppend(infields, index)
 					else
 						result.fields.append(index)
-			exe.setEval(scope, result, index)
+			exe.setEval(innerScope, result, index)
 
 		if (!result.fields)
 			result.fields = infields

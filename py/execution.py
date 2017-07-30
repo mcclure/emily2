@@ -724,9 +724,11 @@ class MakeObjectExec(Executable):
 			raise ExecutionException(s.loc, u"Object construction", u"Cannot inherit from non-object")
 		if base == rootObject: # Tiny optimization: Don't actually inherit from Object
 			base = None
+		result = ObjectValue(base)
+		innerScope = ObjectValue(scope)
+		innerScope.atoms['current'] = result
 
 		infields = base.fields if base else None
-		result = ObjectValue(base)
 		if s.isInstance and infields: # FIXME: This calls method fields even when not needed
 			for field in infields:
 				result.assign(True, field, base.apply(field))
@@ -734,12 +736,12 @@ class MakeObjectExec(Executable):
 		if (len(s.values) if s.values else 0) > (len(infields) if infields else 0):
 			raise ExecutionException(s.loc, u"Object construction", u"Tried to specify more values in \"new\" than this object has fields")
 		for exe in s.values:
-			value = exe.eval(scope)
+			value = exe.eval(innerScope)
 			result.atoms[ infields[valueProgress].value ] = value
 			valueProgress += 1
 		for exe in s.assigns:
 			if isinstance(exe, SetExec):
-				key = exe.index.eval(scope) # do this early for field handling
+				key = exe.index.eval(innerScope) # do this early for field handling
 				if exe.isField:
 					if type(key) != AtomLiteralExec:
 						raise ExecutionException(exe.loc, u"Object construction", "Objects have atom keys only")
@@ -748,7 +750,7 @@ class MakeObjectExec(Executable):
 					result.fields.append(key)
 			else:
 				key = None
-			exe.eval(scope, result, key)
+			exe.eval(innerScope, result, key)
 		if not result.fields:
 			result.fields = infields
 		return result
