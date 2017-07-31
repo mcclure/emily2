@@ -191,6 +191,12 @@ export SharedCompiler = inherit BaseCompiler
 		field var = null
 		field exp = null
 
+		method toString = nullJoin array
+			this.var.name
+			" = "
+			this.exp
+			";"
+
 	SeqStatement = inherit (BaseCompiler.SeqStatement)
 		method toString = "{\n" + this.frame.toString + "\n}"
 
@@ -227,6 +233,12 @@ export SharedCompiler = inherit BaseCompiler
 			this.frame
 			"}"
 
+	Frame = inherit (BaseCompiler.Frame)
+		method toString =
+			join "\n\n" array
+				join "\n" (indent (this.indent) (this.vars))
+				join "\n" (indent (this.indent) (this.statements))
+
 
 # ClikeCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
 export ClikeCompiler = inherit SharedCompiler
@@ -238,22 +250,4 @@ export ClikeCompiler = inherit SharedCompiler
 			" "
 			this.name
 			";"
-
-	ExpStatement = inherit (SharedCompiler.ExpStatement)
-		method toString = this.exp.toString + ";"
-
-	AssignStatement = inherit (SharedCompiler.AssignStatement)
-		method toString = nullJoin array
-			this.var.name
-			" = "
-			this.exp
-			";"
-
-	Frame = inherit (SharedCompiler.Frame)
-		method toString =
-			join "\n\n" array
-				join "\n" (indent (this.indent) (this.vars))
-				join "\n" (indent (this.indent) (this.statements))
-
-
 	

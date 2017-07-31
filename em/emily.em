@@ -4,7 +4,8 @@ profile experimental
 
 from project.util import *
 from project import (reader, parser, execution)
-from project.compiler.cs import CsCompiler
+from project.compiler import
+	cs.CsCompiler, cpp.CppCompiler, js.JsCompiler
 
 let cmdAst = false
 let cmdAst2 = false
@@ -94,7 +95,18 @@ else
 
 				if cmdExported
 					execution.debugScopeDump(exportScope)
+
 			"cs" = do
 				let x = CsCompiler.build exe
+
+				println x
+
+			"cpp" = do
+				let x = CppCompiler.build exe
+
+				println x
+
+			"js" = do
+				let x = JsCompiler.build exe
 
 				println x
