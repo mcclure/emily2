@@ -4,7 +4,7 @@ profile experimental
 
 from project.util import *
 from project import (reader, parser, execution)
-from project.compiler.base import Compiler
+from project.compiler.cs import CsCompiler
 
 let cmdAst = false
 let cmdAst2 = false
@@ -95,6 +95,6 @@ else
 				if cmdExported
 					execution.debugScopeDump(exportScope)
 			"cs" = do
-				let x = Compiler.build exe
+				let x = CsCompiler.build exe
 
 				println x

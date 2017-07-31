@@ -10,17 +10,9 @@ from project.execution import
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
-export Compiler = inherit Object
+# BaseCompiler mostly serves as a network of interfaces
+export BaseCompiler = inherit Object
 	Var = inherit Object
-		field num = 0
-
-		type = "double"
-		method name = "_" + (this.num.toString)
-		method toString = nullJoin array
-			this.type
-			" "
-			this.name
-			";"
 
 	Exp = inherit Object
 
@@ -28,9 +20,6 @@ export Compiler = inherit Object
 	# String generation for individual items goes here
 
 	ValueExp = inherit (current.Exp)
-		field value = null
-
-		method toString = this.value.toString
 
 	VarExp = inherit (current.Exp)
 		field var = null
@@ -38,77 +27,26 @@ export Compiler = inherit Object
 		method toString = this.var.name
 
 	ApplyExp = inherit (current.Exp)
-		field target = null # String or Var
-		field method args = array()
-
-		method toString = do
-			if (this.target == null)
-				fail "Badly formed Exp"
-			let targetString = with (this.target) match
-				String = this.target
-				VarExec = this.target.name
-				_ = fail "Malformed ApplyExp node"
-
-			targetString + "(" + (join ", " (this.args)) + ")"
 
 	Statement = inherit Object
 
 	ExpStatement = inherit (current.Statement)
-		field exp = null
-
-		method toString = this.exp.toString + ";"
 
 	AssignStatement = inherit (current.Statement)
-		field var = null
-		field exp = null
-
-		method toString = nullJoin array
-			this.var.name
-			" = "
-			this.exp
-			";"
 
 	SeqStatement = inherit (current.Statement)
 		field frame = null
 
-		method toString = "{\n" + this.frame.toString + "\n}"
-
+	# FIXME: fields can't be moved into SharedCompiler because no mixed inheritance oh well
 	IfBase = inherit (current.SeqStatement) # Note argument order is like: x if y else z
 		field condExp = null
 		field nextExp = null
 
 	IfExp = inherit (current.IfBase)
-		method toString = nullJoin array
-			"("
-			this.condExp
-			" ? "
-			this.frame # Note: Type of frame overloaded/broken here
-			" : "
-			this.nextExp
-			")"
 
 	IfStatement = inherit (current.IfBase)
-		method toString = nullJoin array
-			"if ("
-			this.condExp
-			") "
-			this.frame
-			if (this.nextExp)
-				" else " + this.nextExp.toString
-			else
-				""
 
 	WhileStatement = inherit (current.SeqStatement)
-		field condExp = null
-
-		method toString = nullJoin array
-			"while (true) {\n"
-			"    if (!("
-			this.condExp
-			"))\n"
-			"        break;\n"
-			this.frame
-			"}"
 
 	# Track a { } here
 	Frame = inherit Object
@@ -117,12 +55,6 @@ export Compiler = inherit Object
 		field method statements = array()
 
 		method indent = this.nested + 2
-
-		method toString =
-			join "\n\n" array
-				join "\n" (indent (this.indent) (this.vars))
-				join "\n" (indent (this.indent) (this.statements))
-
 
 	# Turn expression Execs to Exps here
 	method buildExp = function(exe, names)
@@ -222,18 +154,106 @@ export Compiler = inherit Object
 					"Unrecognized statement node: " + exe.toString
 		frame
 
-	method build = function(exe)
-		join "\n" array
-			"using System;"
-			"public class Program"
-			"{"
-			"    public static void Println<T>(T x) { Console.WriteLine(x); }\n"
-			"    public static double Add(double x, double y) { return x + y; }\n"
-			"    public static double Mod(double x, double y) { return x % y; }\n"
-			"    public static bool Eq (double x, double y) { return x == y; }\n"
-			"    public static bool Geq(double x, double y) { return x <= y; }\n"
-			"    public static void Main()"
-			"    {"
-			this.buildFrame exe 0 null null
-			"    }"
+# SharedCompiler is the methods that are LIKELY but not certain to be shared among all branches
+# FIXME: Could this be merged with Compiler? FIXME: Put fields into base version, separate strings over here
+# "Type signatures" of objects should be the same
+export SharedCompiler = inherit BaseCompiler
+	Var = inherit (BaseCompiler.Var)
+		field num = 0
+
+		method name = "_" + (this.num.toString)
+
+	ValueExp = inherit (BaseCompiler.ValueExp)
+		field value = null
+
+		method toString = this.value.toString
+
+	ApplyExp = inherit (BaseCompiler.ApplyExp)
+		field target = null # String or Var
+		field method args = array()
+
+		method toString = do
+			if (this.target == null)
+				fail "Badly formed Exp"
+			let targetString = with (this.target) match
+				String = this.target
+				VarExec = this.target.name
+				_ = fail "Malformed ApplyExp node"
+
+			targetString + "(" + (join ", " (this.args)) + ")"
+
+	ExpStatement = inherit (BaseCompiler.ExpStatement)
+		field exp = null
+
+		method toString = this.exp.toString + ";"
+
+	AssignStatement = inherit (BaseCompiler.AssignStatement)
+		field var = null
+		field exp = null
+
+	SeqStatement = inherit (BaseCompiler.SeqStatement)
+		method toString = "{\n" + this.frame.toString + "\n}"
+
+	IfExp = inherit (BaseCompiler.IfExp)
+		method toString = nullJoin array
+			"("
+			this.condExp
+			" ? "
+			this.frame # Note: Type of frame overloaded/broken here
+			" : "
+			this.nextExp
+			")"
+
+	IfStatement = inherit (BaseCompiler.IfStatement)
+		method toString = nullJoin array
+			"if ("
+			this.condExp
+			") "
+			this.frame
+			if (this.nextExp)
+				" else " + this.nextExp.toString
+			else
+				""
+
+	WhileStatement = inherit (BaseCompiler.WhileStatement)
+		field condExp = null
+
+		method toString = nullJoin array
+			"while (true) {\n"
+			"    if (!("
+			this.condExp
+			"))\n"
+			"        break;\n"
+			this.frame
 			"}"
+
+
+# ClikeCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
+export ClikeCompiler = inherit SharedCompiler
+	Var = inherit (SharedCompiler.Var)
+		type = "double"
+
+		method toString = nullJoin array
+			this.type
+			" "
+			this.name
+			";"
+
+	ExpStatement = inherit (SharedCompiler.ExpStatement)
+		method toString = this.exp.toString + ";"
+
+	AssignStatement = inherit (SharedCompiler.AssignStatement)
+		method toString = nullJoin array
+			this.var.name
+			" = "
+			this.exp
+			";"
+
+	Frame = inherit (SharedCompiler.Frame)
+		method toString =
+			join "\n\n" array
+				join "\n" (indent (this.indent) (this.vars))
+				join "\n" (indent (this.indent) (this.statements))
+
+
+	
