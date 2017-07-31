@@ -101,10 +101,7 @@ export BaseCompiler = inherit Object
 		let numGenerator = parentNumGenerator || new NumGenerator
 		let names = if (parentNames) (cloneDict(parentNames)) else (new Dict)
 
-		# Assume exe is a scoped sequence to start
-		let i = seqExe.execs.iter
-		while (i.more)
-			let exe = i.next
+		let pushStatement = function (exe)
 			let buildLocalFrame = function(exe)
 				this.buildFrame
 					exe, nested+1, numGenerator, names
@@ -152,6 +149,15 @@ export BaseCompiler = inherit Object
 				ImportAllExec = () # TODO
 				_ = fail
 					"Unrecognized statement node: " + exe.toString
+
+		# Assume exe is a scoped sequence to start
+		if (is SequenceExec seqExe)
+			let i = seqExe.execs.iter
+			while (i.more)
+				pushStatement(i.next)
+		else
+			pushStatement(seqExe)
+			
 		frame
 
 # SharedCompiler is the methods that are LIKELY but not certain to be shared among all branches
@@ -238,7 +244,6 @@ export SharedCompiler = inherit BaseCompiler
 			join "\n\n" array
 				join "\n" (indent (this.indent) (this.vars))
 				join "\n" (indent (this.indent) (this.statements))
-
 
 # ClikeCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
 export ClikeCompiler = inherit SharedCompiler

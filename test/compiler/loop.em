@@ -1,5 +1,4 @@
-# Minimal compileable
-# Run with `-d cs`
+# Minimal compileable, see steps.txt
 
 profile experimental
 
@@ -8,10 +7,10 @@ let x = 1
 while (x <= 100)
 	if (x % 3 == 0 && x % 5 == 0)
 		println "FizzBuzz"
-	#elif (x % 3 == 0)
-	#	println "Fizz"
-	#elif (x % 5 == 0)
-	#	println "Buzz"
+	elif (x % 3 == 0)
+		println "Fizz"
+	elif (x % 5 == 0)
+		println "Buzz"
 	else
 		println x
 
