@@ -15,6 +15,10 @@
 #       line always consumed; trailing whitespace of output always disregarded;
 #       a non-comment line is assumed to end the Expect block; put this last.)
 #
+#   # Expect file: path/to/file.txt
+#       Expect the contents of file.txt as program output. (Notes: Filename
+#       is whitespace stripped; trailing whitespace in file disregarded.)
+#
 #   # Arg: --some-argument=whatever
 #       Invoke interpreter with argument
 #
@@ -136,7 +140,7 @@ stdcall = [stdpython, stdscript] + stdmetalist
 
 expectp = re.compile(r'# Expect(\s*failure)?(\:?)', re.I)
 linep = re.compile(r'# ?(.+)$', re.S)
-inline_expectp = re.compile(r'# Expect:\s*(.+)$', re.S|re.I)
+inline_expectp = re.compile(r'# Expect(\s*file)?:\s*(.+)$', re.S|re.I)
 startp = re.compile(r'^', re.MULTILINE)
 argp = re.compile(r'# Arg:\s*(.+)$', re.I)
 envp = re.compile(r'# Env:\s*(.+)$', re.I)
@@ -170,8 +174,11 @@ for filename in files:
             inline = inline_expectp.match(line)
             # If the inline pattern matches and the inline body isn't empty,
             # then we're looking at an inline expect directive
-            if inline and not inline.group(1).isspace():
-                outlines += inline.group(1)
+            if inline and not inline.group(2).isspace():
+                if inline.group(1) and not inline.group(1).isspace(): # "Expect file"
+                    outlines += open(inline.group(2).strip()).read().rstrip()
+                else:
+                    outlines += inline.group(2)
             # Otherwise, if it's an expect we're beginning a multiline expect
             elif expect:
                 expectfail = bool(expect.group(1))

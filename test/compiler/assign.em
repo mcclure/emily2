@@ -1,5 +1,5 @@
 # Minimal compileable
-# Run with `-d cs`
+# Expect: 7
 
 profile experimental
 

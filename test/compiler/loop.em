@@ -1,4 +1,5 @@
 # Minimal compileable, see steps.txt
+# Expect file: test/compiler/loopOutput.txt
 
 profile experimental
 

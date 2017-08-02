@@ -108,3 +108,5 @@ lib/char.em
 
 profile/experimental/order.em
 
+compiler/assign.em
+compiler/loop.em
