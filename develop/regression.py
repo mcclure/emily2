@@ -40,6 +40,7 @@ import subprocess
 import optparse
 import re
 import copy
+import codecs
 
 def projectRelative( filename ):
     return os.path.normpath(os.path.join(prjroot, filename))
@@ -111,10 +112,17 @@ if flag("V"):
 
 indices += flag("t")
 
+# Take a path to a UTF-8 or UTF-16 file. Return an object to be used with utflines()
+def utfOpen(path):
+    with open(path, 'rb') as f:
+        start = f.read(2) # Check first bytes for BOM
+        utf16 = start.startswith(codecs.BOM_UTF16_BE) or start.startswith(codecs.BOM_UTF16_LE)
+    return codecs.open(path, 'r', 'utf-16' if utf16 else 'utf-8-sig')
 indexcommentp = re.compile(r'#.+$', re.S) # Allow comments in .txt file
+
 for filename in indices:
     dirname = os.path.dirname(filename)
-    with open(filename) as f:
+    with utfOpen(filename) as f:
         for line in f.readlines():
             line = indexcommentp.sub("", line)
             line = line.rstrip()
@@ -168,7 +176,7 @@ omitp = re.compile(r'# Omit\s*file', re.I)
 tagsp = re.compile(r'# Tags:\s*(.+)$', re.I)
 
 def pretag(tag, str):
-    tag = "\t%s: " % (tag)
+    tag = u"\t%s: " % (tag)
     return startp.sub(tag, str)
 
 failures = 0
@@ -224,25 +232,25 @@ class BaseRunner(object):
         outstr, errstr = proc.communicate()
 
         result = bool(result)
-        outstr = outstr.rstrip()
-        errstr = errstr.rstrip()
+        outstr = codecs.decode( outstr.rstrip(), 'utf-8' )
+        errstr = codecs.decode( errstr.rstrip(), 'utf-8' )
 
         if result ^ s.expectfail:
             print "\tFAIL:   Process failure " + ("expected" if s.expectfail else "not expected") + " but " + ("seen" if result else "not seen")
             if errstr:
-                print "\n"+pretag("STDERR",errstr)
+                print u"\n"+pretag(u"STDERR",errstr)
             return False
         elif outstr != s.outlines:
             print "\tFAIL:   Output differs"
-            print "\n%s\n\n%s" % ( pretag("EXPECT", s.outlines), pretag("STDOUT", outstr) )
+            print u"\n%s\n\n%s" % ( pretag(u"EXPECT", s.outlines), pretag(u"STDOUT", outstr) )
             return False
         elif verbose:
             if outstr:
-                print pretag("STDOUT", outstr)
+                print pretag(u"STDOUT", outstr)
             if outstr and errstr:
                 print
             if errstr:
-                print pretag("STDERR",errstr)
+                print pretag(u"STDERR",errstr)
         return True
 
     def run(s, filename):
@@ -259,7 +267,7 @@ class BaseRunner(object):
         earlyfail = False
         
         # Pre-scan the file for magic comments with test instructions
-        with open(filename) as f:
+        with utfOpen(filename) as f:
             for line in f.readlines():
                 # First determine if this is an expect directive
                 expect = expectp.match(line) # Expect:
