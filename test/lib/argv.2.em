@@ -1,5 +1,7 @@
 # Test argv with -e
 
+# Omit file
 # Arg: -e
 # Arg: print(argv 0)
-# Expect: test/lib/argv.2.em
+# AppArg: Eraser Blades
+# Expect: Eraser Blades

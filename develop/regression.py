@@ -22,6 +22,9 @@
 #   # Arg: --some-argument=whatever
 #       Invoke interpreter with argument
 #
+#   # AppArg: --some-argument=whatever
+#       Invoke application with argument
+#
 #   # Env: SOME_ENVIRONMENT=whatever
 #       Invoke interpreter with environment variable
 #
@@ -169,7 +172,7 @@ expectp = re.compile(r'# Expect(\s*failure)?(\:?)', re.I)
 linep = re.compile(r'# ?(.+)$', re.S)
 inline_expectp = re.compile(r'# Expect(\s*file)?:\s*(.+)$', re.S|re.I)
 startp = re.compile(r'^', re.MULTILINE)
-argp = re.compile(r'# Arg:\s*(.+)$', re.I)
+argp = re.compile(r'# (App)?Arg:\s*(.+)$', re.I)
 envp = re.compile(r'# Env:\s*(.+)$', re.I)
 kvp = re.compile(r'(\w+)=(.+)$')
 omitp = re.compile(r'# Omit\s*file', re.I)
@@ -262,6 +265,7 @@ class BaseRunner(object):
         s.expectfail = False
         s.env = None
         s.args = []
+        s.appargs = []
         s.omit = False
         s.outlines = ''
         s.tags = []
@@ -298,7 +302,11 @@ class BaseRunner(object):
                     if not scanning: # Other directives:
                         argline = argp.match(line) # Arg:
                         if argline:
-                            s.args += [argline.group(1)]
+                            arggroup = [argline.group(2)]
+                            if argline.group(1):
+                                s.appargs += arggroup
+                            else:
+                                s.args += arggroup
 
                         envline = envp.match(line) # Env:
                         if envline:
@@ -312,7 +320,7 @@ class BaseRunner(object):
                             env[kvline.group(1)] = kvline.group(2)
 
                         elif omitp.match(line):
-                            omit = True
+                            s.omit = True
 
                         else:
                             tagline = tagsp.match(line) # Tags:
@@ -350,14 +358,14 @@ class NormalRunner(BaseRunner):
         return ["default"]
 
     def phaseinvoke(s, phase):
-        return stdcall + s.normalargs()
+        return stdcall + s.normalargs() + s.appargs
 
 class MetaRunner(BaseRunner):
     def name(s):
         return ["meta"]
 
     def phaseinvoke(s, phase):
-        return stdmeta + s.normalargs()
+        return stdmeta + s.normalargs() + s.appargs
 
 class IncompleteRunner(BaseRunner): # Compiler does not work well right now, so it uses whitelist
     def should(s):
@@ -388,7 +396,7 @@ class CsRunner(ClikeRunner):
         elif phase == 2:
             return ["csc", "-out:/tmp/test.exe", "/tmp/test.cs"]
         elif phase == 3:
-            return ["mono", "/tmp/test.exe"]
+            return ["mono", "/tmp/test.exe"] + s.appargs
 
 class CppRunner(ClikeRunner):
     def name(s):
@@ -402,7 +410,7 @@ class CppRunner(ClikeRunner):
         elif phase == 2:
             return ["c++", "-o", "/tmp/test", "/tmp/test.cpp"]
         elif phase == 3:
-            return ["/tmp/test"]
+            return ["/tmp/test"] + s.appargs
 
 class JsRunner(IncompleteRunner):
     def name(s):
@@ -420,7 +428,7 @@ class JsRunner(IncompleteRunner):
         elif phase == 1:
             return stdmeta + ["-d", "js", "-o", "/tmp/test.js"] + s.normalargs()
         elif phase == 2:
-            return ["node", "/tmp/test.js"]
+            return ["node", "/tmp/test.js"] + s.appargs
 
 runners = {
     "default" : NormalRunner(),

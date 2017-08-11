@@ -101,6 +101,7 @@ export/fail/object.em
 export/fail/scope.em
 export/fail/recursive.em
 export/fail/private.em
+reader/fail/backslashComma.em
 
 lib/argv.em
 lib/argv.2.em
