@@ -355,5 +355,9 @@ export makeAst = function(i, fileTag)
 		groupStack = groupStack.next
 
 	checkErrors errors
+
+	let result = finalGroup
+	if (0 == result.statements(0).nodes.length) # Special case: Empty file produces bad AST
+		result.statements = array()
 	
-	finalGroup
+	result

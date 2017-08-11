@@ -2,4 +2,6 @@
 # Arg: --ast
 # Expect failure
 
+# Tags: broken-meta
+
 x.\y

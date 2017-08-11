@@ -16,7 +16,7 @@ class ExecutionExceptionFrame(object):
 
 class ExecutionException(EmilyException):
 	def __init__(s, loc, what, msg):
-		super(EmilyException, s).__init__(msg)
+		super(ExecutionException, s).__init__(msg)
 		s.msg = msg
 		s.stack = []
 		s.push(loc, what)
@@ -31,11 +31,11 @@ class InternalExecutionException(Exception):
 
 class LookupException(InternalExecutionException):
 	def __init__(s, msg):
-		super(InternalExecutionException, s).__init__(u"Lookup error: " + msg)
+		super(LookupException, s).__init__(u"Lookup error: " + msg)
 
 class TypeException(InternalExecutionException):
 	def __init__(s, msg):
-		super(InternalExecutionException, s).__init__(u"Type error: " + msg)
+		super(TypeException, s).__init__(u"Type error: " + msg)
 
 class LibraryException(InternalExecutionException):
 	pass

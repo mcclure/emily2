@@ -59,6 +59,7 @@ help += "-r          # Runner (default, meta, cs, cpp, js, all)\n"
 help += "-a          # Check all paths listed in standard " + stdfile + "\n"
 help += "-A          # Run tests even if they are known bad\n"
 help += "-v          # Print all output\n"
+help += "-V          # Print all invocations and output\n"
 help += "-i [path]   # Use custom emily script (when running Emily)\n"
 help += "-p [path]   # Use custom Python (when running Python)\n"
 help += "--p3        # Use python3\n"
@@ -66,7 +67,7 @@ help += "--md        # \"Meta depth\" (nest how many interpreters?)\n"
 help += "--untested  # Check repo hygiene-- list tests in sample/test not tested"
 
 parser = optparse.OptionParser(usage=help)
-for a in ["a", "A", "v", "-p3", "-meta", "-untested"]: # Single letter args, flags
+for a in ["a", "A", "v", "V", "-p3", "-meta", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
 for a in ["f", "t", "r", "i", "p", "-root", "-md"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
@@ -84,17 +85,29 @@ if cmds:
 indices = []
 files = []
 
+verbose = False
+verboseinvoke = False
+verboseskip = False
+testall = False
+
 if flag("root"):
     prjroot = flag("root")[0]
 
-if flag("a") or flag("A"):
+if flag("a") or flag("A"): # FIXME
     indices += [projectRelative(stdfile)]
 
 if flag("A"):
-    indices += [projectRelative(badfile)]
+    testall = True
 
 if flag("r"):
-    runnername = flag("runner")[0]
+    runnername = flag("r")[0]
+
+if flag("v"):
+    verbose = True
+
+if flag("V"):
+    verbose = True
+    verboseinvoke = True
 
 indices += flag("t")
 
@@ -137,7 +150,7 @@ if flag("p"):
 elif flag("p3"):
     stdpython = "python3"
 
-stdmetalist = [stdmeta] if flag("meta") or flag("md") else []
+stdmetalist = [stdmeta]
 if flag("md"):
     stdmetalist *= int(flag("md")[0])
 
@@ -152,6 +165,7 @@ argp = re.compile(r'# Arg:\s*(.+)$', re.I)
 envp = re.compile(r'# Env:\s*(.+)$', re.I)
 kvp = re.compile(r'(\w+)=(.+)$')
 omitp = re.compile(r'# Omit\s*file', re.I)
+tagsp = re.compile(r'# Tags:\s*(.+)$', re.I)
 
 def pretag(tag, str):
     tag = "\t%s: " % (tag)
@@ -165,7 +179,7 @@ globalEnv = copy.deepcopy( os.environ )
 
 # This is not the best way to use OO; only a bit of state persists in the object,
 # and the object "resets" itself each time you run a file.
-class BaseRunner:
+class BaseRunner(object):
     def __init__(s):
         s.failures = 0
         s.trials = 0
@@ -175,8 +189,8 @@ class BaseRunner:
 
     def should(s):
         for x in s.tags:
-            for y in s.name():
-                if x == "no-" + y:
+            for y in s.name() + ["all"]:
+                if x == "skip-" + y or x == "broken-" + y:
                     return False
         return True
 
@@ -198,6 +212,8 @@ class BaseRunner:
 
         print "%s %s..." % (s.phasename(phase), s.filename)
         try:
+            if verboseinvoke:
+                print "\t$ " + " ".join(invoke)
             proc = subprocess.Popen(invoke, stdout=subprocess.PIPE, stderr=subprocess.PIPE,env=env if env else globalEnv)
         except OSError as e:
             print "\nCATASTROPHIC FAILURE: Couldn't find emily?:"
@@ -220,7 +236,7 @@ class BaseRunner:
             print "\tFAIL:   Output differs"
             print "\n%s\n\n%s" % ( pretag("EXPECT", s.outlines), pretag("STDOUT", outstr) )
             return False
-        elif flag("v"):
+        elif verbose:
             if outstr:
                 print pretag("STDOUT", outstr)
             if outstr and errstr:
@@ -238,7 +254,6 @@ class BaseRunner:
         s.omit = False
         s.outlines = ''
         s.tags = []
-        s.trials += 1
 
         scanning = False
         earlyfail = False
@@ -285,14 +300,21 @@ class BaseRunner:
                                 break
                             env[kvline.group(1)] = kvline.group(2)
 
-                        if omitp.match(line):
+                        elif omitp.match(line):
                             omit = True
 
+                        else:
+                            tagline = tagsp.match(line) # Tags:
+                            if tagline:
+                                s.tags = tagline.group(1).split()
+
         if earlyfail:
+            s.trials += 1
             s.failures += 1
             return False
 
-        if s.should():
+        if testall or s.should():
+            s.trials += 1
             s.outlines = s.outlines.rstrip()
             s.expectfail = bool(s.expectfail)
 
@@ -300,6 +322,9 @@ class BaseRunner:
                 if not s.phaserun(phase):
                     s.failures += 1
                     break
+        else:
+            if verboseskip:
+                print("Skipping %s..." % (s.filename))
 
         return True
 
@@ -323,17 +348,27 @@ class MetaRunner(BaseRunner):
     def phaseinvoke(s, phase):
         return stdmeta + s.normalargs()
 
-class CsRunner(BaseRunner):
+class IncompleteRunner(BaseRunner): # Compiler does not work well right now, so it uses whitelist
+    def should(s):
+        if not super(IncompleteRunner, s).should():
+            return False
+        for x in s.tags:
+            for y in s.name():
+                if x == y:
+                    return True
+        return False
+
+class CsRunner(IncompleteRunner):
     def name(s):
         return ["compiler", "cs"]
 
-class CppRunner(BaseRunner):
+class CppRunner(IncompleteRunner):
     def name(s):
-        return ["compiler", "cs"]
+        return ["compiler", "cpp"]
 
-class JsRunner(BaseRunner):
+class JsRunner(IncompleteRunner):
     def name(s):
-        return ["compiler", "cs"]
+        return ["compiler", "js"]
 
 runners = {
     "default" : NormalRunner(),

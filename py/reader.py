@@ -436,5 +436,8 @@ def ast(iter, filetag = None):
 	if parser.errors:
 		output = [errorFormat(e) for e in parser.errors]
 		raise ReaderException(u"\n".join(output))
+	result = parser.finalGroup()
+	if not result.statements[0].nodes: # Special case: Empty file produces bad AST
+		result.statements = []
 	return parser.finalGroup()
 

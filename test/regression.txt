@@ -1,14 +1,21 @@
 # Tests expected to pass.
 
+reader/blank.em
 reader/indent.em
 reader/tokenize.em
+reader/literals.em
 reader/ambiguousIndent.em
+reader/endBackslash.em
+reader/endComma.em
 reader/unicode/utf8.em
 reader/unicode/utf8-bom.em
+reader/unicode/utf16le.em
+reader/unicode/utf16be.em
 
 reader/fail/ambiguousIndent.em
 reader/fail/cmdline.em
 reader/fail/dot.em
+reader/fail/dotStray.em
 reader/fail/lparen.em
 reader/fail/parenDedent.em
 reader/fail/rparen.em
@@ -35,6 +42,7 @@ parser/fail/importBlankTarget.em
 parser/fail/importNoAtom.em
 parser/fail/importSingle.em
 parser/fail/startingGroup.em
+parser/fail/steal.em
 
 parser/custom/splitter.em
 parser/custom/fail/let.em
