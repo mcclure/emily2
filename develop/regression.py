@@ -235,12 +235,14 @@ class BaseRunner(object):
         outstr = codecs.decode( outstr.rstrip(), 'utf-8' )
         errstr = codecs.decode( errstr.rstrip(), 'utf-8' )
 
-        if result ^ s.expectfail:
+        lastphase = phase == s.phases() - 1
+
+        if (result ^ s.expectfail) if lastphase else (result and not s.expectfail):
             print "\tFAIL:   Process failure " + ("expected" if s.expectfail else "not expected") + " but " + ("seen" if result else "not seen")
             if errstr:
                 print u"\n"+pretag(u"STDERR",errstr)
             return False
-        elif outstr != s.outlines:
+        elif lastphase and outstr != s.outlines:
             print "\tFAIL:   Output differs"
             print u"\n%s\n\n%s" % ( pretag(u"EXPECT", s.outlines), pretag(u"STDOUT", outstr) )
             return False
@@ -251,6 +253,7 @@ class BaseRunner(object):
                 print
             if errstr:
                 print pretag(u"STDERR",errstr)
+
         return True
 
     def run(s, filename):
@@ -366,17 +369,58 @@ class IncompleteRunner(BaseRunner): # Compiler does not work well right now, so 
                     return True
         return False
 
-class CsRunner(IncompleteRunner):
+class ClikeRunner(IncompleteRunner):
+    def phases(s):
+        return 4
+
+    def phasename(s, phase):
+        return ["Preparing", "Transpiling", "Compiling", "Running"][phase]
+
+class CsRunner(ClikeRunner):
     def name(s):
         return ["compiler", "cs"]
 
-class CppRunner(IncompleteRunner):
+    def phaseinvoke(s, phase): # TODO: mkdtemp for Windows support
+        if phase == 0:
+            return ["rm", "-f", "/tmp/test.cs", "/tmp/test.exe"]
+        elif phase == 1:
+            return stdmeta + ["-d", "cs", "-o", "/tmp/test.cs"] + s.normalargs()
+        elif phase == 2:
+            return ["csc", "-out:/tmp/test.exe", "/tmp/test.cs"]
+        elif phase == 3:
+            return ["mono", "/tmp/test.exe"]
+
+class CppRunner(ClikeRunner):
     def name(s):
         return ["compiler", "cpp"]
+
+    def phaseinvoke(s, phase):
+        if phase == 0:
+            return ["rm", "-f", "/tmp/test.cpp", "/tmp/test"]
+        elif phase == 1:
+            return stdmeta + ["-d", "cpp", "-o", "/tmp/test.cpp"] + s.normalargs()
+        elif phase == 2:
+            return ["c++", "-o", "/tmp/test", "/tmp/test.cpp"]
+        elif phase == 3:
+            return ["/tmp/test"]
 
 class JsRunner(IncompleteRunner):
     def name(s):
         return ["compiler", "js"]
+
+    def phases(s):
+        return 3
+
+    def phasename(s, phase):
+        return ["Preparing", "Transpiling", "Running"][phase]
+
+    def phaseinvoke(s, phase):
+        if phase == 0:
+            return ["rm", "-f", "/tmp/test.js"]
+        elif phase == 1:
+            return stdmeta + ["-d", "js", "-o", "/tmp/test.js"] + s.normalargs()
+        elif phase == 2:
+            return ["node", "/tmp/test.js"]
 
 runners = {
     "default" : NormalRunner(),

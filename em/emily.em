@@ -13,6 +13,7 @@ let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
+let cmdOutput = false
 let cmdDriver = "interpreter"
 
 let scriptArgv = array()
@@ -21,6 +22,13 @@ let scriptArgv = array()
 
 do
 	let i = argv.iter
+	let nextArg = function(expect)
+		if (!i.more)
+			stderr.println
+				"Missing argument for -" + expect
+			exit 2
+		i.next
+
 	while (i.more)
 		let arg = i.next
 
@@ -31,16 +39,12 @@ do
 				cmdAst2 = true
 			"--exported" =
 				cmdExported = true
-			"-e" = do
-				if (!i.more)
-					stderr.println "Missing argument for -e"
-					exit 2
-				cmdExecute = i.next
-			"-d" = do # TODO: Or "driver"
-				if (!i.more)
-					stderr.println "Missing argument for -d"
-					exit 2
-				cmdDriver = i.next
+			"-e" =
+				cmdExecute = nextArg "e"
+			"-d" = # TODO: Or "driver"
+				cmdDriver = nextArg "d"
+			"-o" =
+				cmdOutput = nextArg "o"
 			_ = do
 				if ("-" == arg 0)
 					stderr.print "Unrecognized argument" arg ln
@@ -78,8 +82,20 @@ else
 	if cmdAst2
 		println (exe.toString)
 	else
+		let exePrint = function(s)
+			if (cmdOutput == "-")
+				println s
+			else
+				let x = file.out cmdOutput
+				x.write s
+				x.close
+
 		with cmdDriver match
 			"interpreter" = do
+				if (cmdOutput)
+					stderr.println "-o not understood when running interpreter"
+					exit 2
+
 				from execution import (ObjectValue, StringValue, ArrayValue, defaultScope)
 				let scope = new ObjectValue(defaultScope)
 
@@ -99,14 +115,14 @@ else
 			"cs" = do
 				let x = CsCompiler.build exe
 
-				println x
+				exePrint x
 
 			"cpp" = do
 				let x = CppCompiler.build exe
 
-				println x
+				exePrint x
 
 			"js" = do
 				let x = JsCompiler.build exe
 
-				println x
+				exePrint x
