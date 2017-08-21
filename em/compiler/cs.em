@@ -1,11 +1,16 @@
 from project.util import *
 from project.compiler.util import *
-from project.compiler.base import ClikeCompiler
+from project.compiler.base import
+	ClikeCompiler, ChainedDict, chainParent
 
 export CsCompiler = inherit ClikeCompiler
-
+	scope = do
+		let dict = new ChainedDict
+		dict.set chainParent (ClikeCompiler.scope)
+		dict
 
 	method build = function(exe)
+		exe.check (this.scope)
 		join "\n" array
 			"using System;"
 			"public class Program"

@@ -10,8 +10,38 @@ from project.execution import
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
+# Variant of dict: when not found redirects to parent object, then returns not found object
+export chainParent = inherit Object
+export chainNotFound = inherit Object
+export ChainedDict = inherit Object
+	field dict = new Dict
+
+	method get = function(index)
+		if (dict.has index)
+			dict.get index
+		elif (dict.has chainParent)
+			(dict.get chainParent).get index
+		else
+			chainNotFound
+	method set = this.dict.set
+	method has = function(index)
+		dict.has index || (dict.has chainParent && chainParent.has index)
+	# TODO: iter
+
+export Val = inherit Object
+	field type = null
+
+#export KnownVal = inherit Val
+#export ConstVal = inherit KnownVal
+#export TemplateVal = inherit KnownVal
+
 # BaseCompiler mostly serves as a network of interfaces
 export BaseCompiler = inherit Object
+	scope = do
+		let dict = new ChainedDict
+		dict.set "ln" ln
+		dict
+
 	Var = inherit Object
 
 	Exp = inherit Object

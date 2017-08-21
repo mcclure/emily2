@@ -4,10 +4,12 @@ profile experimental
 
 from project.util import *
 from project.core import *
+from project.type import
+	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType
 
 # Execution tree
 
-export Executable = inherit Node
+export Executable = inherit TypedNode
 	progress = ProgressBase.executable
 
 	method fail = function (msg)
@@ -24,11 +26,15 @@ export InvalidExec = inherit Executable
 	eval = function (scope)
 		this.fail "Tried to execute invalid program"
 
+	check = function (scope)
+		this.fail "Tried to typecheck invalid program"
+
 export SequenceExec = inherit Executable
 	field shouldReturn = false
 	field hasScope = false
 	field method execs = array()
 	field macros = null
+	field type = null
 
 	method evalSequence = function (scope, exportScope)
 		let exportList = null
@@ -55,6 +61,18 @@ export SequenceExec = inherit Executable
 
 	method eval = function (scope)
 		this.evalSequence scope null
+
+	method check = function (scope)
+		let i = this.execs.iter
+		let last = null
+		while (i.more)
+			last = i.next
+			last.check scope
+
+		if (last)
+			this.unify last
+		else
+			this.type = UnitType
 
 	method toString = do
 		let tags = array()
@@ -83,26 +101,32 @@ export UserMacroList = inherit Executable
 export LiteralExec = inherit Executable
 	field value = null
 
+	check = nullfn
+
 export StoredLiteralExec = inherit LiteralExec
 	toString = "[InternalLiteral]"
+	type = null # TODO: Should be some special "Unresolvable" type, shared with InvalidExec
 
 	method eval = function (scope)
 		this.value
 
 export StringLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[StringLiteral ", quotedString(this.value), "]")
+	type = StringType
 
 	method eval = function (scope)
 		new StringValue(this.value)
 
 export NumberLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[NumberLiteral ", this.value, "]")
+	type = NumberType
 
 	method eval = function (scope)
 		new NumberValue(this.value)
 
 export AtomLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[AtomLiteral ", this.value, "]")
+	type = AtomType # TODO: Atom types should be special
 
 	method eval = function (scope)
 		this
@@ -113,9 +137,12 @@ export AtomLiteralExec = inherit LiteralExec
 # Does not inherit LiteralExec because it holds no value
 export NullLiteralExec = inherit Executable
 	toString = "[NullLiteral]"
+	type = UnitType # TODO: No. No
 
 	method eval = function (scope)
 		NullValue
+
+	check = nullfn
 
 export VarExec = inherit Executable
 	field symbol = null
@@ -125,9 +152,17 @@ export VarExec = inherit Executable
 	method eval = function (scope)
 		scope.lookup (this.symbol)
 
+	field type = null
+	method check = function (scope)
+		if (!scope.has (this.symbol))
+			fail
+				"Variable not found during typecheck at " + this.loc.toString
+		this.unify (scope.get (this.symbol))
+
 export ApplyExec = inherit Executable
 	field fn = null
 	field arg = null
+	type = UnknowableType # FIXME
 
 	method toString = nullJoin array
 		"[Apply "
@@ -139,6 +174,9 @@ export ApplyExec = inherit Executable
 	method eval = function (scope)
 		this.fn.eval(scope).apply (this.arg.eval(scope))
 
+	method check = function (scope)
+		this.fn.check, this.arg.check
+
 export SetExec = inherit Executable
 	field isLet = false
 	field isMethod = false
@@ -147,6 +185,7 @@ export SetExec = inherit Executable
 	field targetClause = null
 	field indexClause = null
 	field valueClause = null
+	type = UnitType
 
 	method toString = nullJoin array
 		"["
@@ -187,9 +226,15 @@ export SetExec = inherit Executable
 
 		NullValue
 
+	method check = function (scope)
+		if (this.targetClause) (this.targetClause.check)
+		if (this.indexClause)  (this.indexClause.check)
+		if (this.valueClause)  (this.valueClause.check)
+
 export ImportAllExec = inherit Executable
 	field sourceClause = null
 	field isExport = false
+	type = UnitType
 
 	method toString = nullJoin array
 		"[ImportAll "
@@ -229,9 +274,13 @@ export ImportAllExec = inherit Executable
 	method eval = function (scope)
 		this.setEval(scope, null, null)
 
+	method check = function (scope)
+		if (this.sourceClause) (this.sourceClause.check)
+
 export MakeFuncExec = inherit Executable
 	field args = null
 	field body = null
+	type = UnknowableType # FIXME
 
 	method toString = nullJoin array
 		"[Function ["
@@ -243,11 +292,15 @@ export MakeFuncExec = inherit Executable
 	method eval = function(scope)
 		new FunctionValue(this.args, this.body, scope)
 
+	method check = function(scope)
+		body.check
+
 export MakeObjectExec = inherit Executable
 	field baseClause = null
 	field method values = array()
 	field method assigns = array()
 	field isInstance = false
+	type = UnknowableType # FIXME
 
 	method toString = nullJoin array
 		"["
@@ -306,9 +359,14 @@ export MakeObjectExec = inherit Executable
 
 		result
 
+	method check = function (scope)
+		let i = this.assigns.iter
+		while (i.more)
+			i.next.check scope
 
 export MakeArrayExec = inherit Executable
 	field contents = null
+	type = UnknowableType # FIXME
 
 	method toString = nullJoin array
 		"[Array "
@@ -322,8 +380,14 @@ export MakeArrayExec = inherit Executable
 			values.append (i.next.eval(scope))
 		new ArrayValue(values)
 
+	method check = function (scope)
+		let i = this.contents.iter
+		while (i.more)
+			i.next.check scope
+
 export MakeMatchExec = inherit Executable
 	field matches = null
+	type = UnknowableType # FIXME
 
 	method toString = do
 		let result = "[Match"
@@ -344,11 +408,19 @@ export MakeMatchExec = inherit Executable
 	method eval = function(scope)
 		new MatchFunctionValue(this.matches, scope)
 
+	method check = function (scope)
+		let i = this.matches.iter
+		while (i.more)
+			let m = i.next
+			m.targetExe.check scope
+			m.statement.check scope
+
 export IfExec = inherit Executable
 	field loop = false # todo isLoop
 	field condClause = null
 	field ifClause = null
 	field elseClause = null
+	type = UnknowableType # FIXME
 
 	method toString = nullJoin array
 		"["
@@ -380,6 +452,11 @@ export IfExec = inherit Executable
 			while (isTrue(this.condClause.eval(scope)))
 				this.ifClause.eval(scope)
 			NullValue
+
+	method check = function (scope)
+		if (this.condClause) (this.condClause.check scope)
+		if (this.ifClause)   (this.ifClause.check scope)
+		if (this.elseClause) (this.elseClause.check scope)
 
 export UnitExec = NullLiteralExec # Just an alias
 
