@@ -7,6 +7,7 @@ from project.core import *
 
 export Type = inherit Object
 	method resolve = this
+	toString = "[MYSTERY TYPE]"
 
 export TypedNode = inherit Node
 	method unify = function(node)

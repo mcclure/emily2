@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project import (reader, parser, execution)
 from project.compiler import
-	cs.CsCompiler, cpp.CppCompiler, js.JsCompiler
+	cs.CsCompiler, cpp.CppCompiler, js.JsCompiler, debug.TypePrinter
 
 let cmdAst = false
 let cmdAst2 = false
@@ -13,7 +13,7 @@ let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
-let cmdOutput = false
+let cmdOutput = "-"
 let cmdDriver = "interpreter"
 
 let scriptArgv = array()
@@ -124,5 +124,10 @@ else
 
 			"js" = do
 				let x = JsCompiler.build exe
+
+				exePrint x
+
+			"type" = do
+				let x = TypePrinter.build exe
 
 				exePrint x

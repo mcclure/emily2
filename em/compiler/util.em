@@ -4,11 +4,15 @@ from project.util import *
 
 # Helpers
 
-export indent = function (count)
+export indentPrefix = function (count)
 	let prefix = ""
 	while (count > 0)
 		prefix = prefix + "    "
 		count = count - 1
+	prefix
+
+export indent = function (count)
+	let prefix = indentPrefix count
 	map function(s)
 		prefix + (s.toString)
 
