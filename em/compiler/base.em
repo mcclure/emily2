@@ -7,29 +7,13 @@ from project.compiler.util import *
 from project.execution import
 	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec
 	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
+from project.type import # FIXME
+	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType, Val
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
-# Variant of dict: when not found redirects to parent object, then returns not found object
-export chainParent = inherit Object
-export chainNotFound = inherit Object
-export ChainedDict = inherit Object
-	field dict = new Dict
-
-	method get = function(index)
-		if (dict.has index)
-			dict.get index
-		elif (dict.has chainParent)
-			(dict.get chainParent).get index
-		else
-			chainNotFound
-	method set = this.dict.set
-	method has = function(index)
-		dict.has index || (dict.has chainParent && chainParent.has index)
-	# TODO: iter
-
-export Val = inherit Object
-	field type = null
+export KnownVal = inherit Val
+	field value = null
 
 #export KnownVal = inherit Val
 #export ConstVal = inherit KnownVal
@@ -39,7 +23,8 @@ export Val = inherit Object
 export BaseCompiler = inherit Object
 	scope = do
 		let dict = new ChainedDict
-		dict.set "ln" ln
+		dict.set "ln" new KnownVal
+			null, StringType, "\n"
 		dict
 
 	Var = inherit Object

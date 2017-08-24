@@ -125,6 +125,40 @@ export checkErrors = function(errors)
 export nonempty = function (ary)
 	if ary (ary.length)
 
+# Iter
+
+let MapIterImpl = inherit Object
+	field fn = null
+	field i = null
+	field cache = null
+
+	method hasCache = this.cache && this.cache.length > 0
+
+	method pump = do
+		while (!this.hasCache && this.i.more)
+			this.cache = this.fn(this.i.next)
+
+	method more = do
+		this.pump
+		this.hasCache
+
+	method next = do
+		this.pump
+		popLeft (this.cache)
+
+# fn returns an array of values or null. i is an iterator
+export mapIter = function(fn, i)
+	new MapIterImpl(fn, i)
+
+export foldIter = function(fn, default, i)
+	if (!i.more)
+		default
+	else
+		let v = i.next
+		while (i.more)
+			v = fn(v, i.next)
+		v
+
 # Dict
 
 export cloneDict = function(dict)
@@ -165,3 +199,33 @@ export quotedString = function(s)
 				_ = ch
 	result = result + "\""
 	result
+
+# Chained dictionary
+# Variant of dict: when not found redirects to parent object, then returns not found object
+
+export chainParent = inherit Object
+export chainNotFound = inherit Object
+export ChainedDict = inherit Object
+	method field dict = new Dict
+
+	method get = function(index)
+		if (this.dict.has index)
+			this.dict.get index
+		elif (this.dict.has chainParent)
+			(this.dict.get chainParent).get index
+		else
+			chainNotFound
+	method set = this.dict.set
+	method has = function(index)
+		dict.has index || (dict.has chainParent && chainParent.has index)
+
+	method shallowHas = this.dict.has
+	method shallowIter = mapIter
+		function (x)
+			if (x != chainParent)
+				array(x)
+			else
+				null
+		this.dict.iter
+
+	# TODO: iter

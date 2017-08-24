@@ -58,3 +58,6 @@ export StringType = inherit ResolvedType
 
 export FunctionType = inherit ResolvedType
 	toString = "{Function}"
+
+export Val = inherit TypedNode
+	field type = null

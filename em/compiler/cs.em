@@ -1,7 +1,7 @@
 from project.util import *
 from project.compiler.util import *
 from project.compiler.base import
-	ClikeCompiler, ChainedDict, chainParent
+	ClikeCompiler
 
 export CsCompiler = inherit ClikeCompiler
 	scope = do

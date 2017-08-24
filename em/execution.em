@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project.core import *
 from project.type import
-	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType
+	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType, Val
 
 # Execution tree
 
@@ -35,6 +35,7 @@ export SequenceExec = inherit Executable
 	field method execs = array()
 	field macros = null
 	field type = null
+	field typeScope = null # Memo
 
 	method evalSequence = function (scope, exportScope)
 		let exportList = null
@@ -63,11 +64,21 @@ export SequenceExec = inherit Executable
 		this.evalSequence scope null
 
 	method check = function (scope)
+		this.typeScope = new ChainedDict
+		this.typeScope.set chainParent scope
+
 		let i = this.execs.iter
+		while (i.more)
+			let exe = i.next
+			if (is SetExec exe && exe.isLet)
+				this.typeScope.set (exe.indexClause.value) new Val
+
+		i = this.execs.iter
 		let last = null
+
 		while (i.more)
 			last = i.next
-			last.check scope
+			last.check (this.typeScope)
 
 		if (last)
 			this.unify last
@@ -198,7 +209,6 @@ export SetExec = inherit Executable
 		this.valueClause
 		"]"
 
-
 	method setEval = function (scope, target, index)
 		let value = if (this.isMethod)
 			new FunctionMethodPseudoValue(scope, target, this.valueClause)
@@ -230,6 +240,8 @@ export SetExec = inherit Executable
 		if (this.targetClause) (this.targetClause.check)
 		if (this.indexClause)  (this.indexClause.check)
 		if (this.valueClause)  (this.valueClause.check)
+		if (!this.targetClause) # Check type of indexClause? TODO: Indexing
+			scope.get(this.indexClause.value).unify(this.valueClause)
 
 export ImportAllExec = inherit Executable
 	field sourceClause = null
