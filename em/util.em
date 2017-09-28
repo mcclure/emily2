@@ -206,7 +206,7 @@ export quotedString = function(s)
 export chainParent = inherit Object
 export chainNotFound = inherit Object
 export ChainedDict = inherit Object
-	method field dict = new Dict
+	field method dict = new Dict
 
 	method get = function(index)
 		if (this.dict.has index)

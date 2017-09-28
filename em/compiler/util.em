@@ -19,7 +19,7 @@ export indent = function (count)
 export arrayIndented = function (a, i) (join "\n" (indent i a))
 
 export NumGenerator = inherit Object
-	field generator = 0
+	field generator = 0 - 1
 
 	method next = do
 		this.generator = this.generator + 1

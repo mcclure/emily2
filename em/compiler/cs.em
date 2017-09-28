@@ -1,7 +1,11 @@
+# C# version of compiler
+
+profile experimental
+
 from project.util import *
 from project.compiler.util import *
 from project.compiler.base import
-	ClikeCompiler
+	ClikeCompiler, Chunk, IndentChunk
 
 export CsCompiler = inherit ClikeCompiler
 	scope = do
@@ -9,19 +13,47 @@ export CsCompiler = inherit ClikeCompiler
 		dict.set chainParent (ClikeCompiler.scope)
 		dict
 
-	method build = function(exe)
-		exe.check (this.scope)
-		join "\n" array
-			"using System;"
-			"public class Program"
-			"{"
-			"    public static void Println<T>(T x) { Console.WriteLine(x); }\n"
-			"    public static double Add(double x, double y) { return x + y; }\n"
-			"    public static double Mod(double x, double y) { return x % y; }\n"
-			"    public static bool Eq (double x, double y) { return x == y; }\n"
-			"    public static bool Geq(double x, double y) { return x <= y; }\n"
-			"    public static void Main()"
-			"    {"
-			this.buildFrame exe 0 null null
-			"    }"
-			"}"
+	UnitBlock = inherit (current.UnitBlock)
+		method buildMain = do
+			this.defsChunk = new Chunk
+			this.mainChunk = new IndentChunk
+
+			appendArray (this.source.lines) array
+				"using System;"
+				"public class Program"
+				"{"
+				new IndentChunk
+					array
+						this.defsChunk
+						""
+						"public static void Main()"
+						"{"
+						this.mainChunk
+						"}"
+				"}"
+
+	Function = inherit (current.Function)
+		method field cases = new NumGenerator
+
+		method appendBlock = do
+			let block = new (this.unit.compiler.SwitchBlock)
+				label = this.cases.next.toString
+			appendArray (this.source.lines) array
+				"switch (" + block.label + ") {"
+				block.buildContentChunk
+				"}"
+			block.source
+
+	SwitchBlock = inherit (current.BlockBlock)
+		field label = null
+
+		method buildContentChunk = do
+			this.source = new Chunk
+			new IndentChunk
+				lines = array
+					"case " + this.label + ": {"
+					new IndentChunk
+						lines = array
+							this.source
+							"break;"
+					"}"

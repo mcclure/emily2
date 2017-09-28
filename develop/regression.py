@@ -182,6 +182,14 @@ def pretag(tag, str):
     tag = u"\t%s: " % (tag)
     return startp.sub(tag, str)
 
+def printstd(outstr, errstr):
+    if outstr:
+        print pretag(u"STDOUT", outstr)
+        if outstr and errstr:
+            print
+        if errstr:
+            print pretag(u"STDERR",errstr)
+
 failures = 0
 
 # In testing, it appears the current process environment can be altered by subprocess.Popen.
@@ -242,20 +250,14 @@ class BaseRunner(object):
 
         if (result ^ s.expectfail) if lastphase else (result and not s.expectfail):
             print "\tFAIL:   Process failure " + ("expected" if s.expectfail else "not expected") + " but " + ("seen" if result else "not seen")
-            if errstr:
-                print u"\n"+pretag(u"STDERR",errstr)
+            printstd(outstr, errstr)
             return False
         elif lastphase and outstr != s.outlines:
             print "\tFAIL:   Output differs"
             print u"\n%s\n\n%s" % ( pretag(u"EXPECT", s.outlines), pretag(u"STDOUT", outstr) )
             return False
         elif verbose:
-            if outstr:
-                print pretag(u"STDOUT", outstr)
-            if outstr and errstr:
-                print
-            if errstr:
-                print pretag(u"STDERR",errstr)
+            printstd(outstr, errstr)
 
         return True
 
@@ -394,7 +396,7 @@ class CsRunner(ClikeRunner):
         elif phase == 1:
             return stdmeta + ["-d", "cs", "-o", "/tmp/test.cs"] + s.normalargs()
         elif phase == 2:
-            return ["csc", "-out:/tmp/test.exe", "/tmp/test.cs"]
+            return ["csc", "/nologo", "-out:/tmp/test.exe", "/tmp/test.cs"]
         elif phase == 3:
             return ["mono", "/tmp/test.exe"] + s.appargs
 
