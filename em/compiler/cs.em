@@ -5,7 +5,9 @@ profile experimental
 from project.util import *
 from project.compiler.util import *
 from project.compiler.base import
-	ClikeCompiler, Chunk, IndentChunk
+	ClikeCompiler, Chunk, IndentChunk, AddressableVal, KnownVal
+from project.type import
+	UnitType, BoolType, NumberType, StringType
 
 export CsCompiler = inherit ClikeCompiler
 	scope = do
@@ -37,15 +39,16 @@ export CsCompiler = inherit ClikeCompiler
 
 		method appendBlock = do
 			let block = new (this.unit.compiler.SwitchBlock)
-				label = this.cases.next.toString
+				id = this.cases.next.toString
+				unit = this.unit
 			appendArray (this.source.lines) array
 				"switch (" + block.label + ") {"
 				block.buildContentChunk
 				"}"
-			block.source
+			block
 
 	SwitchBlock = inherit (current.BlockBlock)
-		field label = null
+		field id = null
 
 		method buildContentChunk = do
 			this.source = new Chunk
@@ -57,3 +60,40 @@ export CsCompiler = inherit ClikeCompiler
 							this.source
 							"break;"
 					"}"
+
+		method buildVal = function(assignVal, dataVal)
+			if (!assignVal)
+				assignVal = this.addVar(exp.type)
+			let compiler = this.unit.compiler
+			appendArray (this.source.lines) array
+				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
+
+		method addVar = this.unit.addVar
+		method addLiteral = this.unit.addLiteral
+
+		method label = "c" + this.id.toString
+	
+	method buildVarInto = function(defsChunk, value)
+		appendArray (defsChunk.lines) array
+			this.typeToString (value.type) + " " + this.valToString(value) + ";"
+
+	method typeToString = function(type)
+		with type match
+			BoolType = "bool"
+			NumberType = "float"
+			StringType = "string"
+			UnitType = "void"
+			_ = fail "Can't translate this type"
+
+	method valToString = function(val)
+		with val match
+			AddressableVal = val.label
+			KnownVal = this.literalToString (val.value)
+
+	method literalToString = function(value)
+		with value match
+			String = "\"" + value + "\"" # NO!
+			Number = value.toString
+			none = "null"
+			_ = fail "Can't translate this literal"
+

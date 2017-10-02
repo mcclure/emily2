@@ -12,12 +12,15 @@ from project.type import # FIXME
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
+export UnitVal = inherit Val
 export KnownVal = inherit Val
 	field value = null
 
-#export KnownVal = inherit Val
-#export ConstVal = inherit KnownVal
-#export TemplateVal = inherit KnownVal
+# Unsure
+export AddressableVal = inherit Val
+	field id = null
+
+	method label = "v" + this.id.toString
 
 export Chunk = inherit Object
 	field method lines = array()
@@ -63,9 +66,19 @@ export BaseCompiler = inherit Object
 		method main = do
 			if (this.mainChunk)
 				fail "Tried to generate main chunk twice"
-			this.buildMain					
+			this.buildMain
 			this.mainFunction = new (this.compiler.Function) (this, this.mainChunk)
 			this.mainFunction.appendBlock
+
+		method addVar = function(type)
+			let value = new AddressableVal
+				type = type
+				id = this.names.next
+			this.compiler.buildVarInto (this.defsChunk) value
+			value
+
+		method addLiteral = function(exe)
+			new KnownVal(exe.loc, exe.type, exe.value)
 
 	# FIXME: Rename this.
 	Function = inherit Object
@@ -79,12 +92,52 @@ export BaseCompiler = inherit Object
 
 	method buildBlockImpl = function(block, scope, exe)
 		with exe match
-			SequenceExec(_, shouldReturn, hasScope) = ()
+			SequenceExec(_, shouldReturn, hasScope, execs) = do
+				if (hasScope)
+					let newScope = new ChainedDict
+					newScope.set chainParent (scope)
+					scope = newScope
+
+				let finalResult = null
+				let i = execs.iter
+				while (i.more)
+					finalResult = this.buildBlockImpl(block, scope, i.next)
+
+				if (shouldReturn)
+					finalResult
+				else
+					UnitVal
 			SetExec(_, isLet) = do
-				if (isLet)
-					this.defsChunk
+				let dataVal = this.buildBlockImpl(block, scope, exe.valueClause)
+
+				if (is UnitVal dataVal)
+					fail "Cannot assign unit to variable" # This message sucks
+
+				let name = exe.indexClause.value
+				let assignVal = if (isLet)
+					let newTarget = block.addVar (exe.type)
+					scope.set name newTarget
+					newTarget
+				else
+					scope.get name
+
+				block.buildVal(assignVal, dataVal)
+
+				UnitVal
+			VarExec(_, symbol) = do
+				let val = scope.get symbol
+				if (val == chainNotFound)
+					# Promote a "known" value
+					let knownVal = this.scope.get val
+					if (knownVal == chainNotFound)
+						fail "Variable name not known" # Message should include name
+					this.scope.set symbol knownVal
+					fail "TODO" # add this to the defs section
+				val
+			LiteralExec = block.addLiteral exe
 			ApplyExec = ()
-			ImportAllExec = () # TODO
+			ImportAllExec = UnitVal # TODO
+			NullLiteralExec = new KnownVal (value = null)
 
 	method buildBlock = function(seqExe)
 		let unit = new (this.UnitBlock) (compiler = this)
