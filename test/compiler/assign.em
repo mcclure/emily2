@@ -9,7 +9,10 @@ let x = 2
 let y = 3
 let z = x
 
+# Returns final value (x) and assigns it to a
 let a = do
 	x = y
 	z = x
-	x
+	do
+		let q = x
+		q
