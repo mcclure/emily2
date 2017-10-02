@@ -70,11 +70,11 @@ export BaseCompiler = inherit Object
 			this.mainFunction = new (this.compiler.Function) (this, this.mainChunk)
 			this.mainFunction.appendBlock
 
-		method addVar = function(type)
+		method addVar = function(type, description)
 			let value = new AddressableVal
 				type = type
 				id = this.names.next
-			this.compiler.buildVarInto (this.defsChunk) value
+			this.compiler.buildVarInto (this.defsChunk) value description
 			value
 
 		method addLiteral = function(exe)
@@ -115,7 +115,7 @@ export BaseCompiler = inherit Object
 
 				let name = exe.indexClause.value
 				let assignVal = if (isLet)
-					let newTarget = block.addVar (exe.type)
+					let newTarget = block.addVar (exe.type, name)
 					scope.set name newTarget
 					newTarget
 				else
