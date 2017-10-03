@@ -42,7 +42,7 @@ export CsCompiler = inherit ClikeCompiler
 				id = this.cases.next.toString
 				unit = this.unit
 			appendArray (this.source.lines) array
-				"unsigned int i = 0;"
+				"uint i = 0;"
 				"switch (i) {"
 				block.buildContentChunk
 				"}"
@@ -64,7 +64,7 @@ export CsCompiler = inherit ClikeCompiler
 
 		method buildVal = function(assignVal, dataVal)
 			if (!assignVal)
-				assignVal = this.addVar(exp.type, null)
+				assignVal = this.addVar(null, exp.type, null)
 			let compiler = this.unit.compiler
 			appendArray (this.source.lines) array
 				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
@@ -76,14 +76,14 @@ export CsCompiler = inherit ClikeCompiler
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
-			this.typeToString (value.type) + " " + this.valToString(value) + ";" +
+			"static " + this.typeToString (value.type) + " " + this.valToString(value) + ";" +
 				if (description)
 					" // " + description
 				else
 					""
 
 	method typeToString = function(type)
-		with type match
+		with (type.resolve) match
 			BoolType = "bool"
 			NumberType = "float"
 			StringType = "string"

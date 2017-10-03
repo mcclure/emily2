@@ -70,8 +70,9 @@ export BaseCompiler = inherit Object
 			this.mainFunction = new (this.compiler.Function) (this, this.mainChunk)
 			this.mainFunction.appendBlock
 
-		method addVar = function(type, description)
+		method addVar = function(loc, type, description)
 			let value = new AddressableVal
+				loc = loc
 				type = type
 				id = this.names.next
 			this.compiler.buildVarInto (this.defsChunk) value description
@@ -110,12 +111,12 @@ export BaseCompiler = inherit Object
 			SetExec(_, isLet) = do
 				let dataVal = this.buildBlockImpl(block, scope, exe.valueClause)
 
-				if (is UnitVal dataVal)
+				if (is UnitVal (dataVal.type.resolve))
 					fail "Cannot assign unit to variable" # This message sucks
 
 				let name = exe.indexClause.value
 				let assignVal = if (isLet)
-					let newTarget = block.addVar (exe.type, name)
+					let newTarget = block.addVar (exe.loc, dataVal.type, name)
 					scope.set name newTarget
 					newTarget
 				else
@@ -135,7 +136,7 @@ export BaseCompiler = inherit Object
 					fail "TODO" # add this to the defs section
 				val
 			LiteralExec = block.addLiteral exe
-			ApplyExec = ()
+			ApplyExec = () # TODO: Arg 2 cannot be unit
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 

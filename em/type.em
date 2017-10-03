@@ -9,6 +9,16 @@ export Type = inherit Object
 	method resolve = this
 	toString = "[MYSTERY TYPE]"
 
+# TODO: Not like this
+let typeDebug = function(to, frm, why)
+	print
+		why + " type of ", to.loc.toString, " to ", frm.loc.toString
+		if (frm)
+			" (" + frm.type.toString + ")"
+		else
+			""
+		ln
+
 export TypedNode = inherit Node
 	method unify = function(node)
 		if (this.type && node.type)
@@ -16,12 +26,15 @@ export TypedNode = inherit Node
 				fail
 					"Type error between " + this.loc.toString + " and " + node.loc.toString
 		elif (this.type)
+			#typeDebug node this "Setting"
 			this.type = this.type.resolve
 			node.type = this.type
 		elif (node.type)
+			#typeDebug this node "Setting"
 			node.type = node.type.resolve
 			this.type = node.type
 		else
+			#typeDebug this node "Forwarding"
 			this.type = new ReferType(node)
 
 export ReferType = inherit Type
