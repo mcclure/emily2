@@ -49,6 +49,11 @@ export catArray = function (a, b)
 	appendArray(result, b)
 	result
 
+export catArrayElement = function(a,b)
+	let result = cloneArray(a)
+	result.append b
+	result
+
 # Linked list / stack object
 export Linked = inherit Object
 	field value = null

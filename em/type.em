@@ -39,20 +39,25 @@ export TypedNode = inherit Node
 
 export ReferType = inherit Type
 	field to = null
-	method resolve = if (to.type) (to.type.resolve) else (this)
+	method resolve = if (this.to.type) (this.to.type.resolve) else (this)
 
-	method toString = if (to.type)
+	method toString = if (this.to.type)
 		to.type.toString
 	else
-		return "{Unresolved type at " + to.loc.toString + "}"
+		"{Unresolved type at " + this.to.loc.toString + "}"
 
 export ResolvedType = inherit Type
 	method compatible = function (type) (this.compatibleTest type || type.compatibleTest this)
 	method compatibleTest = function (type) (type == this)
-	method returnType = function (in) (UnknowbleType)
+	method returnType = function (typedNode) (UnknowbleType)
 
 export UnknowableType = inherit ResolvedType
 	method compatibleTest = function (type) (true) # FIXME
+	toString = "{Any}"
+
+export InvalidType = inherit ResolvedType
+	method compatibleTest = function (type) (false)
+	toString = "{INTERNAL ERROR}"
 
 export UnitType = inherit ResolvedType
 	toString = "{Unit}"
@@ -70,7 +75,23 @@ export StringType = inherit ResolvedType
 	toString = "{String}"
 
 export FunctionType = inherit ResolvedType
+	field fn = null   # These are both TypedNodes
+	field arg = null
 	toString = "{Function}"
+	method compatibleTest = function (type)
+		is FunctionType type && this.arg.compatibleTest (type.arg) && this.result.compatibleTest (type.result)
+	method returnType = arg.type
 
 export Val = inherit TypedNode
 	field type = null
+
+export KnownTypeVal = inherit Val # Use for typed literals with no other content
+
+export functionType = foldl InvalidType function(prev, next)
+	new FunctionType
+		new KnownTypeVal(type=prev)
+		new KnownTypeVal(type=next)
+
+export functionTypeVal = function(a)
+	new KnownTypeVal
+		type = functionType a

@@ -8,13 +8,29 @@ from project.execution import
 	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec
 	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
 from project.type import # FIXME
-	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType, Val
+	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType
+	Val, KnownTypeVal, functionTypeVal
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
 export UnitVal = inherit Val
 export KnownVal = inherit Val
 	field value = null
+
+export TemplateVal = inherit Val
+	field arity = 0
+	field fn = null # Currently assume binary
+
+export upgradeTemplateVal = function(dict, name, arity, fn)
+	let val = dict.get name
+	if (val == chainNotFound)
+		fail "Internal error: Tried to upgrade nonexistent val"
+	dict.set name new TemplateVal
+		val.loc, val.type, arity, fn
+
+export PartialApplyVal = inherit Val
+	field fnVal = null
+	field args = null
 
 # Unsure
 export AddressableVal = inherit Val
@@ -48,6 +64,8 @@ export BaseCompiler = inherit Object
 		let dict = new ChainedDict
 		dict.set "ln" new KnownVal
 			null, StringType, "\n"
+		dict.set "+"
+			functionTypeVal array(NumberType, NumberType, NumberType)
 		dict
 
 	# FIXME: This object seems overloaded. What is this for?
@@ -129,14 +147,31 @@ export BaseCompiler = inherit Object
 				let val = scope.get symbol
 				if (val == chainNotFound)
 					# Promote a "known" value
-					let knownVal = this.scope.get val
+					let knownVal = this.scope.get symbol
 					if (knownVal == chainNotFound)
-						fail "Variable name not known" # Message should include name
+						fail
+							"Variable name not known: " + symbol # Message should include name
 					this.scope.set symbol knownVal
-					fail "TODO" # add this to the defs section
+					val = knownVal
 				val
 			LiteralExec = block.addLiteral exe
-			ApplyExec = () # TODO: Arg 2 cannot be unit
+			ApplyExec(_, fn, arg) = do # TODO: This only works with non-curried templates now, basically
+				let fnVal = this.buildBlockImpl(block, scope, fn)
+				let argVal = this.buildBlockImpl(block, scope, arg)
+
+				with fnVal match
+					TemplateVal = new PartialApplyVal
+						type = exe.type
+						fnVal=fnVal
+						args=array(arg)
+					PartialApplyVal = do
+						if (fnVal.args.length > fnVal.fnVal.arity)
+							fail "Too many applications on function for current compiler"
+						new PartialApplyVal
+							type = exe.type
+							fnVal = fnVal.fnVal
+							args = catArrayElement(fnVal.args, argVal)
+					_ = fail "Don't know how to apply this yet"
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 

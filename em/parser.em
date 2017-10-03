@@ -687,8 +687,8 @@ export ProcessResult = inherit Object
 
 # Used to manage Parser.process needing to be able to iterate both "left to right" and "right to left"
 let BidiIterator = inherit Object
-	method field source = array()
-	method field result = array()
+	field method source = array()
+	field method result = array()
 	field rightward = false
 
 	method left =  if (this.rightward) (this.source) else (this.result)

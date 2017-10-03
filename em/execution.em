@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project.core import *
 from project.type import
-	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType, Val
+	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, FunctionType, UnknowableType, Val
 
 # Execution tree
 
@@ -173,7 +173,7 @@ export VarExec = inherit Executable
 export ApplyExec = inherit Executable
 	field fn = null
 	field arg = null
-	type = UnknowableType # FIXME
+	field type = null
 
 	method toString = nullJoin array
 		"[Apply "
@@ -187,6 +187,7 @@ export ApplyExec = inherit Executable
 
 	method check = function (scope)
 		this.fn.check, this.arg.check
+		this.type = this.fn.type.returnType(this.arg)
 
 export SetExec = inherit Executable
 	field isLet = false

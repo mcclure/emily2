@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project.compiler.util import *
 from project.compiler.base import
-	ClikeCompiler, Chunk, IndentChunk, AddressableVal, KnownVal
+	ClikeCompiler, Chunk, IndentChunk, AddressableVal, KnownVal, TemplateVal, PartialApplyVal, upgradeTemplateVal
 from project.type import
 	UnitType, BoolType, NumberType, StringType
 
@@ -13,6 +13,8 @@ export CsCompiler = inherit ClikeCompiler
 	scope = do
 		let dict = new ChainedDict
 		dict.set chainParent (ClikeCompiler.scope)
+		upgradeTemplateVal dict "+" 2 function(a)
+			a 0 + "+" + a 1
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)
@@ -88,12 +90,20 @@ export CsCompiler = inherit ClikeCompiler
 			NumberType = "float"
 			StringType = "string"
 			UnitType = "void"
+			(project.type.UnknowableType) = fail "Can't translate unknowable type" # DON'T CHECK THIS LINE IN
 			_ = fail "Can't translate this type"
 
 	method valToString = function(val)
 		with val match
 			AddressableVal = val.label
 			KnownVal = this.literalToString (val.value)
+			ParialApplyVal = do
+				let fnVal = val.fnVal
+				with fnVal match
+					TemplateVal = do
+						if (val.args < fnVal.arity)
+							fail "No currying yet"
+						fnVal.fn (map (this.valToString) (val.args))
 
 	method literalToString = function(value)
 		with value match
