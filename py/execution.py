@@ -340,6 +340,7 @@ class PackageAliasValue(LazyMacroLoader):
 
 arrayIteratorSource = object()
 arrayIteratorIdx = object()
+
 arrayIteratorPrototype = ObjectValue()
 arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource]))))
 def arrayIteratorNextImpl(i):
@@ -347,6 +348,14 @@ def arrayIteratorNextImpl(i):
 	i.atoms[arrayIteratorIdx] += 1
 	return x
 arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorNextImpl))
+
+arrayReverseIteratorPrototype = ObjectValue()
+arrayReverseIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] > 0)))
+def arrayReverseIteratorNextImpl(i):
+	i.atoms[arrayIteratorIdx] -= 1
+	x = i.atoms[arrayIteratorSource][ i.atoms[arrayIteratorIdx] ]
+	return x
+arrayReverseIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayReverseIteratorNextImpl))
 
 arrayPrototype = ObjectValue()
 arrayPrototype.atoms['length'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:float(len(x.values))))
@@ -364,6 +373,13 @@ def arrayIteratorImpl(ary):
 	x.atoms[arrayIteratorIdx] = 0
 	return x
 arrayPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorImpl))
+
+def arrayReverseIteratorImpl(ary):
+	x = ObjectValue(arrayReverseIteratorPrototype)
+	x.atoms[arrayIteratorSource] = ary.values # Assumes values array is never reassigned for an ArrayValue
+	x.atoms[arrayIteratorIdx] = len(ary.values)
+	return x
+arrayPrototype.atoms['reverseIter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayReverseIteratorImpl))
 
 class ArrayValue(EmilyValue):
 	def __init__(s, values):

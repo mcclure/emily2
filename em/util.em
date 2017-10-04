@@ -109,6 +109,16 @@ export foldl = function(default, f, ary)
 			value = f(value, i.next)
 		value
 
+export foldr = function(default, f, ary)
+	let i = ary.reverseIter
+	if (!i.more)
+		default
+	else
+		let value = i.next
+		while (i.more)
+			value = f(i.next, value)
+		value
+
 export map = function(f, ary)
 	let i = ary.iter
 	let result = array()

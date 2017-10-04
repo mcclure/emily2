@@ -14,7 +14,7 @@ export CsCompiler = inherit ClikeCompiler
 		let dict = new ChainedDict
 		dict.set chainParent (ClikeCompiler.scope)
 		upgradeTemplateVal dict "+" 2 function(a)
-			a 0 + "+" + a 1
+			a 0 + " + " + a 1
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)
@@ -97,7 +97,7 @@ export CsCompiler = inherit ClikeCompiler
 		with val match
 			AddressableVal = val.label
 			KnownVal = this.literalToString (val.value)
-			ParialApplyVal = do
+			PartialApplyVal = do
 				let fnVal = val.fnVal
 				with fnVal match
 					TemplateVal = do

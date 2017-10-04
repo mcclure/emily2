@@ -88,7 +88,7 @@ export Val = inherit TypedNode
 
 export KnownTypeVal = inherit Val # Use for typed literals with no other content
 
-export functionType = foldl InvalidType function(prev, next)
+export functionType = foldr InvalidType function(prev, next)
 	new FunctionType
 		new KnownTypeVal(type=prev)
 		new KnownTypeVal(type=next)

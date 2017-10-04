@@ -163,7 +163,7 @@ export BaseCompiler = inherit Object
 					TemplateVal = new PartialApplyVal
 						type = exe.type
 						fnVal=fnVal
-						args=array(arg)
+						args=array(argVal)
 					PartialApplyVal = do
 						if (fnVal.args.length > fnVal.fnVal.arity)
 							fail "Too many applications on function for current compiler"
