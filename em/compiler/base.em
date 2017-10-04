@@ -20,13 +20,14 @@ export KnownVal = inherit Val
 export TemplateVal = inherit Val
 	field arity = 0
 	field fn = null # Currently assume binary
+	field prefix = null
 
-export upgradeTemplateVal = function(dict, name, arity, fn)
+export upgradeTemplateVal = function(dict, name, arity, fn, prefix)
 	let val = dict.get name
 	if (val == chainNotFound)
 		fail "Internal error: Tried to upgrade nonexistent val"
 	dict.set name new TemplateVal
-		val.loc, val.type, arity, fn
+		val.loc, val.type, arity, fn, prefix
 
 export PartialApplyVal = inherit Val
 	field fnVal = null
@@ -66,6 +67,8 @@ export BaseCompiler = inherit Object
 			null, StringType, "\n"
 		dict.set "+"
 			functionTypeVal array(NumberType, NumberType, NumberType)
+		dict.set "println"
+			functionTypeVal array(NumberType, UnitType)
 		dict
 
 	# FIXME: This object seems overloaded. What is this for?
@@ -99,6 +102,9 @@ export BaseCompiler = inherit Object
 		method addLiteral = function(exe)
 			new KnownVal(exe.loc, exe.type, exe.value)
 
+		method addRawGlobal = function(s)
+			this.defsChunk.lines.append(s)
+
 	# FIXME: Rename this.
 	Function = inherit Object
 		field unit = null # All populated by UnitBlock
@@ -121,6 +127,8 @@ export BaseCompiler = inherit Object
 				let i = execs.iter
 				while (i.more)
 					finalResult = this.buildBlockImpl(block, scope, i.next)
+					if (is PartialApplyVal finalResult)
+						block.buildStatement(finalResult)
 
 				if (shouldReturn)
 					finalResult
@@ -152,6 +160,8 @@ export BaseCompiler = inherit Object
 						fail
 							"Variable name not known: " + symbol # Message should include name
 					this.scope.set symbol knownVal
+					if (is TemplateVal knownVal && knownVal.prefix)
+						block.addRawGlobal(knownVal.prefix)
 					val = knownVal
 				val
 			LiteralExec = block.addLiteral exe

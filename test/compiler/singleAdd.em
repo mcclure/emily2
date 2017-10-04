@@ -1,4 +1,4 @@
-# Minimal compileable -- assume blocks but no math
+# Minimal compileable -- simple math and function call
 # Expect: 7
 
 # Tags: compiler

@@ -9,12 +9,23 @@ from project.compiler.base import
 from project.type import
 	UnitType, BoolType, NumberType, StringType
 
+let invokeTemplate = function(name)
+	function(a)
+		name + "(" + join(", ", a) + ")"
+
 export CsCompiler = inherit ClikeCompiler
 	scope = do
 		let dict = new ChainedDict
 		dict.set chainParent (ClikeCompiler.scope)
-		upgradeTemplateVal dict "+" 2 function(a)
-			a 0 + " + " + a 1
+		upgradeTemplateVal
+			dict, "+", 2
+			function(a)
+				a 0 + " + " + a 1
+			null
+		upgradeTemplateVal
+			dict, "println", 1
+			invokeTemplate "Println"
+			"public static void Println<T>(T x) { Console.WriteLine(x); }"
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)
@@ -71,8 +82,13 @@ export CsCompiler = inherit ClikeCompiler
 			appendArray (this.source.lines) array
 				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
 
+		method buildStatement = function(val)
+			appendArray (this.source.lines) array
+				this.unit.compiler.valToString(val) + ";"
+
 		method addVar = this.unit.addVar
 		method addLiteral = this.unit.addLiteral
+		method addRawGlobal = this.unit.addRawGlobal
 
 		method label = this.id.toString
 	

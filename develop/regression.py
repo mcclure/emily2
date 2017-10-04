@@ -32,7 +32,7 @@
 #       Invoke interpreter WITHOUT test file as argument
 #
 #   # Tags: SOMETHING SOMETHING
-#       Special tags (runner-specific, may impact whether runs)
+#       Special tags (driver-specific, may impact whether runs)
 
 # Usage: ./develop/regression.py -a
 # Tested with Python 2.6.1
@@ -51,7 +51,7 @@ def projectRelative( filename ):
 prjroot = os.path.join( os.path.dirname(__file__), ".." )
 stddir  = "test"
 stdfile = "test/regression.txt"
-runnername = "default"
+drivername = "default"
 
 help  = "%prog -a\n"
 help += "\n"
@@ -59,7 +59,7 @@ help += "Accepted arguments:\n"
 help += "-f [filename.em]  # Check single file\n"
 help += "-t [filename.txt] # Check all paths listed in file\n"
 help += "--root [path]     # Set the project root\n"
-help += "-r          # Runner (default, meta, cs, cpp, js, all)\n"
+help += "-d          # Driver (default, meta, cs, cpp, js, all)\n"
 help += "-a          # Check all paths listed in standard " + stdfile + "\n"
 help += "-A          # Run tests even if they are known bad\n"
 help += "-v          # Print all output\n"
@@ -73,7 +73,7 @@ help += "--untested  # Check repo hygiene-- list tests in sample/test not tested
 parser = optparse.OptionParser(usage=help)
 for a in ["a", "A", "v", "V", "-p3", "-meta", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
-for a in ["f", "t", "r", "i", "p", "-root", "-md"]: # Long args with arguments
+for a in ["f", "t", "d", "i", "p", "-root", "-md"]: # Long args with arguments
     parser.add_option("-"+a, action="append")
 
 (options, cmds) = parser.parse_args()
@@ -103,8 +103,8 @@ if flag("a") or flag("A"): # FIXME
 if flag("A"):
     testall = True
 
-if flag("r"):
-    runnername = flag("r")[0]
+if flag("d"):
+    drivername = flag("d")[0]
 
 if flag("v"):
     verbose = True
@@ -432,7 +432,7 @@ class JsRunner(IncompleteRunner):
         elif phase == 2:
             return ["node", "/tmp/test.js"] + s.appargs
 
-runners = {
+drivers = {
     "default" : NormalRunner(),
     "meta" : MetaRunner(),
     "cs" : CsRunner(),
@@ -443,22 +443,22 @@ runners = {
 failures = 0
 trials = 0
 
-if runnername == "all":
-    for runnername in runners:
-        runner = runners[runnername]
-        print("Running: " + runnername)
+if drivername == "all":
+    for drivername in drivers:
+        driver = drivers[drivername]
+        print("Running: " + drivername)
         
-        runner.runall()
-        failures += runner.failures
-        trials += runner.trials
+        driver.runall()
+        failures += driver.failures
+        trials += driver.trials
 
     print "\nTotal: %d tests failed of %d" % (failures, trials)
 else:
-    if runnername in runners:
-        runner = runners[runnername]
-        runner.runall()
-        failures = runner.failures
+    if drivername in drivers:
+        driver = drivers[drivername]
+        driver.runall()
+        failures = driver.failures
     else:
-        parser.error("Unrecognized runner name " + runnername)
+        parser.error("Unrecognized driver name " + drivername)
 
 sys.exit(0 if failures == 0 else 1)
