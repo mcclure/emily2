@@ -13,7 +13,7 @@ let cmdExported = false
 let cmdExecute = null
 let cmdTarget = null
 let cmdValid = false
-let cmdOutput = "-"
+let cmdOutput = null
 let cmdDriver = "interpreter"
 
 let scriptArgv = array()
@@ -83,7 +83,7 @@ else
 		println (exe.toString)
 	else
 		let exePrint = function(s)
-			if (cmdOutput == "-")
+			if (cmdOutput == null || cmdOutput == "-")
 				println s
 			else
 				let x = file.out cmdOutput
