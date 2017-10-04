@@ -64,8 +64,11 @@ export SequenceExec = inherit Executable
 		this.evalSequence scope null
 
 	method check = function (scope)
-		this.typeScope = new ChainedDict
-		this.typeScope.set chainParent scope
+		if (this.hasScope)
+			this.typeScope = new ChainedDict
+			this.typeScope.set chainParent scope
+		else
+			this.typeScope = scope
 
 		let i = this.execs.iter
 		while (i.more)
@@ -167,7 +170,7 @@ export VarExec = inherit Executable
 	method check = function (scope)
 		if (!scope.has (this.symbol))
 			fail
-				"Variable not found during typecheck at " + this.loc.toString
+				"Variable " + this.symbol + " not found during typecheck at " + this.loc.toString
 		this.unify (scope.get (this.symbol))
 
 export ApplyExec = inherit Executable
@@ -186,7 +189,7 @@ export ApplyExec = inherit Executable
 		this.fn.eval(scope).apply (this.arg.eval(scope))
 
 	method check = function (scope)
-		this.fn.check, this.arg.check
+		this.fn.check scope, this.arg.check scope
 		this.type = this.fn.type.returnType(this.arg)
 
 export SetExec = inherit Executable
@@ -238,9 +241,9 @@ export SetExec = inherit Executable
 		NullValue
 
 	method check = function (scope)
-		if (this.targetClause) (this.targetClause.check)
-		if (this.indexClause)  (this.indexClause.check)
-		if (this.valueClause)  (this.valueClause.check)
+		if (this.targetClause) (this.targetClause.check scope)
+		if (this.indexClause)  (this.indexClause.check scope)
+		if (this.valueClause)  (this.valueClause.check scope)
 		if (!this.targetClause) # Check type of indexClause? TODO: Indexing
 			scope.get(this.indexClause.value).unify(this.valueClause)
 
@@ -288,7 +291,7 @@ export ImportAllExec = inherit Executable
 		this.setEval(scope, null, null)
 
 	method check = function (scope)
-		if (this.sourceClause) (this.sourceClause.check)
+		if (this.sourceClause) (this.sourceClause.check scope)
 
 export MakeFuncExec = inherit Executable
 	field args = null
@@ -306,7 +309,7 @@ export MakeFuncExec = inherit Executable
 		new FunctionValue(this.args, this.body, scope)
 
 	method check = function(scope)
-		body.check
+		body.check scope
 
 export MakeObjectExec = inherit Executable
 	field baseClause = null

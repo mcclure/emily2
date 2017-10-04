@@ -42,14 +42,14 @@ export ReferType = inherit Type
 	method resolve = if (this.to.type) (this.to.type.resolve) else (this)
 
 	method toString = if (this.to.type)
-		to.type.toString
+		this.to.type.toString
 	else
 		"{Unresolved type at " + this.to.loc.toString + "}"
 
 export ResolvedType = inherit Type
 	method compatible = function (type) (this.compatibleTest type || type.compatibleTest this)
 	method compatibleTest = function (type) (type == this)
-	method returnType = function (typedNode) (UnknowbleType)
+	method returnType = function (typedNode) (UnknowableType)
 
 export UnknowableType = inherit ResolvedType
 	method compatibleTest = function (type) (true) # FIXME
@@ -77,10 +77,11 @@ export StringType = inherit ResolvedType
 export FunctionType = inherit ResolvedType
 	field fn = null   # These are both TypedNodes
 	field arg = null
-	toString = "{Function}"
+	method toString = nullJoin array
+		"{Function ", this.fn.type, " -> ", this.arg.type, "}"
 	method compatibleTest = function (type)
 		is FunctionType type && this.arg.compatibleTest (type.arg) && this.result.compatibleTest (type.result)
-	method returnType = arg.type
+	method returnType = function(typedNode) (this.arg.type) # TODO: Check correctness of typedNode?
 
 export Val = inherit TypedNode
 	field type = null

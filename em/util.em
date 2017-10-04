@@ -222,7 +222,7 @@ export ChainedDict = inherit Object
 			chainNotFound
 	method set = this.dict.set
 	method has = function(index)
-		dict.has index || (dict.has chainParent && chainParent.has index)
+		this.dict.has index || (this.dict.has chainParent && (this.dict.get chainParent).has index)
 
 	method shallowHas = this.dict.has
 	method shallowIter = mapIter
