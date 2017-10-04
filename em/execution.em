@@ -924,11 +924,37 @@ iteratorPrototype.atoms.set "next"
 			value
 		1
 
+export iteratorReversePrototype = new ObjectValue
+
+export IteratorReverseObjectValue = inherit ObjectValue
+	parent = iteratorReversePrototype
+	field source = null
+	field idx = 0
+
+iteratorReversePrototype.atoms.set "more"
+	literalMethod
+		function (this)
+			toBoolValue
+				this.idx > 0
+		1
+
+iteratorReversePrototype.atoms.set "next"
+	literalMethod
+		function (this)
+			this.idx = this.idx - 1
+			this.source.apply(new NumberValue(this.idx))
+		1
+
 export installIter = function(prototype)
 	prototype.atoms.set "iter"
 		literalMethod
 			function (this)
 				new IteratorObjectValue(source = this)
+			1
+	prototype.atoms.set "reverseIter"
+		literalMethod
+			function (this)
+				new IteratorReverseObjectValue(source = this, idx = this.length)
 			1
 installIter arrayValuePrototype
 installIter stringValuePrototype

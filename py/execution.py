@@ -1092,6 +1092,12 @@ def stringIteratorImpl(ary):
 	x.atoms[arrayIteratorIdx] = 0
 	return x
 stringPrototype.atoms['iter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringIteratorImpl))
+def stringReverseIteratorImpl(ary):
+	x = ObjectValue(arrayReverseIteratorPrototype)
+	x.atoms[arrayIteratorSource] = ary # Store "hidden" values in object
+	x.atoms[arrayIteratorIdx] = len(ary)
+	return x
+stringPrototype.atoms['reverseIter'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, stringReverseIteratorImpl))
 stringPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:x))
 def toNumberImpl(x):
 	try:

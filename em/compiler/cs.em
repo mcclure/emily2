@@ -25,7 +25,7 @@ export CsCompiler = inherit ClikeCompiler
 		upgradeTemplateVal
 			dict, "println", 1
 			invokeTemplate "Println"
-			"public static void Println<T>(T x) { Console.WriteLine(x); }"
+			"static void Println<T>(T x) { Console.WriteLine(x); }"
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)
