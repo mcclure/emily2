@@ -185,10 +185,10 @@ def pretag(tag, str):
 def printstd(outstr, errstr):
     if outstr:
         print pretag(u"STDOUT", outstr)
-        if outstr and errstr:
-            print
-        if errstr:
-            print pretag(u"STDERR",errstr)
+    if outstr and errstr:
+        print
+    if errstr:
+        print pretag(u"STDERR",errstr)
 
 failures = 0
 

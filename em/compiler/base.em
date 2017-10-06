@@ -22,6 +22,10 @@ export TemplateVal = inherit Val
 	field fn = null # Currently assume binary
 	field prefix = null
 
+export invokeTemplate = function(name)
+	function(a)
+		name + "(" + join(", ", a) + ")"
+
 export upgradeTemplateVal = function(dict, name, arity, fn, prefix)
 	let val = dict.get name
 	if (val == chainNotFound)
@@ -59,8 +63,9 @@ let chunkBuildImpl = function (chunk, depth)
 export chunkBuild = function (chunk)
 	chunkBuildImpl chunk 0
 
-# BaseCompiler mostly serves as a network of interfaces
+# BaseCompiler covers that would apply to any possible compiler
 export BaseCompiler = inherit Object
+	# Note: When values here are overridden, they must preserve the same types
 	scope = do
 		let dict = new ChainedDict
 		dict.set "ln" new KnownVal
@@ -72,6 +77,7 @@ export BaseCompiler = inherit Object
 		dict
 
 	# FIXME: This object seems overloaded. What is this for?
+	# Hypothesis: Once this is all well typed, a Block will be something that can register variables
 	Block = inherit Object
 
 	UnitBlock = inherit (current.Block)
@@ -198,13 +204,73 @@ export BaseCompiler = inherit Object
 		exe.check (this.scope)
 		this.buildBlock exe
 
-# SharedCompiler is the methods that are LIKELY but not certain to be shared among all branches
-# FIXME: Could this be merged with Compiler? FIXME: Put fields into base version, separate strings over here
-# "Type signatures" of objects should be the same
-export SharedCompiler = inherit BaseCompiler
-	# TODO
+# ClikeCompiler is for algol-y looking languages that have a switch statement
+export ClikeCompiler = inherit BaseCompiler
+	scope = do
+		let dict = new ChainedDict
+		dict.set chainParent (current.scope)
+		upgradeTemplateVal
+			dict, "+", 2
+			function(a)
+				a 0 + " + " + a 1
+			null
+		dict
+
+	Function = inherit (current.Function)
+		method field cases = new NumGenerator
+
+		method appendBlock = do
+			let block = new (this.unit.compiler.SwitchBlock)
+				id = this.cases.next.toString
+				unit = this.unit
+			this.source.lines.append
+				block.buildEntryChunk
+			block
+
+	SwitchBlock = inherit (current.BlockBlock)
+		field id = null
+
+		method buildVal = function(assignVal, dataVal)
+			if (!assignVal)
+				assignVal = this.addVar(null, exp.type, null)
+			let compiler = this.unit.compiler
+			appendArray (this.source.lines) array
+				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
+
+		method buildStatement = function(val)
+			appendArray (this.source.lines) array
+				this.unit.compiler.valToString(val) + ";"
+
+		method addVar = this.unit.addVar
+		method addLiteral = this.unit.addLiteral
+		method addRawGlobal = this.unit.addRawGlobal
+
+		method label = this.id.toString
+
+	method valToString = function(val)
+		with val match
+			AddressableVal = val.label
+			KnownVal = this.literalToString (val.value)
+			PartialApplyVal = do
+				let fnVal = val.fnVal
+				with fnVal match
+					TemplateVal = do
+						if (val.args < fnVal.arity)
+							fail "No currying yet"
+						fnVal.fn (map (this.valToString) (val.args))
+
+
+	method literalToString = function(value)
+		with value match
+			String = "\"" + value + "\"" # NO!
+			Number = value.toString
+			none = "null"
+			_ = fail "Can't translate this literal"
 
 # ClikeCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
-export ClikeCompiler = inherit SharedCompiler
-	# TODO
+export CtypedCompiler = inherit ClikeCompiler
+	UnitBlock = inherit (current.UnitBlock)
+		method buildMain = do
+			this.defsChunk = new Chunk
+			this.mainChunk = new IndentChunk
 	

@@ -5,23 +5,15 @@ profile experimental
 from project.util import *
 from project.compiler.util import *
 from project.compiler.base import
-	ClikeCompiler, Chunk, IndentChunk, AddressableVal, KnownVal, TemplateVal, PartialApplyVal, upgradeTemplateVal
+	CtypedCompiler, Chunk, IndentChunk, AddressableVal, KnownVal, TemplateVal, PartialApplyVal
+	upgradeTemplateVal, invokeTemplate
 from project.type import
 	UnitType, BoolType, NumberType, StringType
 
-let invokeTemplate = function(name)
-	function(a)
-		name + "(" + join(", ", a) + ")"
-
-export CsCompiler = inherit ClikeCompiler
+export CsCompiler = inherit CtypedCompiler
 	scope = do
 		let dict = new ChainedDict
-		dict.set chainParent (ClikeCompiler.scope)
-		upgradeTemplateVal
-			dict, "+", 2
-			function(a)
-				a 0 + " + " + a 1
-			null
+		dict.set chainParent (current.scope)
 		upgradeTemplateVal
 			dict, "println", 1
 			invokeTemplate "Println"
@@ -30,8 +22,7 @@ export CsCompiler = inherit ClikeCompiler
 
 	UnitBlock = inherit (current.UnitBlock)
 		method buildMain = do
-			this.defsChunk = new Chunk
-			this.mainChunk = new IndentChunk
+			super.buildMain
 
 			appendArray (this.source.lines) array
 				"using System;"
@@ -47,22 +38,13 @@ export CsCompiler = inherit ClikeCompiler
 						"}"
 				"}"
 
-	Function = inherit (current.Function)
-		method field cases = new NumGenerator
-
-		method appendBlock = do
-			let block = new (this.unit.compiler.SwitchBlock)
-				id = this.cases.next.toString
-				unit = this.unit
-			appendArray (this.source.lines) array
+	SwitchBlock = inherit (current.SwitchBlock)
+		method buildEntryChunk = new Chunk
+			lines = array
 				"uint i = 0;"
 				"switch (i) {"
-				block.buildContentChunk
+				this.buildContentChunk
 				"}"
-			block
-
-	SwitchBlock = inherit (current.BlockBlock)
-		field id = null
 
 		method buildContentChunk = do
 			this.source = new Chunk
@@ -74,23 +56,6 @@ export CsCompiler = inherit ClikeCompiler
 							this.source
 							"break;"
 					"}"
-
-		method buildVal = function(assignVal, dataVal)
-			if (!assignVal)
-				assignVal = this.addVar(null, exp.type, null)
-			let compiler = this.unit.compiler
-			appendArray (this.source.lines) array
-				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
-
-		method buildStatement = function(val)
-			appendArray (this.source.lines) array
-				this.unit.compiler.valToString(val) + ";"
-
-		method addVar = this.unit.addVar
-		method addLiteral = this.unit.addLiteral
-		method addRawGlobal = this.unit.addRawGlobal
-
-		method label = this.id.toString
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
@@ -108,18 +73,6 @@ export CsCompiler = inherit ClikeCompiler
 			UnitType = "void"
 			(project.type.UnknowableType) = fail "Can't translate unknowable type" # DON'T CHECK THIS LINE IN
 			_ = fail "Can't translate this type"
-
-	method valToString = function(val)
-		with val match
-			AddressableVal = val.label
-			KnownVal = this.literalToString (val.value)
-			PartialApplyVal = do
-				let fnVal = val.fnVal
-				with fnVal match
-					TemplateVal = do
-						if (val.args < fnVal.arity)
-							fail "No currying yet"
-						fnVal.fn (map (this.valToString) (val.args))
 
 	method literalToString = function(value)
 		with value match
