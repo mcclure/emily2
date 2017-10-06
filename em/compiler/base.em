@@ -29,7 +29,8 @@ export invokeTemplate = function(name)
 export upgradeTemplateVal = function(dict, name, arity, fn, prefix)
 	let val = dict.get name
 	if (val == chainNotFound)
-		fail "Internal error: Tried to upgrade nonexistent val"
+		fail
+			"Internal error: Tried to upgrade nonexistent val " + name
 	dict.set name new TemplateVal
 		val.loc, val.type, arity, fn, prefix
 
@@ -70,8 +71,6 @@ export BaseCompiler = inherit Object
 		let dict = new ChainedDict
 		dict.set "ln" new KnownVal
 			null, StringType, "\n"
-		dict.set "+"
-			functionTypeVal array(NumberType, NumberType, NumberType)
 		dict.set "println"
 			functionTypeVal array(NumberType, UnitType)
 		dict
@@ -165,7 +164,7 @@ export BaseCompiler = inherit Object
 					if (knownVal == chainNotFound)
 						fail
 							"Variable name not known: " + symbol # Message should include name
-					this.scope.set symbol knownVal
+					block.unit.globalScope.set symbol knownVal
 					if (is TemplateVal knownVal && knownVal.prefix)
 						block.addRawGlobal(knownVal.prefix)
 					val = knownVal
@@ -209,11 +208,6 @@ export ClikeCompiler = inherit BaseCompiler
 	scope = do
 		let dict = new ChainedDict
 		dict.set chainParent (current.scope)
-		upgradeTemplateVal
-			dict, "+", 2
-			function(a)
-				a 0 + " + " + a 1
-			null
 		dict
 
 	Function = inherit (current.Function)
@@ -267,7 +261,27 @@ export ClikeCompiler = inherit BaseCompiler
 			none = "null"
 			_ = fail "Can't translate this literal"
 
-# ClikeCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
+
+# Mass-install binary operators which conveniently are the same in Emily + All targets
+do
+	let bScope = BaseCompiler.scope
+	let cScope = ClikeCompiler.scope
+	let install = function (ops, returnType)
+		let i = ops.iter
+		while (i.more)
+			let name = i.next
+			let loc = null
+			bScope.set name
+				functionTypeVal array(NumberType, NumberType, returnType)
+			upgradeTemplateVal
+				cScope, name, 2
+				function(a)
+					"(" + a 0 + ") " + name + " (" + a 1 + ")"
+				null
+	install array("+", "-", "*", "/", "%") NumberType
+	install array("<=", ">=", "<", ">", "==") BoolType
+
+# CtypedCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
 export CtypedCompiler = inherit ClikeCompiler
 	UnitBlock = inherit (current.UnitBlock)
 		method buildMain = do

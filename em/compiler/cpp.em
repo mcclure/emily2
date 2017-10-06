@@ -14,7 +14,7 @@ export CppCompiler = inherit CtypedCompiler
 		upgradeTemplateVal
 			dict, "println", 1
 			invokeTemplate "Println"
-			"template <class T> void Println(T x) { std::cout << x; }" # FIXME: way to force include <iostream> exactly once
+			"template <class T> void Println(T x) { std::cout << x << std::endl; }" # FIXME: way to force include <iostream> exactly once
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)

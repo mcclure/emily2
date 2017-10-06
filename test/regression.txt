@@ -119,4 +119,5 @@ profile/experimental/order.em
 
 compiler/assign.em
 compiler/singleAdd.em
+compiler/mathExpression.em
 compiler/loop.em
