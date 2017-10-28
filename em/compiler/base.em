@@ -94,7 +94,7 @@ export BaseCompiler = inherit Object
 				fail "Tried to generate main chunk twice"
 			this.buildMain
 			this.mainFunction = new (this.compiler.Function) (this, this.mainChunk)
-			this.mainFunction.appendBlock
+			this.mainFunction.appendInitialBlock
 
 		method addVar = function(loc, type, description)
 			let value = new AddressableVal
@@ -187,6 +187,27 @@ export BaseCompiler = inherit Object
 							fnVal = fnVal.fnVal
 							args = catArrayElement(fnVal.args, argVal)
 					_ = fail "Don't know how to apply this yet"
+			IfExec(_, loop, condClause, ifClause, elseClause) =
+				if (loop)
+					fail "No loops yet"
+				else
+					let condVal = this.buildBlockImpl(block, scope, condClause)
+					let jumpBlock = block.pointer
+					let ifBlock = block.appendBlock.pointer
+					let elseBlock = if (elseClause) (block.appendBlock.pointer) else (null)
+					let postBlock = block.appendBlock.pointer
+
+					jumpBlock.condJump condVal ifBlock (if (elseBlock) (elseBlock) else (postBlock))
+
+					# TODO: Extract val
+					this.buildBlockImpl(ifBlock, scope, ifClause)
+					ifBlock.jump postBlock
+
+					if (elseClause)
+						this.buildBlockImpl(elseBlock, scope, elseClause)
+						elseBlock.jump postBlock
+
+					UnitVal # Done
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 
@@ -195,7 +216,9 @@ export BaseCompiler = inherit Object
 		let scope = new ChainedDict
 		scope.set chainParent (unit.globalScope)
 
-		this.buildBlockImpl (unit.main) scope seqExe
+		let main = unit.main
+		this.buildBlockImpl main scope seqExe
+		main.terminate
 
 		chunkBuild (unit.source)
 
@@ -212,14 +235,49 @@ export ClikeCompiler = inherit BaseCompiler
 
 	Function = inherit (current.Function)
 		method field cases = new NumGenerator
+		field caseChunk = null
+
+		method newBlock = new (this.unit.compiler.SwitchBlock)
+			unit = this.unit
+			id = this.cases.next
+
+		method appendInitialBlock = do
+			let block = new (this.unit.compiler.SwitchPointerBlock)
+				fn = this
+				block = this.newBlock
+			this.caseChunk = block.buildEntryChunk
+			this.source.lines.append (this.caseChunk)
+			block
 
 		method appendBlock = do
-			let block = new (this.unit.compiler.SwitchBlock)
-				id = this.cases.next.toString
-				unit = this.unit
-			this.source.lines.append
-				block.buildEntryChunk
+			let block = this.newBlock
+			this.caseChunk.lines.append
+				block.buildContentChunk
 			block
+
+	SwitchPointerBlock = inherit (current.Block)
+		field fn = null
+		field block = null
+
+		method pointer = new (this.fn.unit.compiler.SwitchPointerBlock)
+			fn = this.fn
+			block = this.block
+
+		method appendBlock = do
+			this.block = this.fn.appendBlock
+			this
+
+		method buildVal = this.block.buildVal
+		method buildStatement = this.block.buildStatement
+		method buildEntryChunk = this.block.buildEntryChunk
+		method addVar = this.block.addVar
+		method addLiteral = this.block.addLiteral
+		method addRawGlobal = this.block.addRawGlobal
+		method unit = this.block.unit
+		method label = this.block.label
+		method jump = this.block.jump
+		method condJump = this.block.condJump
+		method terminate = this.block.terminate
 
 	SwitchBlock = inherit (current.BlockBlock)
 		field id = null

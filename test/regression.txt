@@ -120,4 +120,7 @@ profile/experimental/order.em
 compiler/assign.em
 compiler/singleAdd.em
 compiler/mathExpression.em
+compiler/branch.em
+compiler/complexBranch.em
+compiler/valuedBranch.em
 compiler/loop.em

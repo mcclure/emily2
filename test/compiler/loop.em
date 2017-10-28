@@ -1,8 +1,6 @@
 # Minimal compileable, see steps.txt
 # Expect file: test/compiler/loopOutput.txt
 
-# Tags: compiler
-
 profile experimental
 
 let x = 1

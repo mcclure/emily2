@@ -39,11 +39,26 @@ export CsCompiler = inherit CtypedCompiler
 				"}"
 
 	SwitchBlock = inherit (current.SwitchBlock)
+		standardExitLines = array
+			"break;"
+
+		standardTerminateLines = array
+			"run = false;"
+			"break;"
+
+		field method exitChunk = new Chunk # This gets modified. Is that "okay?"
+			lines = this.standardExitLines
+
 		method buildEntryChunk = new Chunk
 			lines = array
 				"uint i = 0;"
-				"switch (i) {"
-				this.buildContentChunk
+				"bool run = true;"
+				"while (run) {"
+				new IndentChunk
+					lines = array
+						"switch (i) {"
+						this.buildContentChunk
+						"}"
 				"}"
 
 		method buildContentChunk = do
@@ -54,8 +69,27 @@ export CsCompiler = inherit CtypedCompiler
 					new IndentChunk
 						lines = array
 							this.source
-							"break;"
+							this.exitChunk
 					"}"
+
+		method jump = function(block) # Assume goto/branchGoto are called at most once
+			this.exitChunk.lines = array
+				"goto " + block.label + ";"
+
+		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
+			this.exitChunk.lines = array
+				"if (" + this.unit.compiler.valToString condVal + ")"
+				new IndentChunk
+					lines = array
+						"i = " + trueBlock.label
+				"else"
+				new IndentChunk
+					lines = array
+						"i = " + falseBlock.label
+				"break;"
+
+		method terminate = do
+			this.exitChunk.lines = this.standardTerminateLines
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
