@@ -436,7 +436,7 @@ export IfExec = inherit Executable
 	field condClause = null
 	field ifClause = null
 	field elseClause = null
-	type = UnknowableType # FIXME
+	field type = null
 
 	method toString = nullJoin array
 		"["
@@ -471,8 +471,14 @@ export IfExec = inherit Executable
 
 	method check = function (scope)
 		if (this.condClause) (this.condClause.check scope)
+		this.condClause.unify (new Val(this.loc, BoolType))
 		if (this.ifClause)   (this.ifClause.check scope)
-		if (this.elseClause) (this.elseClause.check scope)
+		if (this.elseClause)
+			this.elseClause.check scope
+			this.unify (this.ifClause)
+			this.unify (this.elseClause)
+		else
+			this.unify (new Val(this.loc, UnitType))
 
 export UnitExec = NullLiteralExec # Just an alias
 

@@ -1,5 +1,7 @@
 # Minimal if with if returning a value
 
+# Tags: compiler
+
 # Expect:
 # False
 # 0

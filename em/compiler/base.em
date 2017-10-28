@@ -212,18 +212,24 @@ export BaseCompiler = inherit Object
 					let ifBlock = block.appendBlock.pointer
 					let elseBlock = if (elseClause) (block.appendBlock.pointer) else (null)
 					let postBlock = block.appendBlock.pointer
+					let type = exe.type
+					let returns = type != UnitType # Implies elseClause
+					let resultVar = if (returns) (jumpBlock.addVar(null, type, null)) else (UnitVal)
 
 					jumpBlock.condJump condVal ifBlock (if (elseBlock) (elseBlock) else (postBlock))
 
-					# TODO: Extract val
-					this.buildBlockImpl(ifBlock, scope, ifClause)
+					let tempVal = this.buildBlockImpl(ifBlock, scope, ifClause)
+					if (returns)
+						ifBlock.buildVal resultVar tempVal
 					ifBlock.jump postBlock
 
 					if (elseClause)
-						this.buildBlockImpl(elseBlock, scope, elseClause)
+						tempVal = this.buildBlockImpl(elseBlock, scope, elseClause)
+						if (returns)
+							elseBlock.buildVal resultVar tempVal
 						elseBlock.jump postBlock
 
-					UnitVal # Done
+					resultVar # Done
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 
