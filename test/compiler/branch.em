@@ -19,7 +19,12 @@ else
 	println "False"
 	x = 2
 
-if (y && x > (0 - 5))
+if (y)
 	println "True2"
+
+let z = x > 1
+
+if (z)
+	println "True3"
 
 println x

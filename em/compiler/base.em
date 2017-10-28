@@ -132,9 +132,9 @@ export BaseCompiler = inherit Object
 				let i = execs.iter
 				while (i.more)
 					finalResult = this.buildBlockImpl(block, scope, i.next)
-					# Somehow, discarded-value statements with side effects need to be evaluated.
-					# Try to figure out which statements those are # FIXME: This is iffy as heck
-					if ((i.more || !shouldReturn) && is PartialApplyVal finalResult)
+					# Allow statements in sequences with side effects but no return value
+					# FIXME: Functions which return a value could very well have a side effect
+					if (finalResult.type == UnitType)
 						block.buildStatement(finalResult)
 
 				if (shouldReturn)
