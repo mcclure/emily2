@@ -98,9 +98,11 @@ if flag("root"):
     prjroot = flag("root")[0]
 
 if flag("a") or flag("A"): # FIXME
+    if flag("f"): # This is needed so "testall" makes sense. Would it make more sense to have an -F?
+        parser.error("Don't understand simultaneous -a and -f")
     indices += [projectRelative(stdfile)]
 
-if flag("A"):
+if flag("A") or flag("f"):
     testall = True
 
 if flag("d"):
