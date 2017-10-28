@@ -38,6 +38,19 @@ export CsCompiler = inherit CtypedCompiler
 						"}"
 				"}"
 
+	Function = inherit (current.Function)
+		method buildEntryChunk = new Chunk
+			lines = array
+				"uint i = 0;"
+				"bool run = true;"
+				"while (run) {"
+				new IndentChunk
+					lines = array
+						"switch (i) {"
+						this.caseChunk
+						"}"
+				"}"
+
 	SwitchBlock = inherit (current.SwitchBlock)
 		standardExitLines = array
 			"break;"
@@ -49,6 +62,7 @@ export CsCompiler = inherit CtypedCompiler
 		field method exitChunk = new Chunk # This gets modified. Is that "okay?"
 			lines = this.standardExitLines
 
+		# FIXME: Move this into Function
 		method buildEntryChunk = new Chunk
 			lines = array
 				"uint i = 0;"
@@ -74,18 +88,18 @@ export CsCompiler = inherit CtypedCompiler
 
 		method jump = function(block) # Assume goto/branchGoto are called at most once
 			this.exitChunk.lines = array
-				"goto " + block.label + ";"
+				"goto case " + block.label + ";"
 
 		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
 			this.exitChunk.lines = array
 				"if (" + this.unit.compiler.valToString condVal + ")"
 				new IndentChunk
 					lines = array
-						"i = " + trueBlock.label
+						"i = " + trueBlock.label + ";"
 				"else"
 				new IndentChunk
 					lines = array
-						"i = " + falseBlock.label
+						"i = " + falseBlock.label + ";"
 				"break;"
 
 		method terminate = do

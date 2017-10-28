@@ -1,4 +1,4 @@
-# Minimal if
+# Minimal if test
 
 # Tags: compiler
 

@@ -110,7 +110,7 @@ export BaseCompiler = inherit Object
 		method addRawGlobal = function(s)
 			this.defsChunk.lines.append(s)
 
-	# FIXME: Rename this.
+	# FIXME: Rename this. It represents a host-language function not an in-language one
 	Function = inherit Object
 		field unit = null # All populated by UnitBlock
 		field source = null
@@ -235,22 +235,19 @@ export ClikeCompiler = inherit BaseCompiler
 
 	Function = inherit (current.Function)
 		method field cases = new NumGenerator
-		field caseChunk = null
-
-		method newBlock = new (this.unit.compiler.SwitchBlock)
-			unit = this.unit
-			id = this.cases.next
+		method field caseChunk = new Chunk
 
 		method appendInitialBlock = do
 			let block = new (this.unit.compiler.SwitchPointerBlock)
 				fn = this
-				block = this.newBlock
-			this.caseChunk = block.buildEntryChunk
-			this.source.lines.append (this.caseChunk)
+				block = this.appendBlock
+			this.source.lines.append (this.buildEntryChunk) # Is this order bad?
 			block
 
 		method appendBlock = do
-			let block = this.newBlock
+			let block = new (this.unit.compiler.SwitchBlock)
+				unit = this.unit
+				id = this.cases.next
 			this.caseChunk.lines.append
 				block.buildContentChunk
 			block
