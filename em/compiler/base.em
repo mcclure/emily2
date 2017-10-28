@@ -132,7 +132,9 @@ export BaseCompiler = inherit Object
 				let i = execs.iter
 				while (i.more)
 					finalResult = this.buildBlockImpl(block, scope, i.next)
-					if (is PartialApplyVal finalResult)
+					# Somehow, discarded-value statements with side effects need to be evaluated.
+					# Try to figure out which statements those are # FIXME: This is iffy as heck
+					if ((i.more || !shouldReturn) && is PartialApplyVal finalResult)
 						block.buildStatement(finalResult)
 
 				if (shouldReturn)

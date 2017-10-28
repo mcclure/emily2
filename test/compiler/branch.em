@@ -4,13 +4,13 @@
 
 # Expect:
 # True
+# True2
 # 1
 
 profile experimental
 
 let x = 0
 let y = x < 5
-# let z = y && x > (0 - 5)
 
 if (y)
 	println "True"
@@ -18,5 +18,8 @@ if (y)
 else
 	println "False"
 	x = 2
+
+if (y && x > (0 - 5))
+	println "True2"
 
 println x

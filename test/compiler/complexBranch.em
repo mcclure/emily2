@@ -1,5 +1,7 @@
 # Minimal if with weird looking cond
 
+# Tags: compiler
+
 # Expect:
 # True
 # 1
