@@ -24,7 +24,9 @@ export TypedNode = inherit Node
 		if (this.type && node.type)
 			if (!this.type.compatible (node.type))
 				fail
-					"Type error between " + this.loc.toString + " and " + node.loc.toString
+					nullJoin array
+						"Type error between ", this.type, " (", this.loc
+						") and ", node.type, " (", node.loc, ")"
 		elif (this.type)
 			#typeDebug node this "Setting"
 			this.type = this.type.resolve
