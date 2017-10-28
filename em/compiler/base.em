@@ -191,7 +191,21 @@ export BaseCompiler = inherit Object
 					_ = fail "Don't know how to apply this yet"
 			IfExec(_, loop, condClause, ifClause, elseClause) =
 				if (loop)
-					fail "No loops yet"
+					let jumpBlock = block.pointer
+					let testBlock = block.appendBlock.pointer
+					let bodyBlock = block.appendBlock.pointer
+					let postBlock = block.appendBlock.pointer
+					# FIXME: Assert no else block?
+
+					jumpBlock.jump testBlock
+
+					let condVal = this.buildBlockImpl(testBlock, scope, condClause)
+					testBlock.condJump condVal bodyBlock postBlock
+
+					this.buildBlockImpl(bodyBlock, scope, ifClause)
+					bodyBlock.jump testBlock
+
+					UnitVal
 				else
 					let condVal = this.buildBlockImpl(block, scope, condClause)
 					let jumpBlock = block.pointer

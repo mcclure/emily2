@@ -1,4 +1,4 @@
-# Minimal compileable, see steps.txt
+# Minimal loop, no valued IfExec required
 # Expect file: test/compiler/loopOutput.txt
 
 # Tags: compiler
@@ -7,12 +7,24 @@ profile experimental
 
 let x = 1
 
+# FIXME: Add actual true and false constants
+let true = 1 == 1
+let false = 1 == 0
+
 while (x <= 100)
-	if (x % 3 == 0 && x % 5 == 0)
+	let three = x % 3 == 0
+	let five = x % 5 == 0
+	let both = false
+
+	if (three)
+		if (five)
+			both = true
+
+	if (both)
 		println "FizzBuzz"
-	elif (x % 3 == 0)
+	elif (three)
 		println "Fizz"
-	elif (x % 5 == 0)
+	elif (five)
 		println "Buzz"
 	else
 		println x

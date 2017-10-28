@@ -124,3 +124,4 @@ compiler/branch.em
 compiler/complexBranch.em
 compiler/valuedBranch.em
 compiler/loop.em
+compiler/loopValuedBranch.em
