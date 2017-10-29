@@ -3,9 +3,6 @@
 
 profile experimental
 
-export false = null
-export true = 1
-
 # Array utilities
 
 export lastFrom = function(a)

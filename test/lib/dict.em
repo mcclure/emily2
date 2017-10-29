@@ -1,16 +1,16 @@
 # Test dict ops
 
 # Expect:
-# null
-# null
-# null
-# 1
+# false
+# false
+# false
+# true
 # 5
-# 1
+# true
 # word
 # 3 ok
-# null
-# null
+# false
+# false
 
 let d = new Dict
 

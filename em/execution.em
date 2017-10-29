@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project.core import *
 from project.type import
-	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, FunctionType, UnknowableType, Val
+	TypedNode, ReferType, UnitType, BooleanType, NumberType, StringType, AtomType, FunctionType, UnknowableType, Val
 
 # Execution tree
 
@@ -130,6 +130,13 @@ export StringLiteralExec = inherit LiteralExec
 
 	method eval = function (scope)
 		new StringValue(this.value)
+
+export BooleanLiteralExec = inherit LiteralExec
+	method toString = nullJoin array("[BooleanLiteral ", this.value, "]")
+	type = BooleanType
+
+	method eval = function (scope)
+		if (this.value) (TrueValue) else (FalseValue)
 
 export NumberLiteralExec = inherit LiteralExec
 	method toString = nullJoin array("[NumberLiteral ", this.value, "]")
@@ -471,7 +478,7 @@ export IfExec = inherit Executable
 
 	method check = function (scope)
 		if (this.condClause) (this.condClause.check scope)
-		this.condClause.unify (new Val(this.loc, BoolType))
+		this.condClause.unify (new Val(this.loc, BooleanType))
 		if (this.ifClause)   (this.ifClause.check scope)
 		if (this.elseClause)
 			this.elseClause.check scope
@@ -487,6 +494,7 @@ export UnitExec = NullLiteralExec # Just an alias
 # Util function
 export isTrue = match
 	NullValue = false
+	FalseValue = false
 	NumberValue v = (v != 0)
 	_ = true
 
@@ -503,11 +511,11 @@ export copyArgsWithAppend = function (ary, value)
 		array(value)
 
 # Util function
-export toBoolValue = function(x)
+export toBooleanValue = function(x)
 	if (x)
 		TrueValue
 	else
-		NullValue
+		FalseValue
 
 # Util function
 export isChild = function(parent,child)
@@ -631,6 +639,12 @@ export ArrayValue = inherit Value
 export NullValue = inherit Value
 	method apply = makePrototypeApply(nullValuePrototype, this)
 
+export TrueValue = inherit Value
+	method apply = makePrototypeApply(booleanValuePrototype, this)
+
+export FalseValue = inherit Value
+	method apply = makePrototypeApply(booleanValuePrototype, this)
+
 export LiteralValue = inherit Value
 	field value = null
 
@@ -654,8 +668,6 @@ export StringValue = inherit LiteralValue
 
 export NumberValue = inherit LiteralValue
 	method apply = makePrototypeApply(numberValuePrototype, this)
-
-export TrueValue = new NumberValue(1)
 
 export SuperValue = inherit Value
 	field parent = null
@@ -844,6 +856,31 @@ export macroExportList = new ObjectValue
 
 export nullValuePrototype = new ObjectValue
 
+nullValuePrototype.atoms.set "toString"
+	new StringValue("null")
+
+export booleanValuePrototype = new ObjectValue
+
+booleanValuePrototype.atoms.set "toString"
+	literalMethod
+		function (this)
+			new StringValue
+				if (this == FalseValue)
+					"false"
+				else
+					"true"
+		1
+
+booleanValuePrototype.atoms.set "toNumber"
+	literalMethod
+		function (this)
+			new NumberValue
+				if (this == FalseValue)
+					0
+				else
+					1
+		1
+
 export numberValuePrototype = new ObjectValue
 
 numberValuePrototype.atoms.set "toString"
@@ -918,7 +955,7 @@ export IteratorObjectValue = inherit ObjectValue
 iteratorPrototype.atoms.set "more"
 	literalMethod
 		function (this)
-			toBoolValue
+			toBooleanValue
 				this.idx < this.source.length
 		1
 
@@ -940,7 +977,7 @@ export IteratorReverseObjectValue = inherit ObjectValue
 iteratorReversePrototype.atoms.set "more"
 	literalMethod
 		function (this)
-			toBoolValue
+			toBooleanValue
 				this.idx > 0
 		1
 
@@ -1023,7 +1060,7 @@ do
 					constructor(this.handle fn)
 				1
 
-	addWrapper .more toBoolValue
+	addWrapper .more toBooleanValue
 	addWrapper .peek newString
 	addWrapper .next newString
 
@@ -1048,8 +1085,8 @@ do
 					constructor( file.path fn (str.value) )
 				1
 
-	addWrapper .isDir toBoolValue
-	addWrapper .isFile toBoolValue
+	addWrapper .isDir toBooleanValue
+	addWrapper .isFile toBooleanValue
 	addWrapper .normalize newString
 	addWrapper .dir newString
 	addWrapper .file newString
@@ -1085,7 +1122,7 @@ dictPrototype.atoms.set "set"
 dictPrototype.atoms.set "has"
 	literalMethod
 		function(dict, index)
-			toBoolValue
+			toBooleanValue
 				(dictData dict).has
 					equalityFilter index
 		2
@@ -1138,7 +1175,7 @@ do
 		charObject.atoms.set (fn.toString)
 			new LiteralFunctionValue
 				function(x)
-					toBoolValue(char fn (x.value))
+					toBooleanValue(char fn (x.value))
 				1
 
 # Stdlib: Scope
@@ -1155,24 +1192,24 @@ export wrapBinaryNumber = function(f)
 			new NumberValue(f (x.value) (y.value))
 		2
 
-export wrapBinaryBool = function(f)
+export wrapBinaryBoolean = function(f)
 	new LiteralFunctionValue
 		function(x,y)
-			toBoolValue
+			toBooleanValue
 				f (x.value) (y.value)
 		2
 
 export wrapBinaryEquality = function(f)
 	new LiteralFunctionValue
 		function(x,y)
-			toBoolValue
+			toBooleanValue
 				f (equalityFilter x) (equalityFilter y)
 		2
 
-export wrapBinaryBoolToBool = function(f)
+export wrapBinaryLogical = function(f)
 	new LiteralFunctionValue
 		function(x,y)
-			toBoolValue
+			toBooleanValue
 				f (isTrue x) (isTrue y)
 		2
 
@@ -1181,7 +1218,9 @@ export printable = function(x)
 		StringValue v = v
 		NumberValue v = v
 		AtomLiteralExec = x.value
-		NullValue = "null"
+		NullValue = "null" # Redundant with toString?
+		TrueValue = "true"
+		FalseValue = "false"
 		_ = "[Unprintable]"
 
 export wrapPrintRepeat = function(f)
@@ -1205,10 +1244,13 @@ export profileScope = new ObjectValue
 
 defaultScope.atoms.set "Object" rootObject
 defaultScope.atoms.set "String" stringValuePrototype
+defaultScope.atoms.set "Boolean" booleanValuePrototype
 defaultScope.atoms.set "Number" numberValuePrototype
 defaultScope.atoms.set "Array"  arrayValuePrototype
 
 defaultScope.atoms.set "null"   NullValue
+defaultScope.atoms.set "true"   TrueValue
+defaultScope.atoms.set "false"  FalseValue
 defaultScope.atoms.set "argv"   NullValue
 defaultScope.atoms.set "ln"     new StringValue(ln)
 
@@ -1226,17 +1268,17 @@ defaultScope.atoms.set "*" (wrapBinaryNumber \*)
 defaultScope.atoms.set "/" (wrapBinaryNumber \/)
 defaultScope.atoms.set "%" (wrapBinaryNumber \%)
 
-defaultScope.atoms.set "<"  (wrapBinaryBool \<)
-defaultScope.atoms.set "<=" (wrapBinaryBool \<=)
-defaultScope.atoms.set ">"  (wrapBinaryBool \>)
-defaultScope.atoms.set ">=" (wrapBinaryBool \>=)
+defaultScope.atoms.set "<"  (wrapBinaryBoolean \<)
+defaultScope.atoms.set "<=" (wrapBinaryBoolean \<=)
+defaultScope.atoms.set ">"  (wrapBinaryBoolean \>)
+defaultScope.atoms.set ">=" (wrapBinaryBoolean \>=)
 
 defaultScope.atoms.set "==" (wrapBinaryEquality \==)
 defaultScope.atoms.set "!=" (wrapBinaryEquality \!=)
 
-defaultScope.atoms.set "and" (wrapBinaryBoolToBool and)
-defaultScope.atoms.set "or"  (wrapBinaryBoolToBool or)
-defaultScope.atoms.set "xor" (wrapBinaryBoolToBool xor)
+defaultScope.atoms.set "and" (wrapBinaryLogical and)
+defaultScope.atoms.set "or"  (wrapBinaryLogical or)
+defaultScope.atoms.set "xor" (wrapBinaryLogical xor)
 
 defaultScope.atoms.set "neg"
 	new LiteralFunctionValue
@@ -1244,17 +1286,17 @@ defaultScope.atoms.set "neg"
 			new NumberValue(neg(x.value))
 		1
 
-defaultScope.atoms.set "bool"
+defaultScope.atoms.set "boolean"
 	new LiteralFunctionValue
 		function (x)
-			toBoolValue
+			toBooleanValue
 				isTrue x
 		1
 
 defaultScope.atoms.set "not"
 	new LiteralFunctionValue
 		function (x)
-			toBoolValue
+			toBooleanValue
 				not
 					isTrue x
 		1
@@ -1272,7 +1314,7 @@ defaultScope.atoms.set "with"
 defaultScope.atoms.set "is"
 	new LiteralFunctionValue
 		function (x,y)
-			toBoolValue(isChild(x,y))
+			toBooleanValue(isChild(x,y))
 		2
 
 defaultScope.atoms.set "exit"

@@ -64,8 +64,8 @@ export InvalidType = inherit ResolvedType
 export UnitType = inherit ResolvedType
 	toString = "{Unit}"
 
-export BoolType = inherit ResolvedType
-	toString = "{Bool}"
+export BooleanType = inherit ResolvedType
+	toString = "{Boolean}"
 
 export NumberType = inherit ResolvedType
 	toString = "{Float}"

@@ -2,25 +2,25 @@
 
 # Expect:
 # GET FALSE
-# null
+# false
 # GET FALSE
-# null
+# false
 # GET TRUE
 # GET FALSE
-# null
+# false
 # GET TRUE
 # GET TRUE
-# 1
+# true
 # GET FALSE
 # GET FALSE
-# null
+# false
 # GET FALSE
 # GET TRUE
-# 1
+# true
 # GET TRUE
-# 1
+# true
 # GET TRUE
-# 1
+# true
 
 macro shortCircuitBoolean
 

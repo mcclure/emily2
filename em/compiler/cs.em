@@ -8,7 +8,7 @@ from project.compiler.base import
 	CtypedCompiler, Chunk, IndentChunk, AddressableVal, KnownVal, TemplateVal, PartialApplyVal
 	upgradeTemplateVal, invokeTemplate
 from project.type import
-	UnitType, BoolType, NumberType, StringType
+	UnitType, BooleanType, NumberType, StringType
 
 export CsCompiler = inherit CtypedCompiler
 	scope = do
@@ -115,7 +115,7 @@ export CsCompiler = inherit CtypedCompiler
 
 	method typeToString = function(type)
 		with (type.resolve) match
-			BoolType = "bool"
+			BooleanType = "bool"
 			NumberType = "float"
 			StringType = "string"
 			UnitType = "void"
@@ -126,6 +126,7 @@ export CsCompiler = inherit CtypedCompiler
 		with value match
 			String = "\"" + value + "\"" # NO!
 			Number = value.toString
-			none = "null"
+			Boolean = value.toString
+			null = "null"
 			_ = fail "Can't translate this literal"
 

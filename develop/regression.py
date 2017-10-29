@@ -71,7 +71,7 @@ help += "--md        # \"Meta depth\" (nest how many interpreters?)\n"
 help += "--untested  # Check repo hygiene-- list tests in sample/test not tested"
 
 parser = optparse.OptionParser(usage=help)
-for a in ["a", "A", "v", "V", "-p3", "-meta", "-untested"]: # Single letter args, flags
+for a in ["a", "A", "v", "V", "-p3", "-untested"]: # Single letter args, flags
     parser.add_option("-"+a, action="store_true")
 for a in ["f", "t", "d", "i", "p", "-root", "-md"]: # Long args with arguments
     parser.add_option("-"+a, action="append")

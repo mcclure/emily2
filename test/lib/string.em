@@ -5,10 +5,11 @@ let x = "one two three"
 let i = x.iter
 
 # Expect:
-# n o n null x 13 3q 4 atom
+# oh n o n false x 13 3q 4 atom true 0 2
 # e e r
 
 print
+	"oh".toString
 	x 1
 	i.next
 	i.next
@@ -16,8 +17,11 @@ print
 	"xyz".iter.next
 	x.length
 	+ (3..toString) "q"
-	+ ("3".toNumber) 1
+	+ ("3".toNumber.toNumber.toString.toNumber) 1
 	.atom.toString
+	true.toString
+	false.toNumber
+	+ (true.toNumber) 1
 	ln
 
 let i2 = x.reverseIter

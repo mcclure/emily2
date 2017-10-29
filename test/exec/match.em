@@ -87,8 +87,8 @@ maybeClosure
 
 # Test is
 # Expect:
-# 1 null 1 null 1 1
-# null 1 null 1
+# true false false false true true true false true true
+# false true false true
 
 let q = inherit None
 
@@ -96,6 +96,10 @@ let q = inherit None
 print
 	is Number 3
 	is Number None
+	is Boolean 0
+	is Boolean null
+	is Boolean true
+	is Boolean false
 	is String "3"
 	is String None
 	is Array array(1,2,3)

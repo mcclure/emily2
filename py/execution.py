@@ -102,6 +102,8 @@ class FunctionValue(EmilyValue):
 def isImpl(parent, child):
 	if parent == child:
 		return True
+	if type(child) == bool:
+		return parent == booleanPrototype
 	if type(child) == float:
 		return parent == numberPrototype
 	if type(child) == unicode:
@@ -342,7 +344,7 @@ arrayIteratorSource = object()
 arrayIteratorIdx = object()
 
 arrayIteratorPrototype = ObjectValue()
-arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource]))))
+arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBoolean(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource]))))
 def arrayIteratorNextImpl(i):
 	x = i.atoms[arrayIteratorSource][ i.atoms[arrayIteratorIdx] ]
 	i.atoms[arrayIteratorIdx] += 1
@@ -350,7 +352,7 @@ def arrayIteratorNextImpl(i):
 arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorNextImpl))
 
 arrayReverseIteratorPrototype = ObjectValue()
-arrayReverseIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBool(x.atoms[arrayIteratorIdx] > 0)))
+arrayReverseIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBoolean(x.atoms[arrayIteratorIdx] > 0)))
 def arrayReverseIteratorNextImpl(i):
 	i.atoms[arrayIteratorIdx] -= 1
 	x = i.atoms[arrayIteratorSource][ i.atoms[arrayIteratorIdx] ]
@@ -473,6 +475,10 @@ class StringLiteralExec(StoredLiteralExec):
 	def __unicode__(s):
 		return u"[StringLiteral %s]" % (quotedString(s.value))
 
+class BooleanLiteralExec(StoredLiteralExec):
+	def __unicode__(s):
+		return u"[BooleanLiteral %s]" % (boolToString(s.value))
+
 class NumberLiteralExec(StoredLiteralExec):
 	def __unicode__(s):
 		return u"[NumberLiteral %s]" % (numberToString(s.value))
@@ -499,6 +505,28 @@ class NullLiteralExec(LiteralExec):
 
 	def __unicode__(s):
 		return u"[NullLiteral]"
+
+	def eval(s, scope):
+		return None
+
+
+class FalseLiteralExec(LiteralExec):
+	def __init__(s, loc):
+		super(NullLiteralExec, s).__init__(loc)
+
+	def __unicode__(s):
+		return u"[FalseLiteral]"
+
+	def eval(s, scope):
+		return None
+
+
+class TrueLiteralExec(LiteralExec):
+	def __init__(s, loc):
+		super(NullLiteralExec, s).__init__(loc)
+
+	def __unicode__(s):
+		return u"[TrueLiteral]"
 
 	def eval(s, scope):
 		return None
@@ -680,6 +708,8 @@ class ApplyExec(Executable):
 				wasString = True
 			elif type(value) == float or type(value) == int:
 				prototype = numberPrototype
+			elif type(value) == bool:
+				prototype = booleanPrototype
 			elif value is None:
 				prototype = nullPrototype
 			else:
@@ -778,6 +808,8 @@ class MakeObjectExec(Executable):
 defaultScope = ObjectValue()
 defaultScope.atoms['null'] = None
 defaultScope.atoms['nullfn'] = PythonFunctionValue(1, lambda x: None)
+defaultScope.atoms['false'] = False # FIXME
+defaultScope.atoms['true'] = True     # FIXME
 defaultScope.atoms['Object'] = rootObject
 defaultScope.atoms['Array'] = arrayPrototype
 defaultScope.atoms['with'] = PythonFunctionValue(2, lambda x,y: y.apply(x))
@@ -796,21 +828,21 @@ defaultScope.atoms['%'] = makeBinop(lambda x,y: x % y)
 
 # Boolean math
 
-def toBool(x):
-	return 1.0 if x else None
-defaultScope.atoms['bool'] = PythonFunctionValue(1, toBool)
-defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBool(not x))
+def toBoolean(x):
+	return True if x else False
+defaultScope.atoms['boolean'] = PythonFunctionValue(1, toBoolean)
+defaultScope.atoms['not'] = PythonFunctionValue(1, lambda x: toBoolean(not x))
 defaultScope.atoms['neg'] = PythonFunctionValue(1, lambda x: -x)
-defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBool(x and y))
-defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBool(x or y))
-defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBool(bool(x) != bool(y)))
-defaultScope.atoms['=='] = PythonFunctionValue(2, lambda x,y: toBool(x == y))
-defaultScope.atoms['!='] = PythonFunctionValue(2, lambda x,y: toBool(x != y))
-defaultScope.atoms['<']  = PythonFunctionValue(2, lambda x,y: toBool(x <  y))
-defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBool(x <= y))
-defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBool(x >  y))
-defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBool(x >= y))
-defaultScope.atoms['is'] = PythonFunctionValue(2, lambda x,y: toBool(isImpl(x,y)))
+defaultScope.atoms['and'] = PythonFunctionValue(2, lambda x,y: toBoolean(x and y))
+defaultScope.atoms['or'] = PythonFunctionValue(2, lambda x,y: toBoolean(x or y))
+defaultScope.atoms['xor'] = PythonFunctionValue(2, lambda x,y: toBoolean(bool(x) != bool(y)))
+defaultScope.atoms['=='] = PythonFunctionValue(2, lambda x,y: toBoolean(x == y if (type(x) is not bool and type(y) is not bool) else x is y))
+defaultScope.atoms['!='] = PythonFunctionValue(2, lambda x,y: toBoolean(x != y if (type(x) is not bool and type(y) is not bool) else x is not y))
+defaultScope.atoms['<']  = PythonFunctionValue(2, lambda x,y: toBoolean(x <  y))
+defaultScope.atoms['<='] = PythonFunctionValue(2, lambda x,y: toBoolean(x <= y))
+defaultScope.atoms['>']  = PythonFunctionValue(2, lambda x,y: toBoolean(x >  y))
+defaultScope.atoms['>='] = PythonFunctionValue(2, lambda x,y: toBoolean(x >= y))
+defaultScope.atoms['is'] = PythonFunctionValue(2, lambda x,y: toBoolean(isImpl(x,y)))
 
 # Dubious, intentionally "undocumented"
 def debugPrint(obj):
@@ -872,7 +904,7 @@ dictObjectPrototype.atoms['set'] = MethodPseudoValue(pythonFunction=PythonFuncti
 
 def dictHas(obj, key):
 	d = obj.atoms.get(dictObjectData)
-	return toBool(d and key in d)
+	return toBoolean(d and key in d)
 dictObjectPrototype.atoms['has'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(2, dictHas))
 
 def dictDel(obj, key):
@@ -903,7 +935,15 @@ infileObjectPrototype = ObjectValue()
 outfileObjectPrototype = ObjectValue()
 
 def printable(x):
-	return streamable( unicode(int(x) if type(x) == float and int(x) == x else x) if x is not None else "null" )
+	if x is None:
+		v = u"null"
+	elif type(x) == bool:
+		v = u"true" if x else u"false"
+	elif type(x) == float and int(x) == x:
+		v = unicode(int(x))
+	else:
+		v = unicode(x)
+	return streamable( v )
 
 def setLooper(into, key, fn):
 	looperValue = None
@@ -1039,9 +1079,9 @@ defaultScope.atoms['stdin'] = stdinObject
 
 # IO: Filesystem
 
-def toBoolWrap(fn):
+def toBooleanWrap(fn):
 	def wrap(x):
-		return toBool(fn(x))
+		return toBoolean(fn(x))
 	return wrap
 
 pathObject = ObjectValue()
@@ -1049,8 +1089,8 @@ fileObject.atoms['path'] = pathObject
 
 pathObject.atoms['join'] = PythonFunctionValue(2, os.path.join)
 pathObject.atoms['normalize'] = PythonFunctionValue(1, os.path.realpath)
-pathObject.atoms['isFile'] = PythonFunctionValue(1, toBoolWrap(os.path.isfile))
-pathObject.atoms['isDir'] = PythonFunctionValue(1, toBoolWrap(os.path.isdir))
+pathObject.atoms['isFile'] = PythonFunctionValue(1, toBooleanWrap(os.path.isfile))
+pathObject.atoms['isDir'] = PythonFunctionValue(1, toBooleanWrap(os.path.isdir))
 pathObject.atoms['dir'] = PythonFunctionValue(1, os.path.dirname)
 pathObject.atoms['file'] = PythonFunctionValue(1, os.path.basename)
 pathObject.atoms['entryFile'] = None
@@ -1059,16 +1099,28 @@ pathObject.atoms['entryFile'] = None
 
 charObject = ObjectValue()
 defaultScope.atoms['char'] = charObject
-charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, toBoolWrap(reader.isNonLineSpace))
-charObject.atoms['isLineSpace'] = PythonFunctionValue(1, toBoolWrap(reader.isLineSpace))
-charObject.atoms['isSpace'] = PythonFunctionValue(1, toBoolWrap(lambda x: reader.isLineSpace(x) or reader.isNonLineSpace(x)))
-charObject.atoms['isQuote'] = PythonFunctionValue(1, toBoolWrap(reader.isQuote))
-charObject.atoms['isOpenParen'] = PythonFunctionValue(1, toBoolWrap(reader.isOpenParen))
-charObject.atoms['isCloseParen'] = PythonFunctionValue(1, toBoolWrap(reader.isCloseParen))
-charObject.atoms['isParen'] = PythonFunctionValue(1, toBoolWrap(lambda x: reader.isOpenParen(x) or reader.isCloseParen(x)))
-charObject.atoms['isDigit'] = PythonFunctionValue(1, toBoolWrap(reader.isDigit))
-charObject.atoms['isIdStart'] = PythonFunctionValue(1, toBoolWrap(reader.isIdStart))
-charObject.atoms['isIdContinue'] = PythonFunctionValue(1, toBoolWrap(reader.isIdContinue))
+charObject.atoms['isNonLineSpace'] = PythonFunctionValue(1, toBooleanWrap(reader.isNonLineSpace))
+charObject.atoms['isLineSpace'] = PythonFunctionValue(1, toBooleanWrap(reader.isLineSpace))
+charObject.atoms['isSpace'] = PythonFunctionValue(1, toBooleanWrap(lambda x: reader.isLineSpace(x) or reader.isNonLineSpace(x)))
+charObject.atoms['isQuote'] = PythonFunctionValue(1, toBooleanWrap(reader.isQuote))
+charObject.atoms['isOpenParen'] = PythonFunctionValue(1, toBooleanWrap(reader.isOpenParen))
+charObject.atoms['isCloseParen'] = PythonFunctionValue(1, toBooleanWrap(reader.isCloseParen))
+charObject.atoms['isParen'] = PythonFunctionValue(1, toBooleanWrap(lambda x: reader.isOpenParen(x) or reader.isCloseParen(x)))
+charObject.atoms['isDigit'] = PythonFunctionValue(1, toBooleanWrap(reader.isDigit))
+charObject.atoms['isIdStart'] = PythonFunctionValue(1, toBooleanWrap(reader.isIdStart))
+charObject.atoms['isIdContinue'] = PythonFunctionValue(1, toBooleanWrap(reader.isIdContinue))
+
+# Booleans
+
+booleanPrototype = ObjectValue()
+def booleanToNumber(x):
+	return 1 if x else 0
+def booleanToString(x):
+	return u'true' if x else u'false'
+booleanPrototype.atoms['toString'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, booleanToString))
+booleanPrototype.atoms['toNumber'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, booleanToNumber))
+
+defaultScope.atoms['Boolean'] = booleanPrototype
 
 # Numbers
 

@@ -2,9 +2,7 @@
 
 profile experimental
 
-let true = 1
-
-# Expect: null 1 1 null 1 null null null null null
+# Expect: false true true false true false false false false false
 
 print
 	null && true
@@ -30,18 +28,18 @@ print
 	~3 * ~4 % 5
 	ln
 
-# Expect: 1 null 1 null 1 null
+# Expect: true false true false true false
 
 print
 	4 - 3 < 2 + 3     # 4-3 < 2+3 : 1 < 5 : true
-	2 * 4 > 18 / 2    # 2*4 > 18/2 : 8 > 9 : null
+	2 * 4 > 18 / 2    # 2*4 > 18/2 : 8 > 9 : false
 	4 + 4 <= 16 / 2   # 2+4 <= 16/2 : 8 <= 8 : true
-	9 / 4 >= 9 - 4    # 9/4 >= 9-4 : about 2 >= 5 : null
+	9 / 4 >= 9 - 4    # 9/4 >= 9-4 : about 2 >= 5 : false
 	15 - 5 ==  20 / 2 # 15-5 == 20/2 : 10 == 10 : true
-	3 * 4  ==  3 + 4  # 3*4 == 3+4 : 12 == 7 : null
+	3 * 4  ==  3 + 4  # 3*4 == 3+4 : 12 == 7 : false
 	ln
 
-# Expect: null 1 1
+# Expect: false true true
 
 print
 	4 - 3 < 2 + 3     && 2 * 4 > 18 / 2
@@ -50,7 +48,7 @@ print
 	ln
 
 # Whatever the ! grouping behavior is, verify it hasn't changed:
-# Expect: 1
+# Expect: true
 
 println
 	! not 1
@@ -66,10 +64,10 @@ println
 # 1
 # 2
 # null
-# null
+# false
 # -
 # null
-# null
+# false
 # -
 
 let por = function (x)

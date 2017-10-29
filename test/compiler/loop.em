@@ -7,10 +7,6 @@ profile experimental
 
 let x = 1
 
-# FIXME: Add actual true and false constants
-let true = 1 == 1
-let false = 1 == 0
-
 while (x <= 100)
 	let three = x % 3 == 0
 	let five = x % 5 == 0

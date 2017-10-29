@@ -8,7 +8,7 @@ from project.execution import
 	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec
 	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
 from project.type import # FIXME
-	TypedNode, ReferType, UnitType, BoolType, NumberType, StringType, AtomType, UnknowableType
+	TypedNode, ReferType, UnitType, BooleanType, NumberType, StringType, AtomType, UnknowableType
 	Val, KnownTypeVal, functionTypeVal
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
@@ -71,6 +71,10 @@ export BaseCompiler = inherit Object
 		let dict = new ChainedDict
 		dict.set "ln" new KnownVal
 			null, StringType, "\n"
+		dict.set "true" new KnownVal
+			null, BooleanType, true
+		dict.set "false" new KnownVal
+			null, BooleanType, false
 		dict.set "println"
 			functionTypeVal array(NumberType, UnitType)
 		dict
@@ -356,7 +360,7 @@ do
 					"(" + a 0 + ") " + name + " (" + a 1 + ")"
 				null
 	install array("+", "-", "*", "/", "%") NumberType
-	install array("<=", ">=", "<", ">", "==") BoolType
+	install array("<=", ">=", "<", ">", "==") BooleanType
 
 # CtypedCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
 export CtypedCompiler = inherit ClikeCompiler

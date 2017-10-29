@@ -3,7 +3,7 @@ from project.compiler.util import *
 from project.compiler.base import
 	CtypedCompiler, Chunk, IndentChunk, upgradeTemplateVal, invokeTemplate
 from project.type import
-	UnitType, BoolType, NumberType, StringType
+	UnitType, BooleanType, NumberType, StringType
 
 profile experimental
 
@@ -61,7 +61,7 @@ export CppCompiler = inherit CtypedCompiler
 
 	method typeToString = function(type)
 		with (type.resolve) match
-			BoolType = "bool"
+			BooleanType = "bool"
 			NumberType = "float"
 			StringType = "char *"
 			UnitType = "void"

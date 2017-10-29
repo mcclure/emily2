@@ -677,8 +677,12 @@ class AndMacro(FancySplitterMacro):
 		return "&&"
 
 	def expression(s, loc, leftExe, rightExe):
+		falseHere = execution.BooleanLiteralExec(loc, False)
+		trueHere = execution.BooleanLiteralExec(loc, True)
 		return ([],
-			execution.IfExec(loc, False, leftExe, rightExe, execution.NullLiteralExec(loc)),
+			execution.IfExec(loc, False, leftExe,
+				execution.IfExec(loc, False, rightExe, trueHere, falseHere), 
+				falseHere),
 			[])
 
 class OrMacro(FancySplitterMacro):
@@ -689,8 +693,11 @@ class OrMacro(FancySplitterMacro):
 		return "||"
 
 	def expression(s, loc, leftExe, rightExe):
+		falseHere = execution.BooleanLiteralExec(loc, False)
+		trueHere = execution.BooleanLiteralExec(loc, True)
 		return ([],
-			execution.IfExec(loc, False, leftExe, None, rightExe),
+			execution.IfExec(loc, False, leftExe, trueHere,
+				execution.IfExec(loc, False, rightExe, trueHere, falseHere)),
 			[])
 
 # (left) || (right)

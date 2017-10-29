@@ -2,14 +2,14 @@
 # TODO: Test some unicode
 
 # Expect:
-# null null null 1 1 null null null
-# null null 1 null null null null null
-# null null 1 1 1 null null null
-# null null null null null null null 1
-# null null null null null 1 null null
-# null null null null null null 1 null
-# null null null null null 1 1 null
-# null 1 null null null null null null
+# false false false true true false false false
+# false false true false false false false false
+# false false true true true false false false
+# false false false false false false false true
+# false false false false false true false false
+# false false false false false false true false
+# false false false false false true true false
+# false true false false false false false false
 
 let testChars = array
 	"x"

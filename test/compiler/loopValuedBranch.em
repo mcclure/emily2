@@ -1,5 +1,7 @@
-# Minimal compileable
+# Minimal compileable with loop and if
 # Expect file: test/compiler/loopOutput.txt
+
+# Tags: compiler
 
 profile experimental
 

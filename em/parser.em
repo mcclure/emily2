@@ -7,7 +7,8 @@ from project.core import *
 from project.reader import
 	SymbolExp, QuoteExp, NumberExp, ExpGroup
 from project.execution import
-	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec, NullLiteralExec, StoredLiteralExec
+	UnitExec, StringLiteralExec, AtomLiteralExec, NumberLiteralExec,
+	NullLiteralExec, BooleanLiteralExec, StoredLiteralExec
 	InvalidExec, VarExec, ApplyExec, SetExec, IfExec, SequenceExec, ImportAllExec
 	MakeFuncExec, MakeMatchExec, MakeArrayExec, MakeObjectExec
 	ObjectValue, UserMacroList, LazyMacroLoader, macroExportList, profileScope, defaultScope
@@ -606,9 +607,14 @@ export AndMacro = inherit FancySplitterMacro
 	symbol = "&&"
 
 	method expression = function(loc, leftExe, rightExe)
+		let trueHere = new BooleanLiteralExec(loc, true)
+		let falseHere = new BooleanLiteralExec(loc, false)
 		new ProcessResult
 			null
-			new IfExec(loc, false, leftExe, rightExe, new NullLiteralExec(loc))
+			new IfExec
+				loc, false, leftExe
+				new IfExec(loc, false, rightExe, trueHere, falseHere)
+				falseHere
 			null
 
 export OrMacro = inherit FancySplitterMacro
@@ -616,9 +622,14 @@ export OrMacro = inherit FancySplitterMacro
 	symbol = "||"
 
 	method expression = function(loc, leftExe, rightExe)
+		let trueHere = new BooleanLiteralExec(loc, true)
+		let falseHere = new BooleanLiteralExec(loc, false)
 		new ProcessResult
 			null
-			new IfExec(loc, false, leftExe, null, rightExe)
+			new IfExec
+				loc, false, leftExe
+				trueHere
+				new IfExec(loc, false, rightExe, trueHere, falseHere)
 			null
 
 # User defined macro constructors
