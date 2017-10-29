@@ -521,6 +521,8 @@ export toBooleanValue = function(x)
 export isChild = function(parent,child)
 	if (parent == child)
 		true
+	elif (is TrueValue child || is FalseValue child)
+		parent == booleanValuePrototype
 	elif (is NumberValue child)
 		parent == numberValuePrototype
 	elif (is StringValue child)

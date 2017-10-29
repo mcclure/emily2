@@ -483,7 +483,10 @@ export MatchMacro = inherit OneSymbolMacro
 
 						if (!foundError)
 							let targetExec = 
-								targetExp && parser.process (targetExp.loc, array (targetExp), null)
+								if (targetExp)
+									parser.process (targetExp.loc, array (targetExp), null)
+								else
+									null
 							let tempStatement = parser.process(eqRight(0).loc, eqRight, tracker)
 							result.append(new MatchCase(targetExec, unpacks, tempStatement))
 
