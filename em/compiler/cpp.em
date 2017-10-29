@@ -73,11 +73,4 @@ export CppCompiler = inherit CtypedCompiler
 			(project.type.UnknowableType) = fail "Can't translate unknowable type" # DON'T CHECK THIS LINE IN
 			_ = fail "Can't translate this type"
 
-	method literalToString = function(value)
-		with value match
-			String = "\"" + value + "\"" # NO!
-			Number = value.toString
-			Boolean = value.toString
-			none = "null"
-			_ = fail "Can't translate this literal"
 

@@ -363,7 +363,7 @@ export ClikeCompiler = inherit BaseCompiler
 						"i = " + falseBlock.label + ";"
 				"break;"
 
-		method standardFallthroughJump = function(condVal, trueBlock, falseBlock)
+		method standardFallthroughJump = function(block)
 			this.exitChunk.lines = 
 				if (block.id == this.id + 1)
 					array()
@@ -411,7 +411,8 @@ export ClikeCompiler = inherit BaseCompiler
 		with value match
 			String = "\"" + value + "\"" # NO!
 			Number = value.toString
-			none = "null"
+			Boolean = value.toString
+			null = "null"
 			_ = fail "Can't translate this literal"
 
 
