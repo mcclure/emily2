@@ -57,16 +57,8 @@ export CsCompiler = inherit CtypedCompiler
 				"goto case " + block.label + ";"
 
 		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
-			this.exitChunk.lines = array
-				"if (" + this.unit.compiler.valToString condVal + ")"
-				new IndentChunk
-					lines = array
-						"i = " + trueBlock.label + ";"
-				"else"
-				new IndentChunk
-					lines = array
-						"i = " + falseBlock.label + ";"
-				"break;"
+			this.exitChunk.lines = this.standardCondJumpArray
+				this.unit.compiler.valToString condVal, trueBlock, falseBlock
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array

@@ -50,49 +50,12 @@ export CppCompiler = inherit CtypedCompiler
 				"}"
 
 	SwitchBlock = inherit (current.SwitchBlock)
-		iLine = function(block)
-			"i = " + block.label + ";"
-
 		method jump = function(block) # Assume goto/branchGoto are called at most once
-			this.exitChunk.lines = 
-				if (block.id == this.id + 1)
-					array()
-				else
-					array
-						this.iLine block
-						"break;"
+			this.standardFallthroughJump(block)
 
 		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
-			let condString = this.unit.compiler.valToString condVal
-			this.exitChunk.lines = 
-				if (falseBlock.id == this.id + 1)
-					array
-						"if (" + condString + ") {"
-						new IndentChunk
-							lines = array
-								this.iLine trueBlock
-								"break;"
-						"}"
-				elif (trueBlock.id == this.id + 1)
-					array
-						"if (!(" + condString + ")) {"
-						new IndentChunk
-							lines = array
-								this.iLine falseBlock
-								"break;"
-						"}"
-				else
-					array
-						"if (" + condString + ")"
-						new IndentChunk
-							lines = array
-								"i = " + trueBlock.label + ";"
-						"else"
-						new IndentChunk
-							lines = array
-								"i = " + falseBlock.label + ";"
-						"break;"
-	
+			this.standardFallthroughCondJump(condVal, trueBlock, falseBlock)
+
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
 			"static " + this.typeToString (value.type) + " " + this.valToString(value) + ";" +

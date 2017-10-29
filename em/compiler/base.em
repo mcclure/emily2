@@ -323,6 +323,77 @@ export ClikeCompiler = inherit BaseCompiler
 
 		method label = this.id.toString
 
+		# These just happen to be the same in all subclasses
+		standardExitLines = array
+			"break;"
+
+		standardTerminateLines = array
+			"run = false;"
+			"break;"
+
+		iLine = function(block)
+			"i = " + block.label + ";"
+
+		field method exitChunk = new Chunk # The contents of this get modified. Is that "okay?"
+			lines = this.standardExitLines
+
+		method buildContentChunk = do
+			this.source = new Chunk
+			new IndentChunk
+				lines = array
+					"case " + this.label + ": {"
+					new IndentChunk
+						lines = array
+							this.source
+							this.exitChunk
+					"}"
+
+		method terminate = do
+			this.exitChunk.lines = this.standardTerminateLines
+
+		method standardCondJumpArray = function(condString, trueBlock, falseBlock)
+			array
+				"if (" + condString + ")"
+				new IndentChunk
+					lines = array
+						"i = " + trueBlock.label + ";"
+				"else"
+				new IndentChunk
+					lines = array
+						"i = " + falseBlock.label + ";"
+				"break;"
+
+		method standardFallthroughJump = function(condVal, trueBlock, falseBlock)
+			this.exitChunk.lines = 
+				if (block.id == this.id + 1)
+					array()
+				else
+					array
+						this.iLine block
+						"break;"
+
+		method standardFallthroughCondJump = function(condVal, trueBlock, falseBlock)
+			let condString = this.unit.compiler.valToString condVal
+			this.exitChunk.lines = 
+				if (falseBlock.id == this.id + 1)
+					array
+						"if (" + condString + ") {"
+						new IndentChunk
+							lines = array
+								this.iLine trueBlock
+								"break;"
+						"}"
+				elif (trueBlock.id == this.id + 1)
+					array
+						"if (!(" + condString + ")) {"
+						new IndentChunk
+							lines = array
+								this.iLine falseBlock
+								"break;"
+						"}"
+				else
+					this.standardCondJumpArray(condString, trueBlock, falseBlock)
+
 	method valToString = function(val)
 		with val match
 			AddressableVal = val.label
@@ -369,30 +440,5 @@ export CtypedCompiler = inherit ClikeCompiler
 		method buildMain = do
 			this.defsChunk = new Chunk
 			this.mainChunk = new IndentChunk
-
-	SwitchBlock = inherit (current.SwitchBlock)
-		standardExitLines = array
-			"break;"
-
-		standardTerminateLines = array
-			"run = false;"
-			"break;"
-
-		field method exitChunk = new Chunk # The contents of this get modified. Is that "okay?"
-			lines = this.standardExitLines
-
-		method buildContentChunk = do
-			this.source = new Chunk
-			new IndentChunk
-				lines = array
-					"case " + this.label + ": {"
-					new IndentChunk
-						lines = array
-							this.source
-							this.exitChunk
-					"}"
-
-		method terminate = do
-			this.exitChunk.lines = this.standardTerminateLines
 
 	

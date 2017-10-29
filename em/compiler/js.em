@@ -24,24 +24,25 @@ export JsCompiler = inherit ClikeCompiler
 				this.defsChunk
 				this.mainChunk
 
-	SwitchBlock = inherit (current.SwitchBlock)
+	Function = inherit (current.Function)
 		method buildEntryChunk = new Chunk
 			lines = array
 				"let i = 0;"
-				"switch (i) {"
-				this.buildContentChunk
+				"let run = true;"
+				"while (run) {"
+				new IndentChunk
+					lines = array
+						"switch (i) {"
+						this.caseChunk
+						"}"
 				"}"
 
-		method buildContentChunk = do
-			this.source = new Chunk
-			new IndentChunk
-				lines = array
-					"case " + this.label + ": {"
-					new IndentChunk
-						lines = array
-							this.source
-							"break;"
-					"}"
+	SwitchBlock = inherit (current.SwitchBlock)
+		method jump = function(block) # Assume goto/branchGoto are called at most once
+			this.standardFallthroughJump(block)
+
+		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
+			this.standardFallthroughCondJump(condVal, trueBlock, falseBlock)
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
