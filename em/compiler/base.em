@@ -297,6 +297,7 @@ export ClikeCompiler = inherit BaseCompiler
 		method addLiteral = this.block.addLiteral
 		method addRawGlobal = this.block.addRawGlobal
 		method unit = this.block.unit
+		method id = this.block.id
 		method label = this.block.label
 		method jump = this.block.jump
 		method condJump = this.block.condJump
@@ -359,7 +360,7 @@ do
 				function(a)
 					"(" + a 0 + ") " + name + " (" + a 1 + ")"
 				null
-	install array("+", "-", "*", "/", "%") NumberType
+	install array("+", "-", "*", "/", "%") NumberType # FIXME: "%" inappropriate for C++
 	install array("<=", ">=", "<", ">", "==") BooleanType
 
 # CtypedCompiler is methods common to C and C# (ie explicitly typed languages) but not JavaScript
@@ -368,4 +369,30 @@ export CtypedCompiler = inherit ClikeCompiler
 		method buildMain = do
 			this.defsChunk = new Chunk
 			this.mainChunk = new IndentChunk
+
+	SwitchBlock = inherit (current.SwitchBlock)
+		standardExitLines = array
+			"break;"
+
+		standardTerminateLines = array
+			"run = false;"
+			"break;"
+
+		field method exitChunk = new Chunk # The contents of this get modified. Is that "okay?"
+			lines = this.standardExitLines
+
+		method buildContentChunk = do
+			this.source = new Chunk
+			new IndentChunk
+				lines = array
+					"case " + this.label + ": {"
+					new IndentChunk
+						lines = array
+							this.source
+							this.exitChunk
+					"}"
+
+		method terminate = do
+			this.exitChunk.lines = this.standardTerminateLines
+
 	

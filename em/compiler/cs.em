@@ -52,40 +52,6 @@ export CsCompiler = inherit CtypedCompiler
 				"}"
 
 	SwitchBlock = inherit (current.SwitchBlock)
-		standardExitLines = array
-			"break;"
-
-		standardTerminateLines = array
-			"run = false;"
-			"break;"
-
-		field method exitChunk = new Chunk # This gets modified. Is that "okay?"
-			lines = this.standardExitLines
-
-		# FIXME: Move this into Function
-		method buildEntryChunk = new Chunk
-			lines = array
-				"uint i = 0;"
-				"bool run = true;"
-				"while (run) {"
-				new IndentChunk
-					lines = array
-						"switch (i) {"
-						this.buildContentChunk
-						"}"
-				"}"
-
-		method buildContentChunk = do
-			this.source = new Chunk
-			new IndentChunk
-				lines = array
-					"case " + this.label + ": {"
-					new IndentChunk
-						lines = array
-							this.source
-							this.exitChunk
-					"}"
-
 		method jump = function(block) # Assume goto/branchGoto are called at most once
 			this.exitChunk.lines = array
 				"goto case " + block.label + ";"
@@ -101,9 +67,6 @@ export CsCompiler = inherit CtypedCompiler
 					lines = array
 						"i = " + falseBlock.label + ";"
 				"break;"
-
-		method terminate = do
-			this.exitChunk.lines = this.standardTerminateLines
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array

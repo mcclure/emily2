@@ -15,6 +15,10 @@ export CppCompiler = inherit CtypedCompiler
 			dict, "println", 1
 			invokeTemplate "Println"
 			"template <class T> void Println(T x) { std::cout << x << std::endl; }" # FIXME: way to force include <iostream> exactly once
+		upgradeTemplateVal
+			dict, "%", 1
+			invokeTemplate "fmod"
+			null
 		dict
 
 	UnitBlock = inherit (current.UnitBlock)
@@ -32,24 +36,62 @@ export CppCompiler = inherit CtypedCompiler
 						this.mainChunk
 				"}"
 
-	SwitchBlock = inherit (current.SwitchBlock)
+	Function = inherit (current.Function)
 		method buildEntryChunk = new Chunk
 			lines = array
 				"unsigned int i = 0;"
-				"switch (i) {"
-				this.buildContentChunk
+				"bool run = true;"
+				"while (run) {"
+				new IndentChunk
+					lines = array
+						"switch (i) {"
+						this.caseChunk
+						"}"
 				"}"
 
-		method buildContentChunk = do
-			this.source = new Chunk
-			new IndentChunk
-				lines = array
-					"case " + this.label + ": {"
-					new IndentChunk
-						lines = array
-							this.source
-							"break;"
-					"}"
+	SwitchBlock = inherit (current.SwitchBlock)
+		iLine = function(block)
+			"i = " + block.label + ";"
+
+		method jump = function(block) # Assume goto/branchGoto are called at most once
+			this.exitChunk.lines = 
+				if (block.id == this.id + 1)
+					array()
+				else
+					array
+						this.iLine block
+						"break;"
+
+		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
+			let condString = this.unit.compiler.valToString condVal
+			this.exitChunk.lines = 
+				if (falseBlock.id == this.id + 1)
+					array
+						"if (" + condString + ") {"
+						new IndentChunk
+							lines = array
+								this.iLine trueBlock
+								"break;"
+						"}"
+				elif (trueBlock.id == this.id + 1)
+					array
+						"if (!(" + condString + ")) {"
+						new IndentChunk
+							lines = array
+								this.iLine falseBlock
+								"break;"
+						"}"
+				else
+					array
+						"if (" + condString + ")"
+						new IndentChunk
+							lines = array
+								"i = " + trueBlock.label + ";"
+						"else"
+						new IndentChunk
+							lines = array
+								"i = " + falseBlock.label + ";"
+						"break;"
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
@@ -72,6 +114,7 @@ export CppCompiler = inherit CtypedCompiler
 		with value match
 			String = "\"" + value + "\"" # NO!
 			Number = value.toString
+			Boolean = value.toString
 			none = "null"
 			_ = fail "Can't translate this literal"
 
