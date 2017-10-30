@@ -45,6 +45,13 @@ export TypedNode = inherit Node
 			#typeDebug frm to "Forwarding"
 			frm.type = new ReferType(to)
 
+	method unifyArgResult = function(arg, result)
+		let frm = this.resolve
+		if (!frm.type)
+			frm.type = new FunctionType(new Val(this.loc), new Val(this.loc))
+		frm.type.arg.unify arg
+		frm.type.result.unify result
+		
 	method resolve = do
 		with (this.type) match
 			ReferType to = do
@@ -67,7 +74,6 @@ export ReferType = inherit Type
 export ResolvedType = inherit Type
 	method compatible = function (type) (this.compatibleTest type || type.compatibleTest this)
 	method compatibleTest = function (type) (type == this)
-	method unifyArgResult = function (arg, result) (result.unify standardUnknowableVal)
 
 export UnknowableType = inherit ResolvedType
 	method compatibleTest = function (type) (true) # FIXME
@@ -98,10 +104,12 @@ export FunctionType = inherit ResolvedType
 	method toString = nullJoin array
 		"{Function ", this.arg.type, " -> ", this.result.type, "}"
 	method compatibleTest = function (type)
-		is FunctionType type && this.arg.resolve.type.compatibleTest (type.arg.resolve.type) && this.result.resolve.type.compatibleTest (type.result.resolve.type)
-	method unifyArgResult = function(arg, result) # TODO: Check correctness of typedNode?
-		arg.unify(this.arg)
-		result.unify(this.result)
+		if (is FunctionType type)
+			this.arg.unify (type.arg)
+			this.result.unify (type.result)
+			true
+		else
+			false
 
 export Val = inherit TypedNode
 	field type = null

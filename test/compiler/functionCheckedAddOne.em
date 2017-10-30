@@ -1,4 +1,4 @@
-# Minimal loop, no valued IfExec required
+# Minimal function test, disambiguation on addOne call
 # Expect: 16
 
 # Tags: compiler

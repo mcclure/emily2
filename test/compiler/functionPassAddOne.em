@@ -1,4 +1,4 @@
-# Minimal loop, no valued IfExec required
+# Minimal function test w/higher order function
 # Expect: 116
 
 # Tags: compiler

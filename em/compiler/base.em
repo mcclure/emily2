@@ -5,7 +5,7 @@ profile experimental
 from project.util import *
 from project.compiler.util import *
 from project.execution import
-	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec
+	SequenceExec, SetExec, IfExec, VarExec, ApplyExec, ImportAllExec, MakeFuncExec
 	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
 from project.type import # FIXME
 	TypedNode, ReferType, UnitType, BooleanType, NumberType, StringType, AtomType, UnknowableType

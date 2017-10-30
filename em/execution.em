@@ -199,7 +199,7 @@ export ApplyExec = inherit Executable
 	method check = function (scope)
 		this.fn.check scope
 		this.arg.check scope
-		this.fn.resolve.type.unifyArgResult(this.arg, this)
+		this.fn.unifyArgResult(this.arg, this)
 
 export SetExec = inherit Executable
 	field isLet = false
