@@ -47,7 +47,11 @@ export TypedNode = inherit Node
 
 	method resolve = do
 		with (this.type) match
-			ReferType to = to
+			ReferType to = do
+				let resolved = to.resolve
+				if (resolved.type)
+					this.type = resolved.type
+				resolved
 			_ = this
 
 	method toString = "[Node " + this.loc.toString + " type " + (if (this.type) (this.type.toString) else ("{Unresolved}")) + "]"
