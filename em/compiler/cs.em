@@ -62,14 +62,14 @@ export CsCompiler = inherit CtypedCompiler
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
-			"static " + this.typeToString (value.type) + " " + this.valToString(value) + ";" +
+			"static " + this.typeToString (value.resolve.type) + " " + this.valToString(value) + ";" +
 				if (description)
 					" // " + description
 				else
 					""
 
 	method typeToString = function(type)
-		with (type.resolve) match
+		with (type) match
 			BooleanType = "bool"
 			NumberType = "float"
 			StringType = "string"

@@ -30,28 +30,28 @@ export TypePrinter = inherit Object
 					mapIter
 						function(x)
 							array
-								"\n" + indented2 + x + ":" + scope.get(x).type.toString
+								"\n" + indented2 + x + ":" + scope.get(x).resolve.type.toString
 						scope.shallowIter
 				"\n", indented, contentLabel
 
 		indentPrefix depth + with exe match
 			InvalidExec = "[INVALID]"
-			SequenceExec = "Sequence:" + exe.type.toString +
+			SequenceExec = "Sequence:" + exe.resolve.type.toString +
 				if (exe.hasScope)
 					scopePlusSequence "Vars" "Statements" (exe.typeScope) + sequence 2 (exe.execs)
 				else
 					sequence 1 (exe.execs)
-			LiteralExec = "Literal:" + exe.type.toString
-			NullLiteralExec = "NullLiteral:" + exe.type.toString
-			VarExec = "Var:" + exe.type.toString + " " + exe.symbol
-			ApplyExec = "Apply:" + exe.type.toString + sequence 1 (unwrapApply exe)
+			LiteralExec = "Literal:" + exe.resolve.type.toString
+			NullLiteralExec = "NullLiteral:" + exe.resolve.type.toString
+			VarExec = "Var:" + exe.resolve.type.toString + " " + exe.symbol
+			ApplyExec = "Apply:" + exe.resolve.type.toString + sequence 1 (unwrapApply exe)
 			SetExec = "Set" + 
 				if (!exe.targetClause && is AtomLiteralExec (exe.indexClause))
 					" " + exe.indexClause.value + " =\n" + descend 1 (exe.valueClause)
 				else
 					"[SET INDEXED]"
 			ImportAllExec = "[IMPORTALL]"
-			MakeFuncExec = "Closure: " + exe.type.toString +
+			MakeFuncExec = "Closure: " + exe.resolve.type.toString +
 				if (exe.typeScope)
 					scopePlusSequence "Params" "Body" (exe.typeScope) + "\n" + descend 2 (exe.body)
 				else

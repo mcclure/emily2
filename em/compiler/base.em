@@ -142,7 +142,7 @@ export BaseCompiler = inherit Object
 					finalResult = this.buildBlockImpl(block, scope, i.next)
 					# Allow statements in sequences with side effects but no return value
 					# FIXME: Functions which return a value could very well have a side effect
-					if (finalResult.type == UnitType)
+					if (finalResult.resolve.type == UnitType)
 						block.buildStatement(finalResult)
 
 				if (shouldReturn)
@@ -152,7 +152,7 @@ export BaseCompiler = inherit Object
 			SetExec(_, isLet) = do
 				let dataVal = this.buildBlockImpl(block, scope, exe.valueClause)
 
-				if (is UnitVal (dataVal.type.resolve))
+				if (dataVal.resolve.type == UnitVal)
 					fail "Cannot assign unit to variable" # This message sucks
 
 				let name = exe.indexClause.value
