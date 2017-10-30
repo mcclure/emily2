@@ -34,6 +34,8 @@ export Node = inherit Object
 	field loc = null
 	progress = ProgressBase.none
 
+	method toString = "[Node " + this.loc.toString + "]"
+
 export Error = inherit Object
 	field loc = null
 	field msg = null

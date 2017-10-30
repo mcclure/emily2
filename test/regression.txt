@@ -125,3 +125,6 @@ compiler/complexBranch.em
 compiler/valuedBranch.em
 compiler/loop.em
 compiler/loopValuedBranch.em
+compiler/functionAddOne.em
+compiler/functionPassAddOne.em
+compiler/functionCheckedAddOne.em

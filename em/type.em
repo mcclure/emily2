@@ -28,7 +28,6 @@ export TypedNode = inherit Node
 						"Type error between ", this.type, " (", this.loc
 						") and ", node.type, " (", node.loc, ")"
 		elif (this.type)
-			#typeDebug node this "Setting"
 			this.type = this.type.resolve
 			node.type = this.type
 		elif (node.type)
@@ -38,6 +37,8 @@ export TypedNode = inherit Node
 		else
 			#typeDebug this node "Forwarding"
 			this.type = new ReferType(node)
+
+	method toString = "[Node " + this.loc.toString + " type " + (if (this.type) (this.type.toString) else ("{Unresolved}")) + "]"
 
 export ReferType = inherit Type
 	field to = null
@@ -51,7 +52,7 @@ export ReferType = inherit Type
 export ResolvedType = inherit Type
 	method compatible = function (type) (this.compatibleTest type || type.compatibleTest this)
 	method compatibleTest = function (type) (type == this)
-	method returnType = function (typedNode) (UnknowableType)
+	method returnFor = function (typedNode) (standardUnknowableVal)
 
 export UnknowableType = inherit ResolvedType
 	method compatibleTest = function (type) (true) # FIXME
@@ -77,18 +78,20 @@ export StringType = inherit ResolvedType
 	toString = "{String}"
 
 export FunctionType = inherit ResolvedType
-	field fn = null   # These are both TypedNodes
-	field arg = null
+	field arg = null   # These are both TypedNodes
+	field result = null
 	method toString = nullJoin array
-		"{Function ", this.fn.type, " -> ", this.arg.type, "}"
+		"{Function ", this.arg.type, " -> ", this.result.type, "}"
 	method compatibleTest = function (type)
-		is FunctionType type && this.arg.compatibleTest (type.arg) && this.result.compatibleTest (type.result)
-	method returnType = function(typedNode) (this.arg.type) # TODO: Check correctness of typedNode?
+		is FunctionType type && this.arg.type.resolve.compatibleTest (type.arg.type.resolve) && this.result.type.resolve.compatibleTest (type.result.type.resolve)
+	method returnFor = function(typedNode) (this.result) # TODO: Check correctness of typedNode?
 
 export Val = inherit TypedNode
 	field type = null
 
 export KnownTypeVal = inherit Val # Use for typed literals with no other content
+
+let standardUnknowableVal = new KnownTypeVal(null, UnknowableType)
 
 export functionType = foldr InvalidType function(prev, next)
 	new FunctionType

@@ -21,22 +21,24 @@ export TypePrinter = inherit Object
 			nullJoin
 				map function (x) ("\n" + descend distance x) nodes
 
+		let scopePlusSequence = function(varLabel, contentLabel, scope)
+			let indented = indentPrefix (depth+1)
+			let indented2 = indentPrefix (depth+2)
+			nullJoin array
+				"\n", indented, varLabel
+				foldIter \+ ""
+					mapIter
+						function(x)
+							array
+								"\n" + indented2 + x + ":" + scope.get(x).type.toString
+						scope.shallowIter
+				"\n", indented, contentLabel
+
 		indentPrefix depth + with exe match
 			InvalidExec = "[INVALID]"
 			SequenceExec = "Sequence:" + exe.type.toString +
 				if (exe.hasScope)
-					let indented = indentPrefix (depth+1)
-					let indented2 = indentPrefix (depth+2)
-					nullJoin array
-						"\n", indented, "Vars"
-						foldIter \+ ""
-							mapIter
-								function(x)
-									array
-										"\n" + indented2 + x + ":" + exe.typeScope.get(x).type.toString
-								exe.typeScope.shallowIter
-						"\n", indented, "Statements"
-						sequence 2 (exe.execs)
+					scopePlusSequence "Vars" "Statements" (exe.typeScope) + sequence 2 (exe.execs)
 				else
 					sequence 1 (exe.execs)
 			LiteralExec = "Literal:" + exe.type.toString
@@ -49,7 +51,11 @@ export TypePrinter = inherit Object
 				else
 					"[SET INDEXED]"
 			ImportAllExec = "[IMPORTALL]"
-			MakeFuncExec = "[CLOSURE]"
+			MakeFuncExec = "Closure: " + exe.type.toString +
+				if (exe.typeScope)
+					scopePlusSequence "Params" "Body" (exe.typeScope) + "\n" + descend 2 (exe.body)
+				else
+					"\n" + descend 1 (exe.body)
 			MakeObjectExec = "[NEW OBJECT]"
 			MakeArrayExec = "[NEW ARRAY]"
 			MakeMatchExec = "[MATCH]"

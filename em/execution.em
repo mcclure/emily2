@@ -35,7 +35,7 @@ export SequenceExec = inherit Executable
 	field method execs = array()
 	field macros = null
 	field type = null
-	field typeScope = null # Memo
+	field typeScope = null # Memo-- used only by debug.em
 
 	method evalSequence = function (scope, exportScope)
 		let exportList = null
@@ -65,23 +65,23 @@ export SequenceExec = inherit Executable
 
 	method check = function (scope)
 		if (this.hasScope)
-			this.typeScope = new ChainedDict
-			this.typeScope.set chainParent scope
-		else
+			let innerScope = new ChainedDict
+			innerScope.set chainParent scope
+			scope = innerScope
 			this.typeScope = scope
 
 		let i = this.execs.iter
 		while (i.more)
 			let exe = i.next
 			if (is SetExec exe && exe.isLet)
-				this.typeScope.set (exe.indexClause.value) new Val
+				scope.set (exe.indexClause.value) new Val
 
 		i = this.execs.iter
 		let last = null
 
 		while (i.more)
 			last = i.next
-			last.check (this.typeScope)
+			last.check (scope)
 
 		if (last)
 			this.unify last
@@ -175,10 +175,11 @@ export VarExec = inherit Executable
 
 	field type = null
 	method check = function (scope)
-		if (!scope.has (this.symbol))
+		let var = scope.get (this.symbol)
+		if (var == chainNotFound)
 			fail
 				"Variable " + this.symbol + " not found during typecheck at " + this.loc.toString
-		this.unify (scope.get (this.symbol))
+		this.unify (var)
 
 export ApplyExec = inherit Executable
 	field fn = null
@@ -196,8 +197,9 @@ export ApplyExec = inherit Executable
 		this.fn.eval(scope).apply (this.arg.eval(scope))
 
 	method check = function (scope)
-		this.fn.check scope, this.arg.check scope
-		this.type = this.fn.type.returnType(this.arg)
+		this.fn.check scope
+		this.arg.check scope
+		this.fn.type.returnFor(this.arg).unify this
 
 export SetExec = inherit Executable
 	field isLet = false
@@ -303,7 +305,8 @@ export ImportAllExec = inherit Executable
 export MakeFuncExec = inherit Executable
 	field args = null
 	field body = null
-	type = UnknowableType # FIXME
+	field type = null
+	field typeScope = null # Memo-- used only by debug.em
 
 	method toString = nullJoin array
 		"[Function ["
@@ -316,7 +319,33 @@ export MakeFuncExec = inherit Executable
 		new FunctionValue(this.args, this.body, scope)
 
 	method check = function(scope)
-		body.check scope
+		let loc = this.loc
+		let fnResult = new Val(loc)
+		let fnType = new FunctionType
+			new Val(loc), fnResult
+		let i = this.args.reverseIter
+		if (i.more)
+			let alreadyArgs = false
+
+			let innerScope = new ChainedDict
+			innerScope.set chainParent scope
+			scope = innerScope
+			this.typeScope = scope
+
+			while (i.more)
+				let arg = i.next
+				if (alreadyArgs)
+					fnType = new FunctionType
+						new Val(loc), new Val(loc, fnType)
+				else
+					alreadyArgs = true
+				scope.set arg (fnType.arg)
+		else
+			fnType.arg.type = UnitType
+
+		this.body.check scope
+		this.body.unify fnResult
+		this.type = fnType
 
 export MakeObjectExec = inherit Executable
 	field baseClause = null

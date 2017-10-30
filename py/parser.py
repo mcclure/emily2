@@ -550,7 +550,7 @@ class MatchMacro(OneSymbolMacro):
 						unpacks.append(execution.AtomLiteralExec(statement.nodes[0].loc, statement.nodes[0].content))
 						foundUnpack = True
 				if not foundUnpack:
-					return Error(node.loc, u"On match line #%d, variable unpack list on right of = is garbled" % (stmIdx+1))
+					return Error(node.loc, u"On match line #%d, variable unpack list on left of = is garbled" % (stmIdx+1))
 			if isSymbol(target, '_'):
 				if unpacksExp:
 					return Error(node.loc, u"On match line #%d, variable unpack list used with _" % (stmIdx+1))

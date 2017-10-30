@@ -22,6 +22,10 @@ export TemplateVal = inherit Val
 	field fn = null # Currently assume binary
 	field prefix = null
 
+export FnVal = inherit Val
+	field argVals = null
+	field block = null
+
 export invokeTemplate = function(name)
 	function(a)
 		name + "(" + join(", ", a) + ")"
@@ -234,6 +238,9 @@ export BaseCompiler = inherit Object
 						elseBlock.jump postBlock
 
 					resultVar # Done
+
+			MakeFuncExec(_, args, body) =
+				fail "TODO"
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 
