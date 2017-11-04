@@ -24,6 +24,7 @@ export TemplateVal = inherit Val
 
 export FnVal = inherit Val
 	field argVals = null
+	field resultVal = null
 	field block = null
 
 export invokeTemplate = function(name)
@@ -184,19 +185,46 @@ export BaseCompiler = inherit Object
 				let fnVal = this.buildBlockImpl(block, scope, fn)
 				let argVal = this.buildBlockImpl(block, scope, arg)
 
+				let method simplePartial = new PartialApplyVal
+					type = exe.type
+					fnVal = fnVal
+					args = array(argVal)
+
+				let execute = function(exeVal, args)
+					if (!is FnVal exeVal)
+						fail "Internal error: Only functions should be able to get to this point"
+					let jumpBlock = block.pointer
+					let afterBlock = block.appendBlock.pointer
+					let dstI = exeVal.argVals.iter
+					let srcI = args.iter
+					while (dstI.more)
+						elseBlock.buildVal (dstI.next) (srcI.next)
+
+					jumpBlock.pushReturn afterBlock
+					jumpBlock.jump (exeVal.block)
 				with fnVal match
-					TemplateVal = new PartialApplyVal
-						type = exe.type
-						fnVal=fnVal
-						args=array(argVal)
+					TemplateVal = simplePartial # All templatevals are +2-arity currently
+					FnVal =
+						if (fnVal.argVals.length > 1)
+							execute fnVal array(argVal)
+						else
+							simplePartial
 					PartialApplyVal = do
-						if (fnVal.args.length > fnVal.fnVal.arity)
+						let newLen = fnVal.args.length + 1
+						let targetLen = fnVal.fnVal.arity
+						if (newLen > targetLen)
 							fail "Too many applications on function for current compiler"
-						new PartialApplyVal
-							type = exe.type
-							fnVal = fnVal.fnVal
-							args = catArrayElement(fnVal.args, argVal)
-					_ = fail "Don't know how to apply this yet"
+						let args = catArrayElement(fnVal.args, argVal)
+						let innerFnVal = fnVal.fnVal
+						if (newLen < targetLen || is TemplateVal innerFnVal)
+							new PartialApplyVal
+								type = exe.type
+								fnVal = innerFnVal
+								args = args
+						else
+							execute innerFnVal args
+					_ = fail
+						"Don't know how to apply this yet: " + fnVal.toString
 			IfExec(_, loop, condClause, ifClause, elseClause) =
 				if (loop)
 					let jumpBlock = block.pointer
@@ -239,8 +267,35 @@ export BaseCompiler = inherit Object
 
 					resultVar # Done
 
-			MakeFuncExec(_, args, body) =
-				fail "TODO"
+			MakeFuncExec(loc, args, body, funcType, typeScope) = do
+				let fnScope = scope
+				if (args.length > 0)
+					fnScope = new ChainedDict
+					fnScope.set chainParent scope
+
+				let fnVal = new FnVal
+					loc=loc, type=funcType
+					block = block.appendFunctionBlock
+					argVals = with2 map args function(argName)
+						let argType = (typeScope.get argName).resolve.type
+						let argVar = block.addVar (loc, argType, argName)
+						fnScope.set argName argVar
+						argVar
+				
+				let resultType = funcType.arg.type # FIXME: Bad type assumption
+				let fnBlock = fnVal.block
+				let i = fnVal.argVals.reverseIter
+				let resultVal = this.buildBlockImpl(fnBlock, fnScope, body)
+
+				if (resultType != UnitType)
+					let resultVar = block.addVar (loc, resultType, null)
+					fnVal.resultVal = resultVar
+					fnBlock.buildVal resultVar resultVal
+
+				fnBlock.popJump
+
+				fnVal
+
 			ImportAllExec = UnitVal # TODO
 			NullLiteralExec = new KnownVal (value = null)
 
@@ -297,6 +352,10 @@ export ClikeCompiler = inherit BaseCompiler
 			this.block = this.fn.appendBlock
 			this
 
+		method appendFunctionBlock = new (this.fn.unit.compiler.SwitchPointerBlock)
+			fn = this.fn
+			block = this.fn.appendBlock
+
 		method buildVal = this.block.buildVal
 		method buildStatement = this.block.buildStatement
 		method buildEntryChunk = this.block.buildEntryChunk
@@ -309,6 +368,8 @@ export ClikeCompiler = inherit BaseCompiler
 		method jump = this.block.jump
 		method condJump = this.block.condJump
 		method terminate = this.block.terminate
+		method pushReturn = this.block.pushReturn
+		method popJump = this.block.popJump
 
 	SwitchBlock = inherit (current.BlockBlock)
 		field id = null
@@ -370,6 +431,11 @@ export ClikeCompiler = inherit BaseCompiler
 						"i = " + falseBlock.label + ";"
 				"break;"
 
+		method standardExpressionStringJump = function(str)
+			array
+				"i = " + str + ";"
+				"break;"
+
 		method standardFallthroughJump = function(block)
 			this.exitChunk.lines = 
 				if (block.id == this.id + 1)
@@ -412,7 +478,7 @@ export ClikeCompiler = inherit BaseCompiler
 						if (val.args < fnVal.arity)
 							fail "No currying yet"
 						fnVal.fn (map (this.valToString) (val.args))
-
+			FnVal = this.literalToString (val.block.id)
 
 	method literalToString = function(value)
 		with value match

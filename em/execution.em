@@ -306,7 +306,7 @@ export MakeFuncExec = inherit Executable
 	field args = null
 	field body = null
 	field type = null
-	field typeScope = null # Memo-- used only by debug.em
+	field typeScope = null # Memo-- used by debug.em and compiler
 
 	method toString = nullJoin array
 		"[Function ["

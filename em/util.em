@@ -124,6 +124,8 @@ export map = function(f, ary)
 			f(i.next)
 	result
 
+export with2 = function(f, a, b) (f b a)
+
 export checkErrors = function(errors)
 	if (0 < errors.length)
 		let i = errors.iter

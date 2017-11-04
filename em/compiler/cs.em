@@ -8,7 +8,7 @@ from project.compiler.base import
 	CtypedCompiler, Chunk, IndentChunk, AddressableVal, KnownVal, TemplateVal, PartialApplyVal
 	upgradeTemplateVal, invokeTemplate
 from project.type import
-	UnitType, BooleanType, NumberType, StringType
+	UnitType, BooleanType, NumberType, StringType, FunctionType
 
 export CsCompiler = inherit CtypedCompiler
 	scope = do
@@ -43,6 +43,7 @@ export CsCompiler = inherit CtypedCompiler
 			lines = array
 				"uint i = 0;"
 				"bool run = true;"
+				"Stack<int> stack = new Stack<int>();"
 				"while (run) {"
 				new IndentChunk
 					lines = array
@@ -59,6 +60,14 @@ export CsCompiler = inherit CtypedCompiler
 		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
 			this.exitChunk.lines = this.standardCondJumpArray
 				this.unit.compiler.valToString condVal, trueBlock, falseBlock
+
+		method pushReturn = function(block)
+			this.source.lines.append
+				"stack.Push(" + block.label + ");"
+
+		method popJump = do
+			this.exitChunk.lines = this.standardExpressionStringJump
+				"stack.Pop()"
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
@@ -74,6 +83,8 @@ export CsCompiler = inherit CtypedCompiler
 			NumberType = "float"
 			StringType = "string"
 			UnitType = "void"
+			FunctionType = "int"
 			(project.type.UnknowableType) = fail "Can't translate unknowable type" # DON'T CHECK THIS LINE IN
-			_ = fail "Can't translate this type"
+			_ = fail
+				"Can't translate this type: " + type.toString
 
