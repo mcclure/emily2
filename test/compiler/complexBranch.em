@@ -3,7 +3,7 @@
 # Tags: compiler
 
 # Expect:
-# True
+# 995
 # 1
 # 3
 
@@ -20,10 +20,10 @@ if (
 			x = x + 1
 		x > 0
 )
-	println "True"
+	println 995 # "True"
 	y = 3
 else
-	println "False"
+	println 994 # "False"
 	y = 4
 
 println x

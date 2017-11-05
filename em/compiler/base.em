@@ -9,7 +9,7 @@ from project.execution import
 	LiteralExec, NullLiteralExec, StringLiteralExec, AtomLiteralExec
 from project.type import # FIXME
 	TypedNode, ReferType, UnitType, BooleanType, NumberType, StringType, AtomType, UnknowableType
-	Val, KnownTypeVal, functionTypeVal
+	Val, KnownTypeVal, functionTypeVal, functionTypeArgIter
 
 # Notice use of current vs this; the current version is used when matching; the this version, when constructing
 
@@ -23,8 +23,6 @@ export TemplateVal = inherit Val
 	field prefix = null
 
 export FnVal = inherit Val
-	field argVals = null
-	field resultVal = null
 	field block = null
 
 export invokeTemplate = function(name)
@@ -42,6 +40,7 @@ export upgradeTemplateVal = function(dict, name, arity, fn, prefix)
 export PartialApplyVal = inherit Val
 	field fnVal = null
 	field args = null
+	field argTarget = null
 
 # Unsure
 export AddressableVal = inherit Val
@@ -114,7 +113,7 @@ export BaseCompiler = inherit Object
 			value
 
 		method addLiteral = function(exe)
-			new KnownVal(exe.loc, exe.type, exe.value)
+			new KnownVal(exe.loc, exe.resolve.type, exe.value)
 
 		method addRawGlobal = function(s)
 			this.defsChunk.lines.append(s)
@@ -185,46 +184,63 @@ export BaseCompiler = inherit Object
 				let fnVal = this.buildBlockImpl(block, scope, fn)
 				let argVal = this.buildBlockImpl(block, scope, arg)
 
-				let method simplePartial = new PartialApplyVal
-					type = exe.type
-					fnVal = fnVal
-					args = array(argVal)
+				let simplePartial = function(argTarget)
+					new PartialApplyVal
+						type = exe.resolve.type
+						fnVal = fnVal
+						args = array(argVal)
+						argTarget = argTarget
 
 				let execute = function(exeVal, args)
-					if (!is FnVal exeVal)
-						fail "Internal error: Only functions should be able to get to this point"
 					let jumpBlock = block.pointer
 					let afterBlock = block.appendBlock.pointer
-					let dstI = exeVal.argVals.iter
-					let srcI = args.iter
-					while (dstI.more)
-						elseBlock.buildVal (dstI.next) (srcI.next)
 
+					let typeIter = functionTypeArgIter(exeVal.type)
+					let argIter = args.iter
+					while (typeIter.more)
+						let argType = typeIter.next
+						let argVal = argIter.next
+						if (argType != UnitType)
+							jumpBlock.buildPushVal (argVal)
+
+					let resultType = exe.resolve.type
+					let resultVal = null
+					if (resultType != UnitType)
+						resultVal = afterBlock.addVar(exe.loc, resultType, null)
+						afterBlock.buildPopVal (resultVal)
 					jumpBlock.pushReturn afterBlock
-					jumpBlock.jump (exeVal.block)
+					jumpBlock.jumpVal exeVal
+
+					if (resultVal)
+						resultVal
+					else
+						UnitVal					
+
+				let possibleExecute = function(argCount)
+					if (argCount > 1)
+						simplePartial argCount
+					else
+						execute fnVal array(argVal)
+
 				with fnVal match
-					TemplateVal = simplePartial # All templatevals are +2-arity currently
-					FnVal =
-						if (fnVal.argVals.length > 1)
-							execute fnVal array(argVal)
-						else
-							simplePartial
+					TemplateVal = simplePartial (fnVal.arity) # All templatevals are +2-arity currently
+					FnVal = possibleExecute (fnVal.argVals)
 					PartialApplyVal = do
 						let newLen = fnVal.args.length + 1
-						let targetLen = fnVal.fnVal.arity
+						let targetLen = fnVal.argTarget
 						if (newLen > targetLen)
 							fail "Too many applications on function for current compiler"
 						let args = catArrayElement(fnVal.args, argVal)
 						let innerFnVal = fnVal.fnVal
 						if (newLen < targetLen || is TemplateVal innerFnVal)
 							new PartialApplyVal
-								type = exe.type
+								type = exe.resolve.type
 								fnVal = innerFnVal
 								args = args
 						else
 							execute innerFnVal args
-					_ = fail
-						"Don't know how to apply this yet: " + fnVal.toString
+					_ = possibleExecute (iterCount (functionTypeArgIter (fnVal.type)))
+						
 			IfExec(_, loop, condClause, ifClause, elseClause) =
 				if (loop)
 					let jumpBlock = block.pointer
@@ -248,7 +264,7 @@ export BaseCompiler = inherit Object
 					let ifBlock = block.appendBlock.pointer
 					let elseBlock = if (elseClause) (block.appendBlock.pointer) else (null)
 					let postBlock = block.appendBlock.pointer
-					let type = exe.type
+					let type = exe.resolve.type
 					let returns = type != UnitType # Implies elseClause
 					let resultVar = if (returns) (jumpBlock.addVar(null, type, null)) else (UnitVal)
 
@@ -276,23 +292,25 @@ export BaseCompiler = inherit Object
 				let fnVal = new FnVal
 					loc=loc, type=funcType
 					block = block.appendFunctionBlock
-					argVals = with2 map args function(argName)
-						let argType = (typeScope.get argName).resolve.type
-						let argVar = block.addVar (loc, argType, argName)
-						fnScope.set argName argVar
-						argVar
 				
-				let resultType = funcType.arg.type # FIXME: Bad type assumption
+				let resultType = funcType.arg.resolve.type # FIXME: Bad type assumption
 				let fnBlock = fnVal.block
-				let i = fnVal.argVals.reverseIter
+
+				let i = args.reverseIter
+				while (i.more)
+					let argName = i.next
+					let argType = (typeScope.get argName).resolve.type
+					let argVar = fnBlock.addVar (loc, argType, argName)
+					fnBlock.buildPopVal(argVar)
+					fnScope.set argName argVar
+					argVar
+
 				let resultVal = this.buildBlockImpl(fnBlock, fnScope, body)
 
 				if (resultType != UnitType)
-					let resultVar = block.addVar (loc, resultType, null)
-					fnVal.resultVal = resultVar
-					fnBlock.buildVal resultVar resultVal
+					fnBlock.buildPushVal resultVal
 
-				fnBlock.popJump
+				fnBlock.popJump # FIXME: This assumes in *no* implementation do value stack and return stack coincide
 
 				fnVal
 
@@ -366,17 +384,20 @@ export ClikeCompiler = inherit BaseCompiler
 		method id = this.block.id
 		method label = this.block.label
 		method jump = this.block.jump
+		method jumpVal = this.block.jumpVal
 		method condJump = this.block.condJump
 		method terminate = this.block.terminate
 		method pushReturn = this.block.pushReturn
 		method popJump = this.block.popJump
+		method buildPushVal = this.block.buildPushVal
+		method buildPopVal = this.block.buildPopVal
 
 	SwitchBlock = inherit (current.BlockBlock)
 		field id = null
 
 		method buildVal = function(assignVal, dataVal)
 			if (!assignVal)
-				assignVal = this.addVar(null, exp.type, null)
+				assignVal = this.addVar(null, dataVal.type, null)
 			let compiler = this.unit.compiler
 			appendArray (this.source.lines) array
 				compiler.valToString(assignVal) + " = " + compiler.valToString(dataVal) + ";"
@@ -415,6 +436,14 @@ export ClikeCompiler = inherit BaseCompiler
 							this.source
 							this.exitChunk
 					"}"
+
+		method jumpVal = function(val)
+			if (is FnVal val)
+				fail "Okay to remove this fail, just tracing: Jumped to a val directly"
+				this.jump (val.block)
+			else
+				this.exitChunk.lines = this.standardExpressionStringJump
+					this.unit.compiler.valToString val
 
 		method terminate = do
 			this.exitChunk.lines = this.standardTerminateLines
@@ -478,12 +507,12 @@ export ClikeCompiler = inherit BaseCompiler
 						if (val.args < fnVal.arity)
 							fail "No currying yet"
 						fnVal.fn (map (this.valToString) (val.args))
-			FnVal = this.literalToString (val.block.id)
+			FnVal = val.block.label
 
 	method literalToString = function(value)
 		with value match
 			String = "\"" + value + "\"" # NO!
-			Number = value.toString
+			Number = value.toString + "f"
 			Boolean = value.toString
 			null = "null"
 			_ = fail "Can't translate this literal"

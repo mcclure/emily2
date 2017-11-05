@@ -26,6 +26,7 @@ export CsCompiler = inherit CtypedCompiler
 
 			appendArray (this.source.lines) array
 				"using System;"
+				"using System.Collections.Generic;"
 				"public class Program"
 				"{"
 				new IndentChunk
@@ -43,7 +44,8 @@ export CsCompiler = inherit CtypedCompiler
 			lines = array
 				"uint i = 0;"
 				"bool run = true;"
-				"Stack<int> stack = new Stack<int>();"
+				"Stack<uint> returnStack = new Stack<uint>();"
+				"Stack<object> paramStack = new Stack<object>();"
 				"while (run) {"
 				new IndentChunk
 					lines = array
@@ -63,11 +65,21 @@ export CsCompiler = inherit CtypedCompiler
 
 		method pushReturn = function(block)
 			this.source.lines.append
-				"stack.Push(" + block.label + ");"
+				"returnStack.Push(" + block.label + ");"
 
 		method popJump = do
 			this.exitChunk.lines = this.standardExpressionStringJump
-				"stack.Pop()"
+				"returnStack.Pop()"
+
+		method buildPushVal = function(val)
+			let compiler = this.unit.compiler
+			this.source.lines.append
+				"paramStack.Push((object)(" + compiler.valToString(val) + "));"
+
+		method buildPopVal = function(val)
+			let compiler = this.unit.compiler
+			this.source.lines.append
+				compiler.valToString(val) + " = (" + compiler.typeToString(val.type) + ")paramStack.Pop();"
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array
@@ -83,7 +95,7 @@ export CsCompiler = inherit CtypedCompiler
 			NumberType = "float"
 			StringType = "string"
 			UnitType = "void"
-			FunctionType = "int"
+			FunctionType = "uint"
 			(project.type.UnknowableType) = fail "Can't translate unknowable type" # DON'T CHECK THIS LINE IN
 			_ = fail
 				"Can't translate this type: " + type.toString

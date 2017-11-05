@@ -124,6 +124,13 @@ export map = function(f, ary)
 			f(i.next)
 	result
 
+export iterCount = function(i)
+	let result = 0
+	while (i.more)
+		result = result + 1
+		i.next
+	result
+
 export with2 = function(f, a, b) (f b a)
 
 export checkErrors = function(errors)

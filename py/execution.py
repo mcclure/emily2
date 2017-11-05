@@ -346,7 +346,12 @@ arrayIteratorIdx = object()
 arrayIteratorPrototype = ObjectValue()
 arrayIteratorPrototype.atoms['more'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, lambda x:toBoolean(x.atoms[arrayIteratorIdx] < len(x.atoms[arrayIteratorSource]))))
 def arrayIteratorNextImpl(i):
-	x = i.atoms[arrayIteratorSource][ i.atoms[arrayIteratorIdx] ]
+	ary = i.atoms[arrayIteratorSource]
+	idx = i.atoms[arrayIteratorIdx]
+	try:
+		x = ary[idx]
+	except IndexError:
+		raise InternalExecutionException(u'Called "next" on exhausted array iterator (index %d)' % idx)
 	i.atoms[arrayIteratorIdx] += 1
 	return x
 arrayIteratorPrototype.atoms['next'] = MethodPseudoValue(pythonFunction=PythonFunctionValue(1, arrayIteratorNextImpl))

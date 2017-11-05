@@ -3,7 +3,7 @@
 # Tags: compiler
 
 # Expect:
-# False
+# 992
 # 0
 # 4
 # 6
@@ -20,12 +20,12 @@ let z = if (
 	else
 		x < 20
 )
-	println "True"
+	println 993 # "True"
 	y = 3
 	5
 else
 	let q = 6
-	println "False"
+	println 992 # "False"
 	y = 4
 	q
 

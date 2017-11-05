@@ -111,6 +111,17 @@ export FunctionType = inherit ResolvedType
 		else
 			false
 
+let functionTypeArgIterator = inherit Object
+	field type = null
+	method more = is FunctionType (this.type)
+	method next = do
+		let result = this.type.arg.type
+		this.type = this.type.result.type
+		result
+
+export functionTypeArgIter = function(functionType)
+	new functionTypeArgIterator(functionType)
+
 export Val = inherit TypedNode
 	field type = null
 
