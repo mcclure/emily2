@@ -512,7 +512,7 @@ export ClikeCompiler = inherit BaseCompiler
 	method literalToString = function(value)
 		with value match
 			String = "\"" + value + "\"" # NO!
-			Number = value.toString + "f"
+			Number = value.toFloatString
 			Boolean = value.toString
 			null = "null"
 			_ = fail "Can't translate this literal"
@@ -544,4 +544,8 @@ export CtypedCompiler = inherit ClikeCompiler
 			this.defsChunk = new Chunk
 			this.mainChunk = new IndentChunk
 
-	
+	method literalToString = function(value)
+		if (is Number value)
+			super.literalToString value + "f"
+		else
+			super.literalToString value

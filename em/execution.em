@@ -920,6 +920,12 @@ numberValuePrototype.atoms.set "toString"
 			new StringValue(this.value.toString)
 		1
 
+numberValuePrototype.atoms.set "toFloatString"
+	literalMethod
+		function (this)
+			new StringValue(this.value.toFloatString)
+		1
+
 numberValuePrototype.atoms.set "toNumber"
 	literalMethod
 		function (this) (this)

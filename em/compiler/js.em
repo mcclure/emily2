@@ -29,6 +29,8 @@ export JsCompiler = inherit ClikeCompiler
 			lines = array
 				"let i = 0;"
 				"let run = true;"
+				"let returnStack = []"
+				"let paramStack = []"
 				"while (run) {"
 				new IndentChunk
 					lines = array
@@ -43,6 +45,25 @@ export JsCompiler = inherit ClikeCompiler
 
 		method condJump = function(condVal, trueBlock, falseBlock) # Assume jump/branchJump are called at most once
 			this.standardFallthroughCondJump(condVal, trueBlock, falseBlock)
+
+		method pushReturn = function(block)
+			this.source.lines.append
+				"returnStack.push(" + block.label + ");"
+
+		method popJump = do
+			this.exitChunk.lines = this.standardExpressionStringJump
+				"returnStack.pop()"
+
+		method buildPushVal = function(val)
+			let compiler = this.unit.compiler
+			this.source.lines.append
+				"paramStack.push(" + compiler.valToString(val) + ");"
+
+		method buildPopVal = function(val)
+			let compiler = this.unit.compiler
+			this.source.lines.append
+				compiler.valToString(val) + " = paramStack.pop();"
+
 	
 	method buildVarInto = function(defsChunk, value, description)
 		appendArray (defsChunk.lines) array

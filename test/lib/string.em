@@ -5,7 +5,7 @@ let x = "one two three"
 let i = x.iter
 
 # Expect:
-# oh n o n false x 13 3q 4 atom true 0 2
+# oh n o n false x 13 3q 3.0 4 atom true 0 2
 # e e r
 
 print
@@ -17,6 +17,7 @@ print
 	"xyz".iter.next
 	x.length
 	+ (3..toString) "q"
+	(3.toFloatString)
 	+ ("3".toNumber.toNumber.toString.toNumber) 1
 	.atom.toString
 	true.toString
